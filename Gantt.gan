@@ -1,0 +1,121 @@
+<?xml version="1.0" encoding="UTF-8"?><project name="Untitled Gantt Project" company="" webLink="http://" view-date="2025-03-13" view-index="0" gantt-divider-location="647" resource-divider-location="300" version="3.3.3312" locale="fr_FR">
+    <description/>
+    <view zooming-state="default:0" id="gantt-chart">
+        <field id="tpd15" name="Notes" width="20" order="-1"/>
+        <field id="tpd3" name="Nom" width="369" order="0"/>
+        <field id="tpd4" name="Date de début" width="138" order="1"/>
+        <field id="tpd5" name="Date de fin" width="139" order="2"/>
+        <option id="filter.completedTasks" value="false"/>
+        <option id="filter.dueTodayTasks" value="false"/>
+        <option id="filter.overdueTasks" value="false"/>
+        <option id="filter.inProgressTodayTasks" value="false"/>
+        <option id="color.recent"><![CDATA[#00ffff #ff6666]]></option>
+    </view>
+    <view id="resource-table">
+        <field id="0" name="Nom" width="210" order="0"/>
+        <field id="1" name="Rôle par défaut" width="86" order="1"/>
+    </view>
+    <!-- -->
+    <calendars>
+        <day-types>
+            <day-type id="0"/>
+            <day-type id="1"/>
+            <default-week id="1" name="default" sun="1" mon="0" tue="0" wed="0" thu="0" fri="0" sat="1"/>
+            <only-show-weekends value="false"/>
+            <overriden-day-types/>
+            <days/>
+        </day-types>
+    </calendars>
+    <tasks empty-milestones="true">
+        <taskproperties>
+            <taskproperty id="tpd0" name="type" type="default" valuetype="icon"/>
+            <taskproperty id="tpd1" name="priority" type="default" valuetype="icon"/>
+            <taskproperty id="tpd2" name="info" type="default" valuetype="icon"/>
+            <taskproperty id="tpd3" name="name" type="default" valuetype="text"/>
+            <taskproperty id="tpd4" name="begindate" type="default" valuetype="date"/>
+            <taskproperty id="tpd5" name="enddate" type="default" valuetype="date"/>
+            <taskproperty id="tpd6" name="duration" type="default" valuetype="int"/>
+            <taskproperty id="tpd7" name="completion" type="default" valuetype="int"/>
+            <taskproperty id="tpd8" name="coordinator" type="default" valuetype="text"/>
+            <taskproperty id="tpd9" name="predecessorsr" type="default" valuetype="text"/>
+        </taskproperties>
+        <task id="26" uid="ceba1afab46740529f9811b7423a2380" name="DEBUT" color="#00ffff" meeting="true" start="2025-02-20" duration="0" complete="0" expand="true"/>
+        <task id="0" uid="b525597d511147868e71d289dadd018c" name="Choisir l'hébergement" meeting="false" start="2025-02-20" duration="2" complete="0" expand="true">
+            <depend id="1" type="2" difference="0" hardness="Strong"/>
+            <depend id="22" type="2" difference="0" hardness="Strong"/>
+        </task>
+        <task id="1" uid="275a7c07a65f45988a01a53075c67f6b" name="Installer les environnements de travail" meeting="false" start="2025-02-24" duration="3" complete="0" expand="true">
+            <depend id="2" type="2" difference="0" hardness="Strong"/>
+            <depend id="4" type="2" difference="0" hardness="Strong"/>
+        </task>
+        <task id="2" uid="37ba749cd7184538bb934352232a80fb" name="Concevoir l’architecture de l’application" meeting="false" start="2025-02-27" duration="6" complete="0" expand="true">
+            <depend id="3" type="2" difference="0" hardness="Strong"/>
+            <depend id="5" type="2" difference="0" hardness="Strong"/>
+        </task>
+        <task id="3" uid="e35e41226d4847cbb47b537adf2d7ed7" name="Créer la base de données" meeting="false" start="2025-03-07" duration="5" complete="0" expand="true">
+            <depend id="7" type="2" difference="0" hardness="Strong"/>
+        </task>
+        <task id="4" uid="60fded7bcda647559ce4a9bb8a9a32ce" name="Configuration de Proxmox &amp; virtualisation" meeting="false" start="2025-02-27" duration="9" complete="0" expand="true">
+            <depend id="6" type="2" difference="0" hardness="Strong"/>
+        </task>
+        <task id="5" uid="9e32b953a1e5495584b17bd1adbdc4d0" name="Écriture des rapports" meeting="false" start="2025-03-07" duration="7" complete="0" expand="true"/>
+        <task id="6" uid="4e867ba9b93c4e72b70eaef364d8c690" name="Création de l’architecture réseau" meeting="false" start="2025-03-12" duration="4" complete="0" expand="true">
+            <depend id="11" type="2" difference="0" hardness="Strong"/>
+        </task>
+        <task id="7" uid="cc7c05fcef004718b4261b9476ccb13d" name="Développement du back-end" meeting="false" start="2025-03-14" duration="33" complete="0" expand="true">
+            <depend id="8" type="2" difference="0" hardness="Strong"/>
+            <depend id="13" type="2" difference="0" hardness="Strong"/>
+            <depend id="14" type="2" difference="0" hardness="Strong"/>
+            <depend id="15" type="2" difference="0" hardness="Strong"/>
+            <depend id="16" type="2" difference="0" hardness="Strong"/>
+            <depend id="17" type="2" difference="0" hardness="Strong"/>
+        </task>
+        <task id="8" uid="5d17434295ae4f74805dacfea8c8dec6" name="Développement du front-end" meeting="false" start="2025-04-30" duration="30" complete="0" expand="true">
+            <depend id="9" type="2" difference="0" hardness="Strong"/>
+            <depend id="10" type="2" difference="0" hardness="Strong"/>
+            <depend id="19" type="2" difference="0" hardness="Strong"/>
+        </task>
+        <task id="9" uid="53c334034157490f827d1b9cceea24fe" name="Intégration des comptes utilisateurs" meeting="false" start="2025-06-11" duration="5" complete="0" expand="true">
+            <depend id="19" type="2" difference="0" hardness="Strong"/>
+        </task>
+        <task id="10" uid="266b1f0f4ae64403bf70bed0dd0e784e" name="Installation des services principaux" meeting="false" start="2025-06-11" duration="9" complete="0" expand="true"/>
+        <task id="11" uid="dacd6ab17b5147b493e4cb6765fc67c7" name="Mise en place des firewalls et VPN" meeting="false" start="2025-03-18" duration="4" complete="0" expand="true">
+            <depend id="21" type="2" difference="0" hardness="Strong"/>
+        </task>
+        <task id="13" uid="2f96b6b8abf74ceaa8a784aee3831dd9" name="Développement du système de notification" meeting="false" start="2025-04-30" duration="4" complete="0" expand="true">
+            <depend id="21" type="2" difference="0" hardness="Strong"/>
+        </task>
+        <task id="14" uid="26605831024f4e64a5087868f70ecb53" name="Génération automatique des factures PDF" meeting="false" start="2025-04-30" duration="7" complete="0" expand="true"/>
+        <task id="15" uid="f69e9e5dc87d44878b95375eb585a474" name="Implémentation du paiement avec Stripe" meeting="false" start="2025-04-30" duration="11" complete="0" expand="true"/>
+        <task id="16" uid="f0759e565ca84b9f84ecacc6062492aa" name="Développement de l’application Java autonome" meeting="false" start="2025-04-30" duration="23" complete="0" expand="true"/>
+        <task id="17" uid="361ce9fef84d4a1490fc6fbbb37969f1" name="Développement de l’application Android" meeting="false" start="2025-04-30" duration="33" complete="0" expand="true">
+            <depend id="18" type="2" difference="0" hardness="Strong"/>
+            <depend id="19" type="2" difference="0" hardness="Strong"/>
+        </task>
+        <task id="18" uid="a0633c55547e4584bc2a3e1fa7e2e01c" name="Intégration du NFC pour les livreurs" meeting="false" start="2025-06-16" duration="4" complete="0" expand="true"/>
+        <task id="19" uid="b64f29f411af480cb1a57f5dd9871f59" name="Tests unitaires &amp; validation de l’application" meeting="false" start="2025-06-18" duration="7" complete="0" expand="true">
+            <depend id="20" type="2" difference="0" hardness="Strong"/>
+        </task>
+        <task id="20" uid="f38d9dc39a8a42cba37285ea6980a508" name="Optimisation &amp; correction des bugs" meeting="false" start="2025-06-27" duration="5" complete="0" expand="true">
+            <depend id="25" type="2" difference="0" hardness="Strong"/>
+        </task>
+        <task id="25" uid="5bacca5e8b854fdb895f04050767d557" name="Tests finaux de l'application" meeting="false" start="2025-07-04" duration="3" complete="0" expand="true">
+            <depend id="22" type="2" difference="0" hardness="Strong"/>
+        </task>
+        <task id="22" uid="916e8f945546494eb116026e847fbb27" name="Présentation &amp; déploiement final" meeting="false" start="2025-07-09" duration="2" complete="0" expand="true">
+            <depend id="21" type="2" difference="0" hardness="Strong"/>
+        </task>
+        <task id="21" uid="78e65ff8de934435b5d632d937bcf267" name="Tests finaux de toute l’infrastructure" meeting="false" start="2025-07-11" duration="1" complete="0" expand="true">
+            <depend id="24" type="2" difference="0" hardness="Strong"/>
+        </task>
+        <task id="24" uid="f5933f6416e843cbb7ff82dc9601c1b8" name="Présentation" meeting="false" start="2025-07-14" duration="1" complete="0" expand="true">
+            <depend id="27" type="2" difference="0" hardness="Strong"/>
+        </task>
+        <task id="27" uid="c0a84829a9ef4fcf93994853c231ce8d" name="FIN" color="#ff6666" meeting="true" start="2025-07-15" duration="0" complete="0" expand="true"/>
+    </tasks>
+    <resources/>
+    <allocations/>
+    <vacations/>
+    <previous/>
+    <roles roleset-name="Default"/>
+</project>
