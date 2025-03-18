@@ -7,7 +7,14 @@ import { SubscriptionsModule } from './subscriptions/subscriptions.module';
 import { SchedulesModule } from './schedules/schedules.module';
 import { RatesModule } from './rates/rates.module';
 import { DocumentsModule } from './documents/documents.module';
-import { MovementModule } from './movement/movement.module';
+import { MovementsModule } from './movements/movements.module';
+import { ContractsModule } from './contracts/contracts.module';
+import { InvoicesModule } from './invoices/invoices.module';
+import { AdvertisementsModule } from './advertisements/advertisements.module';
+import { RatingsModule } from './ratings/ratings.module';
+import { PackagesModule } from './packages/packages.module';
+import { ProductsModule } from './products/products.module';
+
 
 
 @Module({
@@ -28,7 +35,13 @@ import { MovementModule } from './movement/movement.module';
     SchedulesModule,
     RatesModule,
     DocumentsModule,
-    MovementModule,
+    MovementsModule,
+    ContractsModule,
+    InvoicesModule,
+    AdvertisementsModule,
+    RatingsModule,
+    PackagesModule,
+    ProductsModule,
   ],
   controllers: [AppController],
   providers: [AppService],

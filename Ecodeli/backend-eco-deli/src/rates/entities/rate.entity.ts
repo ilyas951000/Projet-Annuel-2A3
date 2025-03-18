@@ -20,6 +20,6 @@ export class Rate {
     ratingDate: Date;
 
     @ManyToMany(() => User)
-    @JoinTable({ name: "giveRating" })
+    @JoinTable({ name: "givingRate" })
     user: User[]
 }

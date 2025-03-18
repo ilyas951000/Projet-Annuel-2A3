@@ -3,13 +3,13 @@ import { CreateMovementDto } from './dto/create-movement.dto';
 import { UpdateMovementDto } from './dto/update-movement.dto';
 
 @Injectable()
-export class MovementService {
+export class MovementsService {
   create(createMovementDto: CreateMovementDto) {
     return 'This action adds a new movement';
   }
 
   findAll() {
-    return `This action returns all movement`;
+    return `This action returns all movements`;
   }
 
   findOne(id: number) {
