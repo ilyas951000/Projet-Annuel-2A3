@@ -4,6 +4,11 @@ import { AppService } from './app.service';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { UsersModule } from './users/users.module';
 import { SubscriptionsModule } from './subscriptions/subscriptions.module';
+import { SchedulesModule } from './schedules/schedules.module';
+import { RatesModule } from './rates/rates.module';
+import { DocumentsModule } from './documents/documents.module';
+import { MovementModule } from './movement/movement.module';
+
 
 @Module({
   imports: [
@@ -20,6 +25,10 @@ import { SubscriptionsModule } from './subscriptions/subscriptions.module';
     }),
     UsersModule,
     SubscriptionsModule,
+    SchedulesModule,
+    RatesModule,
+    DocumentsModule,
+    MovementModule,
   ],
   controllers: [AppController],
   providers: [AppService],

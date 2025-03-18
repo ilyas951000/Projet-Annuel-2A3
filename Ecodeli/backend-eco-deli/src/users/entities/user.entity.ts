@@ -36,6 +36,7 @@ export class User {
     @JoinColumn()
     subscription: Subscription
     
+    
 }
 
 
