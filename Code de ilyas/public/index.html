@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Inscription</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f4f4f4;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+        }
+        .container {
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+        }
+        input, button {
+            width: 100%;
+            padding: 10px;
+            margin: 10px 0;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h2>Inscription</h2>
+        <form id="registerForm">
+            <input type="text" id="userFirstName" placeholder="Prénom" required>
+            <input type="text" id="userLastName" placeholder="Nom" required>
+            <input type="email" id="email" placeholder="Email" required>
+            <input type="password" id="password" placeholder="Mot de passe" required>
+            <input type="text" id="userAddress" placeholder="Adresse" required>
+            <button type="submit">S'inscrire</button>
+        </form>
+        <p id="message"></p>
+    </div>
+
+    <script>
+        document.getElementById("registerForm").addEventListener("submit", async function(event) {
+            event.preventDefault(); // Empêche le rechargement de la page
+
+            const data = {
+                userFirstName: document.getElementById("userFirstName").value,
+                userLastName: document.getElementById("userLastName").value,
+                email: document.getElementById("email").value,
+                password: document.getElementById("password").value,
+                userAddress: document.getElementById("userAddress").value
+            };
+
+            try {
+                const response = await fetch("http://51.15.231.248:3000/auth/register", {
+                    method: "POST",
+                    headers: {
+                        "Content-Type": "application/json"
+                    },
+                    body: JSON.stringify(data)
+                });
+
+                // Gestion de la réponse
+                if (response.ok) {
+                    const result = await response.json();
+                    document.getElementById("message").textContent = result.message || "Inscription réussie !";
+
+                    document.getElementById("registerForm").reset(); // Vide le formulaire après inscription
+                } else {
+                    // Si le serveur renvoie une erreur
+                    const error = await response.json();
+                    document.getElementById("message").textContent = error.message || "Erreur lors de l'inscription.";
+                }
+            } catch (error) {
+                document.getElementById("message").textContent = "Erreur lors de la connexion au serveur.";
+            }
+        });
+    </script>
+</body>
+</html>
