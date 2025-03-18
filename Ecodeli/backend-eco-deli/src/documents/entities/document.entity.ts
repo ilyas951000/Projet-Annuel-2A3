@@ -1,5 +1,5 @@
 import { User } from "src/users/entities/user.entity";
-import { Column, Entity, JoinColumn, OneToOne, PrimaryGeneratedColumn } from "typeorm";
+import { Column, Entity, JoinColumn, OneToMany, OneToOne, PrimaryGeneratedColumn } from "typeorm";
 
 @Entity()
 export class Document {
@@ -18,9 +18,8 @@ export class Document {
     @Column()
     expirationDate: Date;
 
-    @OneToOne(() => User)
-    @JoinColumn()
-    users: User
+    @OneToMany(() => User, (user) => user.documents)
+    user: User[];
 
 
 }

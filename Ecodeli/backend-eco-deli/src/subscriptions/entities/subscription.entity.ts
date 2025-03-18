@@ -1,5 +1,5 @@
 import { User } from "src/users/entities/user.entity";
-import { Column, Entity, OneToMany, PrimaryGeneratedColumn } from "typeorm";
+import { Column, Entity, ManyToOne, OneToMany, PrimaryGeneratedColumn } from "typeorm";
 
 
 @Entity()
@@ -24,5 +24,8 @@ export class Subscription {
 
     @Column()
     supplement3000: boolean;
+
+    @ManyToOne(() => User, (user) => user.subscription)
+    users: User;
 
 }

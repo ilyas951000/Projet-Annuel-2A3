@@ -1,5 +1,5 @@
 import { User } from "src/users/entities/user.entity";
-import { Column, Entity, JoinColumn, OneToOne, PrimaryGeneratedColumn } from "typeorm";
+import { Column, Entity, JoinColumn, OneToMany, OneToOne, PrimaryGeneratedColumn } from "typeorm";
 
 @Entity()
 export class Invoice {
@@ -27,7 +27,6 @@ export class Invoice {
     @Column()
     serviceTitle: string;
 
-    @OneToOne(() => User)
-    @JoinColumn()
-    user: User
+    @OneToMany(() => User, (user) => user.invoice)
+    user: User[];
 }

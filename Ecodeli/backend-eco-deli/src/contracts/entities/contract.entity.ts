@@ -1,5 +1,5 @@
 import { User } from "src/users/entities/user.entity";
-import { Column, Entity, JoinColumn, OneToOne, PrimaryGeneratedColumn } from "typeorm";
+import { Column, Entity, JoinColumn, ManyToOne, OneToMany, OneToOne, PrimaryGeneratedColumn } from "typeorm";
 
 @Entity()
 export class Contract {
@@ -19,9 +19,8 @@ export class Contract {
     contractPhoto: string;
 
     @Column()
-    contractDescription: boolean;
+    contractDescription: string;
 
-    @OneToOne(() => User)
-    @JoinColumn()
-    user: User
+    @OneToMany(() => User, (user) => user.contract)
+    users: User[];
 }
