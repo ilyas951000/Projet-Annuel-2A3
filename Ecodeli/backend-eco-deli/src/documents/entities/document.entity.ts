@@ -20,6 +20,4 @@ export class Document {
 
     @OneToMany(() => User, (user) => user.documents)
     user: User[];
-
-
 }
