@@ -9,6 +9,6 @@ async function bootstrap() {
   // Servir les fichiers statiques depuis le dossier "public"
   app.useStaticAssets(join(__dirname, '..', 'public'));
   app.enableCors();
-  await app.listen(3000);
+  await app.listen(3001);
 }
 bootstrap();
