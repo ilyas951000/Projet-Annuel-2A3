@@ -1,82 +1,41 @@
-"use client";
+import Image from "next/image";
+import Link from 'next/link';
 
-import React, { useState } from "react";
-
-const Inscription: React.FC = () => {
-  const [message, setMessage] = useState<string>("");
-
-  const handleSubmit = async (event: React.FormEvent) => {
-    event.preventDefault(); 
-
-    const data = {
-      userFirstName: (event.target as any).userFirstName.value,
-      userLastName: (event.target as any).userLastName.value,
-      email: (event.target as any).email.value,
-      password: (event.target as any).password.value,
-      userAddress: (event.target as any).userAddress.value,
-    };
-
-    try {
-      const response = await fetch("http://localhost:3001/auth/register", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(data),
-      });
-
-      if (response.ok) {
-        const result = await response.json();
-        setMessage(result.message || "Inscription réussie !");
-        (event.target as any).reset(); 
-      } else {
-        const error = await response.json();
-        setMessage(error.message || "Erreur lors de l'inscription.");
-      }
-    } catch (error) {
-      setMessage("Erreur lors de la connexion au serveur.");
-    }
-  };
-
+export default function Home() {
   return (
-    <div className="container">
-      <h2>Inscription</h2>
-      <form id="registerForm" onSubmit={handleSubmit}>
-        <input type="text" id="userFirstName" name="userFirstName" placeholder="Prénom" required />
-        <input type="text" id="userLastName" name="userLastName" placeholder="Nom" required />
-        <input type="email" id="email" name="email" placeholder="Email" required />
-        <input type="password" id="password" name="password" placeholder="Mot de passe" required />
-        <input type="text" id="userAddress" name="userAddress" placeholder="Adresse" required />
-        <button type="submit">S'inscrire</button>
-      </form>
-      <p>{message}</p>
+    <div className="bg-black text-white min-h-screen flex flex-col items-center justify-center px-4">
+      <nav className="w-full flex justify-between items-center p-4 bg-black">
+        <div className="text-white text-xl font-bold">
+          <span className="text-green-500">Eco</span>Deli
+        </div>
+        <div>
+          <Link href="/connexion" className="bg-green-600 px-4 py-2 rounded-lg text-black font-semibold mr-2">
+            Connexion
+          </Link>
+          <Link href="/inscription" className="bg-green-600 px-4 py-2 rounded-lg text-black font-semibold mr-2">
+            Inscription
+          </Link>
+        </div>
+      </nav>
 
-      <style jsx>{`
-        .container {
-          background: white;
-          padding: 20px;
-          border-radius: 10px;
-          box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
-          max-width: 400px;
-          margin: 0 auto;
-        }
-        input,
-        button {
-          width: 100%;
-          padding: 10px;
-          margin: 10px 0;
-        }
-        body {
-          font-family: Arial, sans-serif;
-          background-color: #f4f4f4;
-          display: flex;
-          justify-content: center;
-          align-items: center;
-          height: 100vh;
-        }
-      `}</style>
+      <div className="flex flex-col md:flex-row items-center justify-between w-full max-w-5xl mt-10">
+        <div className="text-left max-w-lg">
+          <h1 className="text-3xl md:text-5xl font-bold">
+            Un envoi <span className="text-green-500">Simple</span> et <span className="text-green-500">écologique</span>
+            <br /> à petit prix
+          </h1>
+          <p className="mt-4 text-gray-400">A remplir ---------------------------------------------</p>
+          <div className="mt-6">
+            <button className="bg-green-600 px-6 py-2 rounded-lg text-black font-semibold mr-2">Une question ?</button>
+            <Link href="/inscription" className="bg-green-600 px-4 py-2 rounded-lg text-black font-semibold mr-2">
+              Inscription
+            </Link>
+          </div>
+        </div>
+        <div className="mt-10 md:mt-0">
+          <Image src="/logo_side.png" alt="EcoDeli logo" width={400} height={400} className="rounded-lg" />
+        </div>
+      </div>
     </div>
   );
-};
-
-export default Inscription;
+}
