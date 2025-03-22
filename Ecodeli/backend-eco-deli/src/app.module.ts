@@ -14,7 +14,7 @@ import { InvoicesModule } from './invoices/invoices.module';
 import { AdvertisementsModule } from './advertisements/advertisements.module';
 import { PackagesModule } from './packages/packages.module';
 import { ProductsModule } from './products/products.module';
-import { AuthModule } from './auth/auth.module';  // <-- AJOUTE ICI
+import { AuthModule } from './auth/auth.module';  
 import { DashboardModule } from './dashboard/dashboard.module';
 
 @Module({
@@ -31,7 +31,7 @@ import { DashboardModule } from './dashboard/dashboard.module';
       autoLoadEntities: true,
     }),
     JwtModule.register({
-      secret: '5115231248', // Remplace par une vraie clé secrète
+      secret: '5115231248', 
       signOptions: { expiresIn: '1h' },
     }),
     UsersModule,
@@ -45,7 +45,7 @@ import { DashboardModule } from './dashboard/dashboard.module';
     AdvertisementsModule,
     PackagesModule,
     ProductsModule,
-    AuthModule,  // <-- AJOUTE ICI
+    AuthModule, 
     DashboardModule,
   ],
   controllers: [AppController],

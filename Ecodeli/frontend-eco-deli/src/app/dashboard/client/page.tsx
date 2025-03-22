@@ -1,4 +1,3 @@
-// app/dashboard/admin/page.tsx
 import type { NextPage } from 'next';
 
 const AdminConnexion: NextPage = () => {

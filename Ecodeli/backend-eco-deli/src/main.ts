@@ -6,7 +6,6 @@ import { join } from 'path';
 async function bootstrap() {
   const app = await NestFactory.create<NestExpressApplication>(AppModule);
   
-  // Servir les fichiers statiques depuis le dossier "public"
   app.useStaticAssets(join(__dirname, '..', 'public'));
   app.enableCors();
   await app.listen(3001);

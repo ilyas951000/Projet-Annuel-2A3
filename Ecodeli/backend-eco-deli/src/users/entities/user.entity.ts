@@ -22,6 +22,9 @@ export class User {
     @Column()
     password: string;
 
+    @Column()
+    userRole: string;
+
     @Column({ default: 'client' })
     userStatus: string;
 
