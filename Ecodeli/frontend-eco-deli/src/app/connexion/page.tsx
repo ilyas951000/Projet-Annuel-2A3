@@ -1,7 +1,31 @@
-// app/login/page.tsx
-import React from 'react';
+"use client"; // Next.js 13+ (assure que ce code s'exécute côté client)
+import React, { useState } from "react";
+import { useAuth } from "../context/AuthContext"; // 🔥 Importation du contexte d'auth
+import { useRouter } from "next/navigation"; // Pour rediriger après connexion
 
 export default function LoginPage() {
+  const { login } = useAuth(); // 🔥 Récupère la fonction login du contexte
+  const router = useRouter();
+
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [error, setError] = useState("");
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setError(""); // Réinitialise les erreurs
+  
+    try {
+      await login(email, password); // 🔥 Essaye de se connecter
+      router.push("/dashboard"); // ✅ Seulement en cas de succès !
+    } catch (err) {
+      console.error(err);
+      setError("Email ou mot de passe incorrect."); // 🔥 Bloque la redirection en cas d'échec
+    }
+  };
+  
+  
+
   return (
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-r from-green-800 to-green-400">
       <div className="bg-white p-8 rounded-xl shadow-lg w-full max-w-sm text-center">
@@ -10,15 +34,22 @@ export default function LoginPage() {
           <span className="text-black">Deli</span>
         </div>
         <h2 className="text-xl font-semibold text-gray-800 mb-6">Me connecter</h2>
-        <form className="space-y-4">
+
+        {error && <p className="text-red-500">{error}</p>} {/* 🔥 Affichage erreur */}
+
+        <form className="space-y-4" onSubmit={handleSubmit}>
           <input
             type="email"
             placeholder="Adresse e-mail"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
             className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-green-400"
           />
           <input
             type="password"
             placeholder="Mot de passe"
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
             className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-green-400"
           />
           <button
@@ -28,11 +59,12 @@ export default function LoginPage() {
             Connexion
           </button>
         </form>
+
         <div className="mt-4 text-sm text-gray-600 space-y-1">
           <p>
-            Toujours pas inscrit?{' '}
-            <a href="#" className="text-blue-600 hover:underline">
-              Inscrivez vous
+            Toujours pas inscrit?{" "}
+            <a href="/inscription" className="text-blue-600 hover:underline">
+              Inscrivez-vous
             </a>
           </p>
           <p>
