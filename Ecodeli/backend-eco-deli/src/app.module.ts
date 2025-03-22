@@ -15,6 +15,7 @@ import { AdvertisementsModule } from './advertisements/advertisements.module';
 import { PackagesModule } from './packages/packages.module';
 import { ProductsModule } from './products/products.module';
 import { AuthModule } from './auth/auth.module';  // <-- AJOUTE ICI
+import { DashboardModule } from './dashboard/dashboard.module';
 
 @Module({
   imports: [
@@ -45,6 +46,7 @@ import { AuthModule } from './auth/auth.module';  // <-- AJOUTE ICI
     PackagesModule,
     ProductsModule,
     AuthModule,  // <-- AJOUTE ICI
+    DashboardModule,
   ],
   controllers: [AppController],
   providers: [AppService],

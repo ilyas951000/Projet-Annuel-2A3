@@ -1,0 +1,37 @@
+import { Controller, Post, Body, UnauthorizedException, BadRequestException } from '@nestjs/common';
+import { AuthService } from './auth.service';
+import { RegisterUserDto } from '../users/dto/register-user.dto';
+import { LoginUserDto } from '../users/dto/login-user.dto';
+
+@Controller('auth')
+export class AuthController {
+  constructor(private readonly authService: AuthService) {}
+
+  @Post('register')
+  async register(@Body() registerUserDto: RegisterUserDto) {
+    try {
+      const user = await this.authService.register(registerUserDto);
+      return {
+        message: 'Utilisateur inscrit avec succès',
+        user: { id: user.id, email: user.email, userStatus: user.userStatus },
+      };
+    } catch (error) {
+      throw new BadRequestException('Erreur lors de l\'inscription');
+    }
+  }
+
+  @Post('login')
+  async login(@Body() loginUserDto: LoginUserDto) {
+    try {
+      const { accessToken, userStatus } = await this.authService.login(loginUserDto);
+
+      return {
+        message: 'Connexion réussie',
+        accessToken,
+        userStatus, 
+      };
+    } catch (error) {
+      throw new UnauthorizedException('Email ou mot de passe incorrect');
+    }
+  }
+}
