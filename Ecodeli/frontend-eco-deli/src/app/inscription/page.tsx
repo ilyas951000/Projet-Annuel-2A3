@@ -4,6 +4,11 @@ import React, { useState } from 'react';
 
 const Inscription: React.FC = () => {
   const [message, setMessage] = useState<string>('');
+  const [userRole, setUserRole] = useState<string>('client'); 
+
+  const handleRoleChange = (event: React.ChangeEvent<HTMLSelectElement>) => {
+    setUserRole(event.target.value);
+  };
 
   const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -18,6 +23,7 @@ const Inscription: React.FC = () => {
       password: formData.get('password') as string,
       confirmPassword: formData.get('confirmPassword') as string,
       userAddress: formData.get('userAddress') as string,
+      userRole: userRole, 
     };
 
     if (data.password !== data.confirmPassword) {
@@ -39,6 +45,7 @@ const Inscription: React.FC = () => {
       if (response.ok) {
         setMessage(result.message || "Inscription réussie !");
         form.reset();
+        setUserRole("client"); 
       } else {
         setMessage(result.message || "Erreur lors de l'inscription.");
       }
@@ -64,6 +71,22 @@ const Inscription: React.FC = () => {
           <input type="password" name="password" placeholder="Mot de passe" required className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-green-400" />
           <input type="password" name="confirmPassword" placeholder="Confirmer le mot de passe" required className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-green-400" />
           <input type="text" name="userAddress" placeholder="Adresse" required className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-green-400" />
+
+          <div className="mb-4">
+            <label className="block font-semibold text-gray-700">Type de compte</label>
+            <select
+              name="userRole"
+              value={userRole}
+              onChange={handleRoleChange}
+              className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-green-400"
+              required
+            >
+              <option value="client">Client</option>
+              <option value="prestataire">Prestataire</option>
+              <option value="commercant">Commerçant</option>
+              <option value="livreur">Livreur</option>
+            </select>
+          </div>
 
           <button type="submit" className="w-full bg-green-800 text-white py-2 rounded-lg hover:bg-green-700 transition-colors">
             Continuer

@@ -16,8 +16,16 @@ export class AuthService {
   ) {}
 
   async register(registerUserDto: RegisterUserDto): Promise<User> {
-    const hashedPassword = await bcrypt.hash(registerUserDto.password, 10);
-    const user = this.usersRepository.create({ ...registerUserDto, password: hashedPassword });
+    const { password, userRole } = registerUserDto; 
+  
+    const hashedPassword = await bcrypt.hash(password, 10);
+  
+    const user = this.usersRepository.create({
+      ...registerUserDto,
+      password: hashedPassword,
+      userRole,
+    });
+  
     return this.usersRepository.save(user);
   }
 
