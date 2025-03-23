@@ -34,31 +34,58 @@ const UsersPage = () => {
 
   useEffect(() => {
     const fetchUsers = async () => {
-      const res = await fetch('http://51.15.231.248:3001/users');
-      const data = await res.json();
-      setUsers(data);
+      try {
+        const res = await fetch('http://51.15.231.248:3001/users');
+        if (!res.ok) {
+          console.error('Erreur lors de la récupération des utilisateurs', res.status);
+          return;
+        }
+        const data = await res.json();
+        console.log("Réponse de l'API :", data); // Affiche la réponse pour vérifier sa structure
+
+        // Vérifie si la réponse contient une propriété "users"
+        if (data.users) {
+          setUsers(data.users);
+        }
+        // Sinon, vérifie si c'est directement un tableau
+        else if (Array.isArray(data)) {
+          setUsers(data);
+        } else {
+          console.error("La structure de la réponse API n'est pas celle attendue");
+        }
+      } catch (error) {
+        console.error("Erreur lors de la récupération des utilisateurs", error);
+      }
     };
 
     fetchUsers();
   }, []);
 
   const openModal = async (user: User) => {
-    const res = await fetch(`http://51.15.231.248:3001/users/${user.id}`);
-    const fullUser: User = await res.json();
-    setSelectedUser(fullUser);
-    setFormData({
-      userFirstName: fullUser.userFirstName,
-      userLastName: fullUser.userLastName,
-      email: fullUser.email,
-      userRole: fullUser.userRole,
-      userStatus: fullUser.userStatus,
-      userAddress: fullUser.userAddress,
-      hasAccount: fullUser.hasAccount,
-      userInsurance: fullUser.userInsurance,
-      occasionalCourier: fullUser.occasionalCourier,
-      valid: fullUser.valid,
-    });
-    setShowModal(true);
+    try {
+      const res = await fetch(`http://51.15.231.248:3001/users/${user.id}`);
+      if (!res.ok) {
+        console.error("Erreur lors de la récupération de l'utilisateur", res.status);
+        return;
+      }
+      const fullUser: User = await res.json();
+      setSelectedUser(fullUser);
+      setFormData({
+        userFirstName: fullUser.userFirstName,
+        userLastName: fullUser.userLastName,
+        email: fullUser.email,
+        userRole: fullUser.userRole,
+        userStatus: fullUser.userStatus,
+        userAddress: fullUser.userAddress,
+        hasAccount: fullUser.hasAccount,
+        userInsurance: fullUser.userInsurance,
+        occasionalCourier: fullUser.occasionalCourier,
+        valid: fullUser.valid,
+      });
+      setShowModal(true);
+    } catch (error) {
+      console.error("Erreur lors de la récupération de l'utilisateur", error);
+    }
   };
 
   const closeModal = () => {
@@ -76,21 +103,25 @@ const UsersPage = () => {
 
   const handleUpdate = async () => {
     if (selectedUser) {
-      const res = await fetch(`http://localhost:3001/users/${selectedUser.id}`, {
-        method: 'PUT', 
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(formData),
-      });
-      if (res.ok) {
-        console.log('Utilisateur mis à jour avec succès');
-        const updatedUser = await res.json();
-        setUsers((prev) =>
-          prev.map((user) => (user.id === updatedUser.id ? updatedUser : user))
-        );
-      } else {
-        console.error('Erreur lors de la mise à jour');
+      try {
+        const res = await fetch(`http://51.15.231.248:3001/users/${selectedUser.id}`, {
+          method: 'PUT',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify(formData),
+        });
+        if (res.ok) {
+          console.log("Utilisateur mis à jour avec succès");
+          const updatedUser = await res.json();
+          setUsers((prev) =>
+            prev.map((user) => (user.id === updatedUser.id ? updatedUser : user))
+          );
+        } else {
+          console.error("Erreur lors de la mise à jour de l'utilisateur");
+        }
+      } catch (error) {
+        console.error("Erreur lors de la mise à jour de l'utilisateur", error);
       }
     }
     closeModal();
@@ -109,7 +140,7 @@ const UsersPage = () => {
           </tr>
         </thead>
         <tbody>
-          {users.map((user) => (
+          {Array.isArray(users) && users.map((user) => (
             <tr key={user.id}>
               <td className="border px-4 py-2">{user.id}</td>
               <td className="border px-4 py-2">{user.userFirstName}</td>

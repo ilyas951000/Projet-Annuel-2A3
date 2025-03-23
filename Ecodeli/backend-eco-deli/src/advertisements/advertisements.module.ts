@@ -1,4 +1,3 @@
-// Backend: Nest.js - advertisements.module.ts
 import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { AdvertisementsController } from './advertisements.controller';

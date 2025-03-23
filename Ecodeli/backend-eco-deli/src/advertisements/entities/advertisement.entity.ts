@@ -1,5 +1,5 @@
 import { User } from "src/users/entities/user.entity";
-import { Column, Entity, JoinColumn, OneToMany, OneToOne, PrimaryGeneratedColumn } from "typeorm";
+import { Column, Entity, ManyToOne, PrimaryGeneratedColumn } from "typeorm";
 
 @Entity()
 export class Advertisement {
@@ -36,7 +36,9 @@ export class Advertisement {
     @Column()
     advertisementStatus: string;
 
-    @OneToMany(() => User, (user) => user.advertisement)
-    users: User[];
+    @Column({ default: false }) // ✅ Ajout du champ de validation
+    isValidated: boolean;
 
+    @ManyToOne(() => User, (user) => user.advertisement)
+    users: User;
 }

@@ -64,7 +64,7 @@ export default function Dashboard() {
                   isOpen={openMenus["gestionPrestataire"]} 
                   toggleMenu={toggleMenu} 
                   subItems={[
-                    { title: "Validation et vérification", link: "./admin/validation" },
+                    { title: "Validation et vérification", link: "./admin/ValidationUser" },
                     { title: "Calendrier et disponibilités", link: "./admin/calendar" },
                     { title: "Suivi des interventions", link: "./admin/intervention" },
                     { title: "Facturation automatique", link: "./admin/auto-invoice" },
@@ -78,6 +78,7 @@ export default function Dashboard() {
                   isOpen={openMenus["gestionLivreur"]} 
                   toggleMenu={toggleMenu} 
                   subItems={[
+                    { title: "Validation et vérification", link: "./admin/ValidationUser" },
                     { title: "Inscription et vérification", link: "./admin/delivery-signup" },
                     { title: "Gestion des annonces", link: "./admin/delivery-ads" },
                     { title: "Suivi des livraisons", link: "./admin/delivery-tracking" },

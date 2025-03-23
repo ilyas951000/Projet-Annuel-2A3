@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, NotFoundException } from '@nestjs/common';
 import { CreateAdvertisementDto } from './dto/create-advertisement.dto';
 import { UpdateAdvertisementDto } from './dto/update-advertisement.dto';
 import { InjectRepository } from '@nestjs/typeorm';
@@ -12,30 +12,36 @@ export class AdvertisementsService {
     private advertisementRepository: Repository<Advertisement>,
   ) {}
 
-  create(createAdvertisementDto: CreateAdvertisementDto) {
+  async create(createAdvertisementDto: CreateAdvertisementDto) {
     const advertisement = this.advertisementRepository.create(createAdvertisementDto);
-    return this.advertisementRepository.save(advertisement);
+    return await this.advertisementRepository.save(advertisement);
   }
 
-  findAll() {
-    return this.advertisementRepository.find();
+  async findAll() {
+    return await this.advertisementRepository.find();
   }
 
-  findOne(id: number) {
-    return this.advertisementRepository.findOne({ where: { id } });
+  async findOne(id: number) {
+    const advertisement = await this.advertisementRepository.findOne({ where: { id } });
+    if (!advertisement) {
+      throw new NotFoundException('Annonce non trouvée');
+    }
+    return advertisement;
   }
 
-  update(id: number, updateAdvertisementDto: UpdateAdvertisementDto) {
-    return this.advertisementRepository.update(id, updateAdvertisementDto);
+  async update(id: number, updateAdvertisementDto: UpdateAdvertisementDto) {
+    await this.advertisementRepository.update(id, updateAdvertisementDto);
+    return this.findOne(id);
   }
 
-  remove(id: number) {
-    return this.advertisementRepository.delete(id);
+  async remove(id: number) {
+    const advertisement = await this.findOne(id);
+    return await this.advertisementRepository.remove(advertisement);
   }
 
-  validate(id: number) {
-    // Exemple de validation
-    return this.advertisementRepository.findOne({ where: { id } })
-      .then(advertisement => advertisement !== null);
+  async validate(id: number) {
+    const advertisement = await this.findOne(id);
+    advertisement.isValidated = true;
+    return await this.advertisementRepository.save(advertisement);
   }
 }
