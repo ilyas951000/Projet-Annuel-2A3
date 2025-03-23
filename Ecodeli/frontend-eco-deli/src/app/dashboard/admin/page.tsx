@@ -27,7 +27,6 @@ export default function Dashboard() {
               </Link>
             </h1>
 
-            {/* Navigation Links */}
             <nav className="mt-5">
               <ul className="space-y-3">
                 <DropdownMenu 
@@ -50,13 +49,14 @@ export default function Dashboard() {
                   isOpen={openMenus["gestionCommercant"]} 
                   toggleMenu={toggleMenu} 
                   subItems={[
-                    { title: "Gestion du contrat", link: "/dashboard/admin/gestion-contrat" },
-                    { title: "Gestion des annonces", link: "/dashboard/admin/gestion-annonces" },
-                    { title: "Facturation et paiements", link: "/dashboard/admin/facturation-paiements" },
-                    { title: "Tableau de bord", link: "/dashboard/admin/tableau-de-bord" },
-                    { title: "Support et communication", link: "/dashboard/admin/support" }
+                    { title: "Gestion du contrat", link: "./admin/contract" },
+                    { title: "Gestion des annonces", link: "./admin/announcement" },
+                    { title: "Facturation et paiements", link: "./admin/invoicePrestataire" },
+                    { title: "Tableau de bord", link: "./admin/dashboard" },
+                    { title: "Support et communication", link: "./admin/support" }
                   ]} 
                 />
+
 
                 <DropdownMenu 
                   title="Gestion prestataire" 
@@ -64,11 +64,11 @@ export default function Dashboard() {
                   isOpen={openMenus["gestionPrestataire"]} 
                   toggleMenu={toggleMenu} 
                   subItems={[
-                    { title: "Validation et vérification", link: "/dashboard/admin/validation" },
-                    { title: "Calendrier et disponibilités", link: "/dashboard/admin/calendrier" },
-                    { title: "Suivi des interventions", link: "/dashboard/admin/suivi-interventions" },
-                    { title: "Facturation automatique", link: "/dashboard/admin/facturation-automatique" },
-                    { title: "Gestion tarifaire", link: "/dashboard/admin/gestion-tarifaire" }
+                    { title: "Validation et vérification", link: "./admin/validation" },
+                    { title: "Calendrier et disponibilités", link: "./admin/calendar" },
+                    { title: "Suivi des interventions", link: "./admin/intervention" },
+                    { title: "Facturation automatique", link: "./admin/auto-invoice" },
+                    { title: "Gestion tarifaire", link: "./admin/pricing" }
                   ]} 
                 />
 
@@ -78,14 +78,15 @@ export default function Dashboard() {
                   isOpen={openMenus["gestionLivreur"]} 
                   toggleMenu={toggleMenu} 
                   subItems={[
-                    { title: "Inscription et vérification", link: "/dashboard/admin/inscription-livreur" },
-                    { title: "Gestion des annonces", link: "/dashboard/admin/gestion-annonces-livreur" },
-                    { title: "Suivi des livraisons", link: "/dashboard/admin/suivi-livraisons" },
-                    { title: "Planning et gestion des trajets", link: "/dashboard/admin/planning-trajets" },
-                    { title: "Gestion des paiements", link: "/dashboard/admin/gestion-paiements" },
-                    { title: "Support et assistance", link: "/dashboard/admin/support-livreur" }
+                    { title: "Inscription et vérification", link: "./admin/delivery-signup" },
+                    { title: "Gestion des annonces", link: "./admin/delivery-ads" },
+                    { title: "Suivi des livraisons", link: "./admin/delivery-tracking" },
+                    { title: "Planning et gestion des trajets", link: "./admin/delivery-planning" },
+                    { title: "Gestion des paiements", link: "./admin/delivery-payments" },
+                    { title: "Support et assistance", link: "./admin/delivery-support" }
                   ]} 
                 />
+
 
                 <DropdownMenu 
                   title="Gestion Client" 
@@ -93,36 +94,23 @@ export default function Dashboard() {
                   isOpen={openMenus["gestionClient"]} 
                   toggleMenu={toggleMenu} 
                   subItems={[
-                    { title: "Dépôt et gestion des annonces de transport", link: "/dashboard/admin/depot-annonces" },
-                    { title: "Suivi des livraisons en cours", link: "/dashboard/admin/suivi-livraisons-client" },
-                    { title: "Paiements et facturation", link: "/dashboard/admin/paiements-facturation" },
-                    { title: "Gestion des box de stockage temporaire", link: "/dashboard/admin/gestion-box" },
-                    { title: "Service client et litiges", link: "/dashboard/admin/service-client" }
+                    { title: "Dépôt et gestion des annonces de transport", link: "./admin/client-ads" },
+                    { title: "Suivi des livraisons en cours", link: "./admin/client-tracking" },
+                    { title: "Paiements et facturation", link: "./admin/client-payments" },
+                    { title: "Gestion des box de stockage temporaire", link: "./admin/client-storage" },
+                    { title: "Service client et litiges", link: "./admin/client-support" }
                   ]} 
                 />
 
-                {/* NOUVEAU - Gestion des annonces */}
-                <DropdownMenu 
-                  title="Gestion des annonces" 
-                  menuKey="gestionAnnonces" 
-                  isOpen={openMenus["gestionAnnonces"]} 
-                  toggleMenu={toggleMenu} 
-                  subItems={[
-                    { title: "📋 Annonces en attente", link: "/dashboard/admin/advertisementManagement/annonces" },
-                    { title: "➕ Ajouter une annonce", link: "/dashboard/admin/advertisementManagement/ajouter-annonce" }
-                  ]} 
-                />
               </ul>
             </nav>
 
-            {/* Autres liens */}
             <div className="mt-10 space-y-3">
               <NavItem title="À propos" link="/a-propos" />
               <NavItem title="Nous contacter" link="/contact" />
             </div>
           </div>
 
-          {/* Section Compte */}
           <div className="flex items-center space-x-3">
             <User className="w-5 h-5 text-gray-500 dark:text-gray-300" />
             <span className="text-gray-700 dark:text-gray-300">Mon compte</span>
@@ -130,7 +118,6 @@ export default function Dashboard() {
           </div>
         </aside>
 
-        {/* Contenu Principal */}
         <main className="flex-1 p-10">
           <h2 className="text-3xl font-semibold text-gray-900 dark:text-white">
             Bienvenue Chez <span className="text-black">Eco</span>
@@ -139,7 +126,6 @@ export default function Dashboard() {
           {/* Ici tu pourras ajouter le contenu spécifique de chaque page */}
         </main>
 
-        {/* Toggle Dark Mode */}
         <button
           className="absolute top-5 right-5 p-2 bg-gray-200 dark:bg-gray-700 rounded-full"
           onClick={() => setDarkMode(!darkMode)}
@@ -151,7 +137,6 @@ export default function Dashboard() {
   );
 }
 
-/* Composant pour un menu déroulant */
 function DropdownMenu({ title, menuKey, isOpen, toggleMenu, subItems }: { 
   title: string; 
   menuKey: string; 
@@ -174,11 +159,7 @@ function DropdownMenu({ title, menuKey, isOpen, toggleMenu, subItems }: {
       {isOpen && (
         <ul className="ml-6 mt-2 space-y-2">
           {subItems.map((item, index) => (
-            <li key={index} className="text-gray-600 dark:text-gray-400 hover:text-green-500 cursor-pointer p-2">
-              <Link href={item.link}>
-                <span>• {item.title}</span>
-              </Link>
-            </li>
+            <SubNavItem key={index} title={item.title} link={item.link} />
           ))}
         </ul>
       )}
@@ -186,7 +167,6 @@ function DropdownMenu({ title, menuKey, isOpen, toggleMenu, subItems }: {
   );
 }
 
-/* Composant pour un élément de navigation classique */
 function NavItem({ title, link }: { title: string; link: string; }) {
   return (
     <li className="flex items-center space-x-2 text-gray-700 dark:text-gray-300 hover:text-green-500 cursor-pointer p-2 rounded-md">
@@ -197,3 +177,14 @@ function NavItem({ title, link }: { title: string; link: string; }) {
     </li>
   );
 }
+
+function SubNavItem({ title, link }: { title: string; link: string; }) {
+  return (
+    <li className="flex items-center space-x-2 text-gray-600 dark:text-gray-400 hover:text-green-500 cursor-pointer p-2">
+      <Link href={link}>
+        <span>• {title}</span>
+      </Link>
+    </li>
+  );
+}
+

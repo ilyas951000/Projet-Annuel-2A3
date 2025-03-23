@@ -7,6 +7,7 @@ import { UpdateInvoiceDto } from './dto/update-invoice.dto';
 export class InvoicesController {
   constructor(private readonly invoicesService: InvoicesService) {}
 
+
   @Post()
   create(@Body() createInvoiceDto: CreateInvoiceDto) {
     return this.invoicesService.create(createInvoiceDto);

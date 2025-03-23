@@ -42,7 +42,6 @@ const UsersPage = () => {
     fetchUsers();
   }, []);
 
-  // Récupère l'utilisateur complet via findOne et pré-remplit le formulaire
   const openModal = async (user: User) => {
     const res = await fetch(`http://51.15.231.248:3001/users/${user.id}`);
     const fullUser: User = await res.json();
@@ -67,7 +66,6 @@ const UsersPage = () => {
     setShowModal(false);
   };
 
-  // Gestion des changements dans le formulaire
   const handleInputChange = (e: ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     const { name, value, type, checked } = e.target;
     setFormData((prev) => ({
@@ -76,11 +74,10 @@ const UsersPage = () => {
     }));
   };
 
-  // Envoi des modifications vers le backend
   const handleUpdate = async () => {
     if (selectedUser) {
-      const res = await fetch(`http://51.15.231.248:3001/users/${selectedUser.id}`, {
-        method: 'PUT', // ou 'PATCH' en fonction de votre implémentation
+      const res = await fetch(`http://localhost:3001/users/${selectedUser.id}`, {
+        method: 'PUT', 
         headers: {
           'Content-Type': 'application/json',
         },
@@ -88,7 +85,6 @@ const UsersPage = () => {
       });
       if (res.ok) {
         console.log('Utilisateur mis à jour avec succès');
-        // Optionnel : mettre à jour la liste des utilisateurs
         const updatedUser = await res.json();
         setUsers((prev) =>
           prev.map((user) => (user.id === updatedUser.id ? updatedUser : user))
