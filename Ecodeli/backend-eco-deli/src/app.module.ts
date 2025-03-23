@@ -16,6 +16,7 @@ import { PackagesModule } from './packages/packages.module';
 import { ProductsModule } from './products/products.module';
 import { AuthModule } from './auth/auth.module';  
 import { DashboardModule } from './dashboard/dashboard.module';
+import { FacturableModule } from './facturable/facturable.module';
 
 @Module({
   imports: [
@@ -46,7 +47,7 @@ import { DashboardModule } from './dashboard/dashboard.module';
     PackagesModule,
     ProductsModule,
     AuthModule, 
-    DashboardModule,
+    DashboardModule, FacturableModule,
   ],
   controllers: [AppController],
   providers: [AppService],

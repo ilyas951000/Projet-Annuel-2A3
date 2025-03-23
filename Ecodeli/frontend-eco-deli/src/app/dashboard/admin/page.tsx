@@ -26,95 +26,89 @@ export default function Dashboard() {
               </Link>
             </h1>
 
-            {/* Navigation Links */}
             <nav className="mt-5">
               <ul className="space-y-3">
-                {/* Gestion Utilisateur */}
                 <DropdownMenu 
                   title="Gestion utilisateur" 
                   menuKey="gestionUtilisateur" 
                   isOpen={openMenus["gestionUtilisateur"]} 
                   toggleMenu={toggleMenu} 
                   subItems={[
-                    "Création et inscription",
-                    "Modification et mise à jour du profil",
-                    "Gestion des rôles et permissions",
-                    "Bannissement et suspension",
-                    "Historique et logs"
+                    { title: "Création et inscription", link: "./admin/createUser" },
+                    { title: "Modification et mise à jour du profil", link: "./admin/userManagement" },
+                    { title: "Historique et logs", link: "./admin/logs" }
                   ]} 
                 />
 
-                {/* Gestion Commerçant */}
+
                 <DropdownMenu 
                   title="Gestion commerçant" 
                   menuKey="gestionCommercant" 
                   isOpen={openMenus["gestionCommercant"]} 
                   toggleMenu={toggleMenu} 
                   subItems={[
-                    "Gestion du contrat",
-                    "Gestion des annonces",
-                    "Facturation et paiements",
-                    "Tableau de bord",
-                    "Support et communication"
+                    { title: "Gestion du contrat", link: "./admin/contract" },
+                    { title: "Gestion des annonces", link: "./admin/announcement" },
+                    { title: "Facturation et paiements", link: "./admin/invoicePrestataire" },
+                    { title: "Tableau de bord", link: "./admin/dashboard" },
+                    { title: "Support et communication", link: "./admin/support" }
                   ]} 
                 />
 
-                {/* Gestion Prestataire */}
+
                 <DropdownMenu 
                   title="Gestion prestataire" 
                   menuKey="gestionPrestataire" 
                   isOpen={openMenus["gestionPrestataire"]} 
                   toggleMenu={toggleMenu} 
                   subItems={[
-                    "Validation et vérification",
-                    "Calendrier et disponibilités",
-                    "Suivi des interventions",
-                    "Facturation automatique",
-                    "Gestion tarifaire"
+                    { title: "Validation et vérification", link: "./admin/validation" },
+                    { title: "Calendrier et disponibilités", link: "./admin/calendar" },
+                    { title: "Suivi des interventions", link: "./admin/intervention" },
+                    { title: "Facturation automatique", link: "./admin/auto-invoice" },
+                    { title: "Gestion tarifaire", link: "./admin/pricing" }
                   ]} 
                 />
 
-                {/* Gestion Livreur */}
                 <DropdownMenu 
                   title="Gestion livreur" 
                   menuKey="gestionLivreur" 
                   isOpen={openMenus["gestionLivreur"]} 
                   toggleMenu={toggleMenu} 
                   subItems={[
-                    "Inscription et vérification",
-                    "Gestion des annonces",
-                    "Suivi des livraisons",
-                    "Planning et gestion des trajets",
-                    "Gestion des paiements",
-                    "Support et assistance"
+                    { title: "Inscription et vérification", link: "./admin/delivery-signup" },
+                    { title: "Gestion des annonces", link: "./admin/delivery-ads" },
+                    { title: "Suivi des livraisons", link: "./admin/delivery-tracking" },
+                    { title: "Planning et gestion des trajets", link: "./admin/delivery-planning" },
+                    { title: "Gestion des paiements", link: "./admin/delivery-payments" },
+                    { title: "Support et assistance", link: "./admin/delivery-support" }
                   ]} 
                 />
 
-                {/* Gestion Client */}
+
                 <DropdownMenu 
                   title="Gestion Client" 
                   menuKey="gestionClient" 
                   isOpen={openMenus["gestionClient"]} 
                   toggleMenu={toggleMenu} 
                   subItems={[
-                    "Dépôt et gestion des annonces de transport",
-                    "Suivi des livraisons en cours",
-                    "Paiements et facturation",
-                    "Gestion des box de stockage temporaire",
-                    "Service client et litiges"
+                    { title: "Dépôt et gestion des annonces de transport", link: "./admin/client-ads" },
+                    { title: "Suivi des livraisons en cours", link: "./admin/client-tracking" },
+                    { title: "Paiements et facturation", link: "./admin/client-payments" },
+                    { title: "Gestion des box de stockage temporaire", link: "./admin/client-storage" },
+                    { title: "Service client et litiges", link: "./admin/client-support" }
                   ]} 
                 />
+
               </ul>
             </nav>
 
-            {/* Other Links */}
             <div className="mt-10 space-y-3">
               <NavItem title="À propos" link="/a-propos" />
               <NavItem title="Nous contacter" link="/contact" />
             </div>
           </div>
 
-          {/* Account Section */}
           <div className="flex items-center space-x-3">
             <User className="w-5 h-5 text-gray-500 dark:text-gray-300" />
             <span className="text-gray-700 dark:text-gray-300">Mon compte</span>
@@ -122,7 +116,6 @@ export default function Dashboard() {
           </div>
         </aside>
 
-        {/* Main Content */}
         <main className="flex-1 p-10">
           <h2 className="text-3xl font-semibold text-gray-900 dark:text-white">
             Bienvenue Chez <span className="text-black">Eco</span>
@@ -130,7 +123,6 @@ export default function Dashboard() {
           </h2>
         </main>
 
-        {/* Dark Mode Toggle */}
         <button
           className="absolute top-5 right-5 p-2 bg-gray-200 dark:bg-gray-700 rounded-full"
           onClick={() => setDarkMode(!darkMode)}
@@ -142,13 +134,12 @@ export default function Dashboard() {
   );
 }
 
-/* Composant pour un menu déroulant */
 function DropdownMenu({ title, menuKey, isOpen, toggleMenu, subItems }: { 
   title: string; 
   menuKey: string; 
   isOpen: boolean; 
   toggleMenu: (menu: string) => void; 
-  subItems: string[]; 
+  subItems: { title: string; link: string }[]; 
 }) {
   return (
     <li>
@@ -165,7 +156,7 @@ function DropdownMenu({ title, menuKey, isOpen, toggleMenu, subItems }: {
       {isOpen && (
         <ul className="ml-6 mt-2 space-y-2">
           {subItems.map((item, index) => (
-            <SubNavItem key={index} title={item} />
+            <SubNavItem key={index} title={item.title} link={item.link} />
           ))}
         </ul>
       )}
@@ -173,7 +164,7 @@ function DropdownMenu({ title, menuKey, isOpen, toggleMenu, subItems }: {
   );
 }
 
-/* Composant pour un élément normal du menu avec lien */
+
 function NavItem({ title, link }: { title: string; link: string; }) {
   return (
     <li className="flex items-center space-x-2 text-gray-700 dark:text-gray-300 hover:text-green-500 cursor-pointer p-2 rounded-md">
@@ -185,13 +176,13 @@ function NavItem({ title, link }: { title: string; link: string; }) {
   );
 }
 
-/* Composant pour un sous-élément de menu avec lien */
-function SubNavItem({ title }: { title: string; }) {
+function SubNavItem({ title, link }: { title: string; link: string; }) {
   return (
     <li className="flex items-center space-x-2 text-gray-600 dark:text-gray-400 hover:text-green-500 cursor-pointer p-2">
-      <Link href="/page-link">
+      <Link href={link}>
         <span>• {title}</span>
       </Link>
     </li>
   );
 }
+

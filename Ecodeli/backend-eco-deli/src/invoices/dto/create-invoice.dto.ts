@@ -1,5 +1,4 @@
 export class CreateInvoiceDto {
-    id: number;
     invoiceNumber: number;
     issueDate: Date;
     paymentDate: Date;
