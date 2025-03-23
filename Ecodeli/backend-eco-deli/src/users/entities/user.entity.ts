@@ -2,7 +2,7 @@ import { Advertisement } from "src/advertisements/entities/advertisement.entity"
 import { Contract } from "src/contracts/entities/contract.entity";
 import { Invoice } from "src/invoices/entities/invoice.entity";
 import { Subscription } from "src/subscriptions/entities/subscription.entity";
-import { Column, Entity, ManyToOne, OneToMany, PrimaryGeneratedColumn } from "typeorm";
+import { Column, Entity, ManyToOne, OneToMany, OneToOne, JoinColumn, PrimaryGeneratedColumn } from "typeorm";
 import { Document } from "src/documents/entities/document.entity";
 
 @Entity()
@@ -55,6 +55,7 @@ export class User {
     @ManyToOne(() => Invoice, (invoice) => invoice.user)
     invoice: Invoice;
 
-    @ManyToOne(() => Document, (document) => document.user)
-    documents: Document;
+    @OneToOne(() => Document, { nullable: true, eager: true, cascade: true }) 
+    @JoinColumn()
+    justificationDocument: Document | null;
 }

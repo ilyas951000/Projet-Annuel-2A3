@@ -1,5 +1,5 @@
 import { User } from "src/users/entities/user.entity";
-import { Column, Entity, JoinColumn, OneToMany, OneToOne, PrimaryGeneratedColumn } from "typeorm";
+import { Column, Entity, OneToOne, PrimaryGeneratedColumn } from "typeorm";
 
 @Entity()
 export class Document {
@@ -18,8 +18,12 @@ export class Document {
     @Column()
     expirationDate: Date;
 
-    @OneToMany(() => User, (user) => user.documents)
-    user: User[];
+    @Column()
+    fileName: string; // Nom du fichier
 
+    @Column()
+    filePath: string; // Chemin du fichier sur le serveur
 
+    @OneToOne(() => User, (user) => user.justificationDocument, { onDelete: "CASCADE" })
+    user: User;
 }

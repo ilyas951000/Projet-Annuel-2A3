@@ -31,4 +31,9 @@ export class AdvertisementsController {
   remove(@Param('id') id: string) {
     return this.advertisementsService.remove(+id);
   }
+
+  @Patch(':id/validate')
+  validate(@Param('id') id: string) {
+    return this.advertisementsService.validate(+id);
+  }
 }

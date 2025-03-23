@@ -34,7 +34,7 @@ const UsersPage = () => {
 
   useEffect(() => {
     const fetchUsers = async () => {
-      const res = await fetch('http://localhost:3001/users');
+      const res = await fetch('http://51.15.231.248:3001/users');
       const data = await res.json();
       setUsers(data);
     };
@@ -44,7 +44,7 @@ const UsersPage = () => {
 
   // Récupère l'utilisateur complet via findOne et pré-remplit le formulaire
   const openModal = async (user: User) => {
-    const res = await fetch(`http://localhost:3001/users/${user.id}`);
+    const res = await fetch(`http://51.15.231.248:3001/users/${user.id}`);
     const fullUser: User = await res.json();
     setSelectedUser(fullUser);
     setFormData({
@@ -79,7 +79,7 @@ const UsersPage = () => {
   // Envoi des modifications vers le backend
   const handleUpdate = async () => {
     if (selectedUser) {
-      const res = await fetch(`http://localhost:3001/users/${selectedUser.id}`, {
+      const res = await fetch(`http://51.15.231.248:3001/users/${selectedUser.id}`, {
         method: 'PUT', // ou 'PATCH' en fonction de votre implémentation
         headers: {
           'Content-Type': 'application/json',

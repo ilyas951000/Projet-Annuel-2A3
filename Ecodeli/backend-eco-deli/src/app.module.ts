@@ -12,6 +12,7 @@ import { MovementsModule } from './movements/movements.module';
 import { ContractsModule } from './contracts/contracts.module';
 import { InvoicesModule } from './invoices/invoices.module';
 import { AdvertisementsModule } from './advertisements/advertisements.module';
+import { Advertisement } from './advertisements/entities/advertisement.entity';
 import { PackagesModule } from './packages/packages.module';
 import { ProductsModule } from './products/products.module';
 import { AuthModule } from './auth/auth.module';  
@@ -47,6 +48,7 @@ import { DashboardModule } from './dashboard/dashboard.module';
     ProductsModule,
     AuthModule, 
     DashboardModule,
+    Advertisement
   ],
   controllers: [AppController],
   providers: [AppService],
