@@ -1,141 +1,113 @@
-"use client";
-import { useEffect, useState } from "react";
-import Link from "next/link";
+'use client';
 
-interface User {
+import { useState, useEffect } from "react";
+
+// Interface représentant le document tel que renvoyé par ton API
+interface Document {
   id: number;
-  userFirstName: string;
-  userLastName: string;
-  userRole: string;
-  justificationDocument?: {
-    id: number;
-    fileName: string;
-  } | null;
+  userId: number;
+  // On suppose que l'API renvoie aussi le statut de l'utilisateur (livreur ou prestataire)
+  userStatus: "livreur" | "prestataire";
+  // Autres propriétés, par exemple le nom de fichier, type, etc.
+  fileName: string;
 }
 
-export default function ValidationUserPage() {
-  const [users, setUsers] = useState<User[]>([]);
+export default function AdminDocumentVerification() {
+  const [documents, setDocuments] = useState<Document[]>([]);
+  const [message, setMessage] = useState("");
 
+  // Chargement des documents depuis le backend
   useEffect(() => {
-    // Récupère les utilisateurs en attente (valid == false)
-    fetch("http://51.15.231.248:3001/users/pending")
-      .then((res) => res.json())
-      .then((data) => {
-        console.log("Données récupérées :", data);
-        setUsers(data);
-      })
-      .catch((error) => console.error("Erreur de chargement :", error));
+    const fetchDocuments = async () => {
+      try {
+        const res = await fetch("http://51.15.231.248:3001/admin/documents", {
+          headers: {
+            Authorization: `Bearer ${localStorage.getItem("token") || ""}`,
+          },
+        });
+        if (res.ok) {
+          const data: Document[] = await res.json();
+          setDocuments(data);
+        } else {
+          setMessage("Erreur lors de la récupération des documents.");
+        }
+      } catch (error) {
+        console.error("Erreur de chargement :", error);
+        setMessage("Erreur de réseau lors du chargement des documents.");
+      }
+    };
+
+    fetchDocuments();
   }, []);
 
-  const handleValidation = async (user: User) => {
-    // Afficher l'objet user dans la console pour vérifier sa structure
-    console.log("Utilisateur passé à handleValidation :", user);
-
-    if (!user || !user.userRole) {
-      console.error("Utilisateur ou rôle manquant :", user);
-      return;
-    }
-
-    let updateField = "";
-    // Déterminer quel champ mettre à jour en fonction du rôle
-    if (user.userRole.toLowerCase() === "livreur") {
-      updateField = "occasionalCourier"; // Champ à mettre à jour pour un livreur
-    } else {
-      updateField = "valid"; // Champ à mettre à jour pour les autres rôles
-    }
-
+  // Fonction pour envoyer la validation/refus au backend
+  const handleValidation = async (doc: Document, action: "accept" | "refuse") => {
     try {
-      // Effectuer la requête PATCH avec le champ adéquat
-      const response = await fetch(`http://51.15.231.248:3001/users/${user.id}/validate`, {
-        method: "PATCH",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({ [updateField]: 1 }),
-      });
-      if (!response.ok) {
-        throw new Error("Erreur lors de la validation");
-      }
-      // Mettre à jour l'interface en retirant l'utilisateur validé
-      setUsers((prevUsers) => prevUsers.filter((u) => u.id !== user.id));
-    } catch (error) {
-      console.error("Erreur lors de la requête de validation :", error);
-    }
-  };
+      const res = await fetch(
+        `http://51.15.231.248:3001/admin/documents/${doc.id}/validate`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${localStorage.getItem("token") || ""}`,
+          },
+          body: JSON.stringify({ action }),
+        }
+      );
 
-  const handleRejection = async (id: number) => {
-    try {
-      const response = await fetch(`http://51.15.231.248:3001/users/${id}/reject`, {
-        method: "PATCH",
-      });
-      if (!response.ok) {
-        throw new Error("Erreur lors du rejet");
+      if (res.ok) {
+        setMessage("Action effectuée avec succès.");
+        // Retirer du tableau le document traité
+        setDocuments((prevDocs) => prevDocs.filter((d) => d.id !== doc.id));
+      } else {
+        const errorData = await res.json();
+        setMessage(`Erreur : ${errorData.message || "Échec lors de la validation"}`);
       }
-      setUsers((prevUsers) => prevUsers.filter((user) => user.id !== id));
     } catch (error) {
-      console.error("Erreur lors de la requête de rejet :", error);
+      console.error("Erreur lors de la validation :", error);
+      setMessage("Erreur de réseau ou serveur lors de la validation.");
     }
   };
 
   return (
-    <div className="p-10">
-      <h1 className="text-3xl font-semibold">Validation des justificatifs</h1>
-      {users.length > 0 ? (
-        <ul className="mt-5 space-y-3">
-          {users.map((user) => {
-            // Log pour vérifier la structure de chaque utilisateur lors du rendu
-            console.log("Rendu utilisateur :", user);
-            return (
-              <li key={user.id} className="border p-3 rounded-md">
-                <div>
-                  <strong>
-                    {user.userFirstName} {user.userLastName}
-                  </strong>{" "}
-                  ({user.userRole})
-                </div>
-                <div>
-                  {user.justificationDocument ? (
-                    <>
-                      📄{" "}
-                      <a
-                        href={`http://51.15.231.248:3001/uploads/${user.justificationDocument.fileName}`}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="text-blue-500 underline"
-                      >
-                        Télécharger
-                      </a>
-                    </>
-                  ) : (
-                    <>❌ Aucun justificatif</>
-                  )}
-                </div>
-                <div className="mt-2 space-x-3">
-                  <button
-                    onClick={() => handleValidation(user)}
-                    className="px-3 py-1 bg-green-500 text-white rounded-md"
-                  >
-                    ✅ Valider
-                  </button>
-                  <button
-                    onClick={() => handleRejection(user.id)}
-                    className="px-3 py-1 bg-red-500 text-white rounded-md"
-                  >
-                    ❌ Refuser
-                  </button>
-                </div>
-              </li>
-            );
-          })}
-        </ul>
-      ) : (
-        <p>Aucun justificatif en attente.</p>
-      )}
-      <div className="mt-5">
-        <Link href="/dashboard/admin" className="text-blue-500 underline">
-          Retour au dashboard
-        </Link>
-      </div>
+    <div className="container mx-auto p-4">
+      <h1 className="text-2xl font-bold mb-4">Vérification des Documents</h1>
+      {message && <div className="mb-4 text-red-600">{message}</div>}
+      <table className="min-w-full bg-white border">
+        <thead>
+          <tr>
+            <th className="py-2 px-4 border">Document ID</th>
+            <th className="py-2 px-4 border">User ID</th>
+            <th className="py-2 px-4 border">User Status</th>
+            <th className="py-2 px-4 border">Nom du fichier</th>
+            <th className="py-2 px-4 border">Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          {documents.map((doc) => (
+            <tr key={doc.id}>
+              <td className="py-2 px-4 border">{doc.id}</td>
+              <td className="py-2 px-4 border">{doc.userId}</td>
+              <td className="py-2 px-4 border">{doc.userStatus}</td>
+              <td className="py-2 px-4 border">{doc.fileName}</td>
+              <td className="py-2 px-4 border">
+                <button
+                  className="bg-green-600 text-white px-3 py-1 mr-2 rounded hover:bg-green-700 transition"
+                  onClick={() => handleValidation(doc, "accept")}
+                >
+                  Accepter
+                </button>
+                <button
+                  className="bg-red-600 text-white px-3 py-1 rounded hover:bg-red-700 transition"
+                  onClick={() => handleValidation(doc, "refuse")}
+                >
+                  Refuser
+                </button>
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
     </div>
   );
 }

@@ -1,34 +1,26 @@
-import { Controller, Post, Param, Body, NotFoundException, BadRequestException } from '@nestjs/common';
+import { Controller, Post, Param, Body, Get, UseGuards } from '@nestjs/common';
 import { DocumentsService } from './documents.service';
-import { ValidateDocumentDto } from './dto/validate-document.dto';
+import { JwtAuthGuard } from 'src/auth/jwt-auth.guard';
 
 @Controller('admin/documents')
 export class AdminDocumentsController {
   constructor(private readonly documentsService: DocumentsService) {}
 
+  // ✅ Liste des documents pour l'admin
+  @UseGuards(JwtAuthGuard)
+  @Get()
+  async getAllDocuments() {
+    return this.documentsService.findAll(); // Méthode présente dans le service
+  }
+
+  // ✅ Valider ou refuser un document
+  @UseGuards(JwtAuthGuard)
   @Post(':id/validate')
   async validateDocument(
-    @Param('id') id: number,
-    @Body() validateDocumentDto: ValidateDocumentDto,
+    @Param('id') id: string,
+    @Body() body: { action: 'accept' | 'refuse' },
   ) {
-    const document = await this.documentsService.findOneById(id);
-    const user = document.user;
-    if (!user) {
-      throw new BadRequestException('Aucun utilisateur associé à ce document.');
-    }
-
-    if (user.userStatus === 'livreur') {
-      if (validateDocumentDto.occasionalCourier === undefined) {
-        throw new BadRequestException('Champ occasionalCourier manquant pour un livreur.');
-      }
-      return await this.documentsService.updateDocumentValidation(id, { occasionalCourier: validateDocumentDto.occasionalCourier });
-    } else if (user.userStatus === 'prestataire') {
-      if (validateDocumentDto.valid === undefined) {
-        throw new BadRequestException('Champ valid manquant pour un prestataire.');
-      }
-      return await this.documentsService.updateDocumentValidation(id, { valid: validateDocumentDto.valid });
-    } else {
-      throw new BadRequestException('Statut d’utilisateur inconnu.');
-    }
+    const documentId = parseInt(id, 10);
+    return await this.documentsService.validateDocument(documentId, body.action);
   }
 }
