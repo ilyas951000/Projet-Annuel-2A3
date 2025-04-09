@@ -28,7 +28,7 @@ export class AuthController {
       return {
         message: 'Connexion réussie',
         accessToken,
-        userStatus, 
+        userStatus,
       };
     } catch (error) {
       throw new UnauthorizedException('Email ou mot de passe incorrect');

@@ -1,34 +1,48 @@
-import { Controller, Get, Post, Body, Patch, Param, Delete } from '@nestjs/common';
+import { Controller, Post, Body, UseGuards, Request, BadRequestException, UploadedFile, UseInterceptors } from '@nestjs/common';
+import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { DocumentsService } from './documents.service';
-import { CreateDocumentDto } from './dto/create-document.dto';
-import { UpdateDocumentDto } from './dto/update-document.dto';
+import { FileInterceptor } from '@nestjs/platform-express';
+import { Express } from 'express';
 
 @Controller('documents')
 export class DocumentsController {
   constructor(private readonly documentsService: DocumentsService) {}
 
-  @Post()
-  create(@Body() createDocumentDto: CreateDocumentDto) {
-    return this.documentsService.create(createDocumentDto);
-  }
+  @Post('upload')
+  @UseGuards(JwtAuthGuard)
+  @UseInterceptors(FileInterceptor('file'))
+  async uploadDocument(
+    @Request() req, 
+    @UploadedFile() file: Express.Multer.File, 
+    @Body() documentDto: any,
+  ) {
+    console.log('Début du traitement du document');
+    
+    // Vérifier que l'utilisateur est authentifié
+    if (!req.user) {
+      throw new BadRequestException('Utilisateur non authentifié');
+    }
+    
+    // Si votre stratégie JWT utilise "sub" pour l'ID, utilisez req.user.sub
+    const userId = req.user.userId || req.user.sub;
+    console.log('userId:', userId);
+    console.log('documentDto:', documentDto);
 
-  @Get()
-  findAll() {
-    return this.documentsService.findAll();
-  }
+    if (!file) {
+      throw new BadRequestException('Fichier manquant');
+    }
 
-  @Get(':id')
-  findOne(@Param('id') id: string) {
-    return this.documentsService.findOne(+id);
-  }
+    try {
+      // Ajout du fichier à l'objet documentDto
+      const document = await this.documentsService.uploadDocument(userId, { ...documentDto, file });
 
-  @Patch(':id')
-  update(@Param('id') id: string, @Body() updateDocumentDto: UpdateDocumentDto) {
-    return this.documentsService.update(+id, updateDocumentDto);
-  }
-
-  @Delete(':id')
-  remove(@Param('id') id: string) {
-    return this.documentsService.remove(+id);
+      return {
+        message: 'Document téléchargé avec succès',
+        document,
+      };
+    } catch (error) {
+      console.error('Erreur lors du téléchargement du document:', error.message);
+      throw new BadRequestException('Erreur lors du téléchargement du document');
+    }
   }
 }
