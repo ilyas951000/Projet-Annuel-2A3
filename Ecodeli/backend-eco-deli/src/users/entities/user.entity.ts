@@ -5,57 +5,57 @@ import { Subscription } from "src/subscriptions/entities/subscription.entity";
 import { Column, Entity, ManyToOne, OneToMany, OneToOne, JoinColumn, PrimaryGeneratedColumn } from "typeorm";
 import { Document } from "src/documents/entities/document.entity";
 
-@Entity()
+@Entity('user')  // Utilisation explicite du nom de la table
 export class User {
-    @PrimaryGeneratedColumn()
-    id: number;
+  @PrimaryGeneratedColumn()
+  id: number;
 
-    @Column()
-    userLastName: string;
+  @Column()
+  userLastName: string;
 
-    @Column()
-    userFirstName: string;
+  @Column()
+  userFirstName: string;
 
-    @Column({ unique: true })
-    email: string;
+  @Column({ unique: true })
+  email: string;
 
-    @Column()
-    password: string;
+  @Column()
+  password: string;
 
-    @Column()
-    userRole: string;
+  @Column()
+  userRole: string;
 
-    @Column({ default: 'client' })
-    userStatus: string;
+  @Column({ default: 'client' })
+  userStatus: string;
 
-    @Column()
-    userAddress: string;
+  @Column()
+  userAddress: string;
 
-    @Column({ default: false })
-    hasAccount: boolean;
+  @Column({ default: false })
+  hasAccount: boolean;
 
-    @Column({ default: false })
-    userInsurance: boolean;
+  @Column({ default: false })
+  userInsurance: boolean;
 
-    @Column({ default: false })
-    occasionalCourier: boolean;
+  @Column({ default: false })
+  occasionalCourier: boolean;
 
-    @Column({ default: false })
-    valid: boolean;
+  @Column({ default: false })
+  valid: boolean;
 
-    @OneToMany(() => Subscription, (subscription) => subscription.users)
-    subscription: Subscription[];
+  @OneToMany(() => Subscription, (subscription) => subscription.users)
+  subscription: Subscription[];
 
-    @ManyToOne(() => Contract, (contract) => contract.users)
-    contract: Contract;
+  @ManyToOne(() => Contract, (contract) => contract.users)
+  contract: Contract;
 
-    @ManyToOne(() => Advertisement, (advertisement) => advertisement.users)
-    advertisement: Advertisement;
+  @ManyToOne(() => Advertisement, (advertisement) => advertisement.users)
+  advertisement: Advertisement;
 
-    @ManyToOne(() => Invoice, (invoice) => invoice.user)
-    invoice: Invoice;
+  @ManyToOne(() => Invoice, (invoice) => invoice.user)
+  invoice: Invoice;
 
-    @OneToOne(() => Document, { nullable: true, eager: true, cascade: true }) 
-    @JoinColumn()
-    justificationDocument: Document | null;
+  @OneToOne(() => Document, { nullable: true, eager: true, cascade: true })
+  @JoinColumn()
+  justificationDocument: Document | null;
 }

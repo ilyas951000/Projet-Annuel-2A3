@@ -1,29 +1,35 @@
-import { User } from "src/users/entities/user.entity";
-import { Column, Entity, OneToOne, PrimaryGeneratedColumn } from "typeorm";
+import { Column, Entity, ManyToOne, PrimaryGeneratedColumn, JoinColumn } from 'typeorm';
+import { User } from 'src/users/entities/user.entity';
 
-@Entity()
+@Entity('document')
 export class Document {
-    @PrimaryGeneratedColumn()
-    id: number;
-    
-    @Column()
-    documentType: string;
-    
-    @Column()
-    documentDate: Date;
+  @PrimaryGeneratedColumn()
+  id: number;
 
-    @Column()
-    format: string;
+  @Column()
+  documentType: string;
 
-    @Column()
-    expirationDate: Date;
+  @Column()
+  documentDate: Date;
 
-    @Column()
-    fileName: string; // Nom du fichier
+  @Column()
+  format: string;
 
-    @Column()
-    filePath: string; // Chemin du fichier sur le serveur
+  @Column()
+  expirationDate: Date;
 
-    @OneToOne(() => User, (user) => user.justificationDocument, { onDelete: "CASCADE" })
-    user: User;
+  @Column()
+  fileName: string;
+
+  @Column()
+  filePath: string;
+
+  @ManyToOne(() => User, (user) => user.id, { onDelete: 'SET NULL' })
+  @JoinColumn({ name: 'userId' })
+  user: User;
+  
+  @Column({ nullable: true })
+  userId: number;
+
+  // L'attribut "file" a été supprimé car il n'est plus nécessaire.
 }

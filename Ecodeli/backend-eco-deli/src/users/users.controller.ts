@@ -13,6 +13,11 @@ export class UsersController {
     return this.usersService.create(createUserDto);
   }
 
+  @Get()
+  findAllUsers(): Promise<User[]> {
+    return this.usersService.findAll();  
+  }
+
   @Get('pending')
   findPendingUsers(): Promise<User[]> {
     return this.usersService.getPendingUsers();
@@ -24,7 +29,7 @@ export class UsersController {
   }
 
   @Delete(':id')
-  remove(@Param('id') id: string): Promise<void> {
+  remove(@Param('id', ParseIntPipe) id: number): Promise<void> { 
     return this.usersService.remove(id);
   }
 
@@ -46,3 +51,4 @@ export class UsersController {
     return this.usersService.rejectUser(id);
   }
 }
+

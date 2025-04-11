@@ -32,14 +32,14 @@ export class UsersService {
     return this.findOne(id);
   }
 
-  async remove(id: string): Promise<void> {
-    await this.usersRepository.delete(id);
+  async remove(id: number): Promise<void> {
+    await this.usersRepository.delete(id);  // Le type id est maintenant un nombre
   }
 
   async getPendingUsers(): Promise<User[]> {
     return this.usersRepository.find({
       where: { valid: false },
-      relations: ['justificationDocument'], 
+      relations: ['justificationDocument'], // Charge le document associé
     });
   }
 
@@ -52,3 +52,4 @@ export class UsersService {
     return this.findOne(id);
   }
 }
+
