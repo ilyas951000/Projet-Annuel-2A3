@@ -36,7 +36,7 @@ export default function Dashboard() {
                   toggleMenu={toggleMenu} 
                   subItems={[
                     { title: "Création et inscription", link: "/dashboard/admin/creation-inscription" },
-                    { title: "Modification et mise à jour du profil", link: "/dashboard/admin/modification-profil" },
+                    { title: "Modification et mise à jour du profil", link: "/dashboard/admin/userManagement" },
                     { title: "Gestion des rôles et permissions", link: "/dashboard/admin/roles-permissions" },
                     { title: "Bannissement et suspension", link: "/dashboard/admin/bannissement" },
                     { title: "Historique et logs", link: "/dashboard/admin/historique-logs" }

@@ -13,13 +13,11 @@ export class UsersController {
     return this.usersService.create(createUserDto);
   }
 
-  // Route statique pour récupérer les utilisateurs en attente
   @Get('pending')
   findPendingUsers(): Promise<User[]> {
     return this.usersService.getPendingUsers();
   }
 
-  // Route dynamique pour récupérer un utilisateur par ID
   @Get(':id')
   findOne(@Param('id', ParseIntPipe) id: number): Promise<User | null> {
     return this.usersService.findOne(id);
@@ -38,7 +36,6 @@ export class UsersController {
     return this.usersService.update(id, updateUserDto);
   }
 
-  // Routes de validation et de refus (déjà ajoutées)
   @Patch(':id/validate')
   async validateUser(@Param('id', ParseIntPipe) id: number): Promise<User | null> {
     return this.usersService.validateUser(id);
