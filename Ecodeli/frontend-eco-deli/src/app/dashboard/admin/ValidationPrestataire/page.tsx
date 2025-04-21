@@ -11,16 +11,16 @@ interface Document {
   fileUrl: string; // ✅ URL générée par le backend
 }
 
-export default function AdminDocumentVerification() {
+export default function PrestataireDocumentVerification() {
   const [documents, setDocuments] = useState<Document[]>([]);
   const [message, setMessage] = useState('');
   const [previewDoc, setPreviewDoc] = useState<Document | null>(null);
 
-  // 🟡 Récupération des documents à la connexion
+  // 🟡 Récupération des documents pour les prestataires
   useEffect(() => {
     const fetchDocuments = async () => {
       try {
-        const res = await fetch("http://127.0.0.1:3001/admin/documents", {
+        const res = await fetch('http://51.15.231.248:3001/admin/documents/prestataire', {
           headers: {
             Authorization: `Bearer ${localStorage.getItem('token') || ''}`,
           },
@@ -44,17 +44,14 @@ export default function AdminDocumentVerification() {
   // ✅ Validation ou refus d’un document
   const handleValidation = async (doc: Document, action: 'accept' | 'refuse') => {
     try {
-      const res = await fetch(
-        `http://51.15.231.248:3001/admin/documents/${doc.id}/validate`,
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${localStorage.getItem("token") || ""}`,
-          },
-          body: JSON.stringify({ action }),
-        }
-      );
+      const res = await fetch(`http://51.15.231.248:3001/admin/documents/${doc.id}/validate`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${localStorage.getItem('token') || ''}`,
+        },
+        body: JSON.stringify({ action }),
+      });
 
       if (res.ok) {
         setMessage(`Document ${action === 'accept' ? 'accepté' : 'refusé'} avec succès.`);
@@ -76,7 +73,7 @@ export default function AdminDocumentVerification() {
 
   return (
     <div className="container mx-auto p-6">
-      <h1 className="text-2xl font-bold mb-6">Vérification des documents</h1>
+      <h1 className="text-2xl font-bold mb-6">Vérification des documents pour les prestataires</h1>
 
       {message && <div className="mb-4 text-sm text-red-600">{message}</div>}
 
