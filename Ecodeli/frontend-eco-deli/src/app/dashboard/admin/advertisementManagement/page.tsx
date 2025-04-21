@@ -14,13 +14,13 @@ export default function AdvertisementManagement() {
   });
 
   useEffect(() => {
-    fetch('http://51.15.231.248:3001/advertisements') // Mets l'URL correcte de ton API
+    fetch('http://127.0.0.1:3001/advertisements') // Mets l'URL correcte de ton API
       .then(res => res.json())
       .then(data => setAdvertisements(data));
   }, []);
 
   const validateAd = async (id) => {
-    await fetch(`http://51.15.231.248:3001/advertisements/${id}/validate`, {
+    await fetch(`http://127.0.0.1:3001/advertisements/${id}/validate`, {
       method: 'PATCH',
     });
     setAdvertisements(prev =>
@@ -29,7 +29,7 @@ export default function AdvertisementManagement() {
   };
 
   const deleteAd = async (id) => {
-    await fetch(`http://51.15.231.248:3001/advertisements/${id}`, {
+    await fetch(`http://127.0.0.1:3001/advertisements/${id}`, {
       method: 'DELETE',
     });
     setAdvertisements(prev => prev.filter(ad => ad.id !== id));
@@ -58,7 +58,7 @@ export default function AdvertisementManagement() {
     e.preventDefault();
     const updatedAd = { ...formData };
 
-    const response = await fetch(`http://51.15.231.248:3001/advertisements/${editingAd.id}`, {
+    const response = await fetch(`http://127.0.0.1:3001/advertisements/${editingAd.id}`, {
       method: 'PATCH',
       headers: {
         'Content-Type': 'application/json',
@@ -97,7 +97,7 @@ export default function AdvertisementManagement() {
             {ad.advertisementPhoto && (
               <div>
                 <img
-                  src={`http://51.15.231.248:3001/uploads/${ad.advertisementPhoto}`} // Assure-toi que l'URL est correcte
+                  src={`http://127.0.0.1:3001/uploads/${ad.advertisementPhoto}`} // Assure-toi que l'URL est correcte
                   alt={ad.advertisementItem}
                   style={{ width: '100px', height: '100px', objectFit: 'cover', marginTop: '10px' }}
                 />

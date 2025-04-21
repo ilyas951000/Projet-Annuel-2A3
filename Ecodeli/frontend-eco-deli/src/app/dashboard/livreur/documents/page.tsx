@@ -26,7 +26,7 @@ export default function JustificationPage() {
     formData.append('file', file);
 
     try {
-      const res = await fetch('http://51.15.231.248:3001/documents/upload', {
+      const res = await fetch('http://127.0.0.1:3001/documents/upload', {
         method: 'POST',
         headers: {
           Authorization: `Bearer ${localStorage.getItem('token') || ''}`,

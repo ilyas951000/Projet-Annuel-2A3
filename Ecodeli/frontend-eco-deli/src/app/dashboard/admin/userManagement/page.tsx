@@ -35,7 +35,7 @@ const UsersPage = () => {
   useEffect(() => {
     const fetchUsers = async () => {
       try {
-        const res = await fetch('http://51.15.231.248:3001/users');
+        const res = await fetch('http://127.0.0.1:3001/users');
         if (!res.ok) {
           console.error('Erreur lors de la récupération des utilisateurs', res.status);
           return;
@@ -62,7 +62,7 @@ const UsersPage = () => {
   }, []);
 
   const openModal = async (user: User) => {
-    const res = await fetch(`http://51.15.231.248:3001/users/${user.id}`);
+    const res = await fetch(`http://127.0.0.1:3001/users/${user.id}`);
     const fullUser: User = await res.json();
     setSelectedUser(fullUser);
     setFormData({
@@ -96,7 +96,7 @@ const UsersPage = () => {
   const handleUpdate = async () => {
     if (selectedUser) {
       try {
-        const res = await fetch(`http://51.15.231.248:3001/users/${selectedUser.id}`, {
+        const res = await fetch(`http://127.0.0.1:3001/users/${selectedUser.id}`, {
           method: 'PUT',
           headers: {
             'Content-Type': 'application/json',

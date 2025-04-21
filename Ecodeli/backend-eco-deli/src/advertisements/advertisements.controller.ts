@@ -1,39 +1,22 @@
-import { Controller, Get, Post, Body, Patch, Param, Delete } from '@nestjs/common';
+// advertisements.controller.ts
+import { Controller, Post, Body, UploadedFile, UseInterceptors } from '@nestjs/common';
+import { FileInterceptor } from '@nestjs/platform-express';
 import { AdvertisementsService } from './advertisements.service';
 import { CreateAdvertisementDto } from './dto/create-advertisement.dto';
-import { UpdateAdvertisementDto } from './dto/update-advertisement.dto';
 
 @Controller('advertisements')
 export class AdvertisementsController {
   constructor(private readonly advertisementsService: AdvertisementsService) {}
 
   @Post()
-  create(@Body() createAdvertisementDto: CreateAdvertisementDto) {
+  @UseInterceptors(FileInterceptor('photo'))  // « photo » doit matcher ton input name
+  async create(
+    @UploadedFile() file: Express.Multer.File,
+    @Body() createAdvertisementDto: CreateAdvertisementDto,
+  ) {
+    if (file) {
+      createAdvertisementDto.advertisementPhoto = file.filename;
+    }
     return this.advertisementsService.create(createAdvertisementDto);
-  }
-
-  @Get()
-  findAll() {
-    return this.advertisementsService.findAll();
-  }
-
-  @Get(':id')
-  findOne(@Param('id') id: string) {
-    return this.advertisementsService.findOne(+id);
-  }
-
-  @Patch(':id')
-  update(@Param('id') id: string, @Body() updateAdvertisementDto: UpdateAdvertisementDto) {
-    return this.advertisementsService.update(+id, updateAdvertisementDto);
-  }
-
-  @Delete(':id')
-  remove(@Param('id') id: string) {
-    return this.advertisementsService.remove(+id);
-  }
-
-  @Patch(':id/validate')
-  validate(@Param('id') id: string) {
-    return this.advertisementsService.validate(+id);
   }
 }

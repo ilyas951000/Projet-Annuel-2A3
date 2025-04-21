@@ -32,7 +32,7 @@ const Inscription: React.FC = () => {
     }
 
     try {
-      const response = await fetch('http://51.15.231.248:3001/auth/register', {
+      const response = await fetch('http://127.0.0.1:3001/auth/register', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

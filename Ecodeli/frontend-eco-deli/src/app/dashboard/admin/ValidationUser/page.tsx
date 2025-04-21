@@ -20,7 +20,7 @@ export default function AdminDocumentVerification() {
   useEffect(() => {
     const fetchDocuments = async () => {
       try {
-        const res = await fetch("http://51.15.231.248:3001/admin/documents", {
+        const res = await fetch("http://127.0.0.1:3001/admin/documents", {
           headers: {
             Authorization: `Bearer ${localStorage.getItem("token") || ""}`,
           },
@@ -44,7 +44,7 @@ export default function AdminDocumentVerification() {
   const handleValidation = async (doc: Document, action: "accept" | "refuse") => {
     try {
       const res = await fetch(
-        `http://51.15.231.248:3001/admin/documents/${doc.id}/validate`,
+        `http://127.0.0.1:3001/admin/documents/${doc.id}/validate`,
         {
           method: "POST",
           headers: {

@@ -6,37 +6,42 @@ export class Advertisement {
     @PrimaryGeneratedColumn()
     id: number;
     
-    @Column()
+    @Column({ nullable: true })
     advertisementPhoto: string;
     
-    @Column()
+    @Column({ nullable: true })
     advertisementQuantity: number;
 
-    @Column()
+    @Column({ nullable: true })
     advertisementItem: string;
 
-    @Column()
+    @Column({
+        type: 'timestamp',
+        default: () => 'CURRENT_TIMESTAMP',
+      })
     publicationDate: Date;
 
-    @Column()
+    @Column({ nullable: true })
     advertisementDimension: string;
 
     @Column("decimal",{precision:10, scale:2})
+    @Column({ nullable: true })
     advertisementWeight: number;
 
-    @Column()
+    @Column({ nullable: true })
     additionalInformation: string;
 
     @Column("decimal",{precision:10, scale:2})
+    @Column({ nullable: true })
     advertisementPrice: number;
 
-    @Column()
+    @Column({ nullable: true })
     creatorRole: string;
 
-    @Column()
+    @Column({ nullable: true })
     advertisementStatus: string;
 
-    @Column({ default: false }) // ✅ Ajout du champ de validation
+    @Column({ default: false })
     isValidated: boolean;
 
     @ManyToOne(() => User, (user) => user.advertisement)
