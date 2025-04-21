@@ -1,4 +1,4 @@
-import { Controller, Post, Param, Body, Get, UseGuards } from '@nestjs/common';
+import { Controller, Post, Param, Body, Get, UseGuards, BadRequestException } from '@nestjs/common';
 import { DocumentsService } from './documents.service';
 import { JwtAuthGuard } from 'src/auth/jwt-auth.guard';
 
@@ -6,11 +6,26 @@ import { JwtAuthGuard } from 'src/auth/jwt-auth.guard';
 export class AdminDocumentsController {
   constructor(private readonly documentsService: DocumentsService) {}
 
-  // ✅ Liste des documents pour l'admin
+  // ✅ Liste des documents pour les livreurs
   @UseGuards(JwtAuthGuard)
-  @Get()
-  async getAllDocuments() {
-    return this.documentsService.findAll(); // Méthode présente dans le service
+  @Get('livreur')
+  async getDocumentsLivreur() {
+    try {
+      return await this.documentsService.findDocumentsByStatus('livreur');
+    } catch (error) {
+      throw new BadRequestException('Erreur lors de la récupération des documents des livreurs');
+    }
+  }
+
+  // ✅ Liste des documents pour les prestataires
+  @UseGuards(JwtAuthGuard)
+  @Get('prestataire')
+  async getDocumentsPrestataire() {
+    try {
+      return await this.documentsService.findDocumentsByStatus('prestataire');
+    } catch (error) {
+      throw new BadRequestException('Erreur lors de la récupération des documents des prestataires');
+    }
   }
 
   // ✅ Valider ou refuser un document

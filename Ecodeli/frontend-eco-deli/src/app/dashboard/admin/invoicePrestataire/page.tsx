@@ -18,7 +18,7 @@ const InvoicesPage = () => {
 
   useEffect(() => {
     const fetchInvoices = async () => {
-      const response = await fetch('http://localhost:3001/invoices');
+      const response = await fetch('http://51.15.231.248:3001/invoices');
       const data = await response.json();
       setInvoices(data);
     };

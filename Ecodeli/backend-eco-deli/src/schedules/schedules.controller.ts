@@ -1,34 +1,35 @@
-import { Controller, Get, Post, Body, Patch, Param, Delete } from '@nestjs/common';
-import { SchedulesService } from './schedules.service';
-import { CreateScheduleDto } from './dto/create-schedule.dto';
-import { UpdateScheduleDto } from './dto/update-schedule.dto';
+// src/schedule/schedule.controller.ts
+import { Controller, Get, Param, Post, Body, Delete, Logger } from '@nestjs/common';
+import { ScheduleService } from './schedules.service';
+import { Schedule } from './entities/schedule.entity';
 
-@Controller('schedules')
-export class SchedulesController {
-  constructor(private readonly schedulesService: SchedulesService) {}
-
-  @Post()
-  create(@Body() createScheduleDto: CreateScheduleDto) {
-    return this.schedulesService.create(createScheduleDto);
-  }
+@Controller('courier/:id/schedule')
+export class ScheduleController {
+  private readonly logger = new Logger(ScheduleController.name);
+  
+  constructor(private readonly scheduleService: ScheduleService) {}
 
   @Get()
-  findAll() {
-    return this.schedulesService.findAll();
+  async getSchedules(@Param('id') courierId: number): Promise<Schedule[]> {
+    this.logger.debug(`GET request pour récupérer les schedules du courier ${courierId}`);
+    const schedules = await this.scheduleService.findByCourier(+courierId);
+    this.logger.debug(`Schedules trouvés: ${JSON.stringify(schedules)}`);
+    return schedules;
   }
 
-  @Get(':id')
-  findOne(@Param('id') id: string) {
-    return this.schedulesService.findOne(+id);
+  @Post()
+  async createSchedule(
+    @Param('id') courierId: number,
+    @Body() body: Partial<Schedule>,
+  ): Promise<Schedule> {
+    this.logger.debug(`POST request pour créer un schedule pour le courier ${courierId} avec body: ${JSON.stringify(body)}`);
+    return this.scheduleService.createForCourier(+courierId, body);
   }
 
-  @Patch(':id')
-  update(@Param('id') id: string, @Body() updateScheduleDto: UpdateScheduleDto) {
-    return this.schedulesService.update(+id, updateScheduleDto);
-  }
-
-  @Delete(':id')
-  remove(@Param('id') id: string) {
-    return this.schedulesService.remove(+id);
+  @Delete(':scheduleId')
+  async deleteSchedule(@Param('scheduleId') scheduleId: number): Promise<{ message: string }> {
+    this.logger.debug(`DELETE request pour supprimer le schedule avec id ${scheduleId}`);
+    await this.scheduleService.remove(+scheduleId);
+    return { message: 'Schedule deleted successfully' };
   }
 }

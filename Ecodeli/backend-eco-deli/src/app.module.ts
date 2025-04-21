@@ -5,7 +5,7 @@ import { JwtModule } from '@nestjs/jwt';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { UsersModule } from './users/users.module';
 import { SubscriptionsModule } from './subscriptions/subscriptions.module';
-import { SchedulesModule } from './schedules/schedules.module';
+import { ScheduleModule } from './schedules/schedules.module';
 import { RatesModule } from './rates/rates.module';
 import { DocumentsModule } from './documents/documents.module';
 import { MovementsModule } from './movements/movements.module';
@@ -18,6 +18,7 @@ import { ProductsModule } from './products/products.module';
 import { AuthModule } from './auth/auth.module';  
 import { DashboardModule } from './dashboard/dashboard.module';
 import { FacturableModule } from './facturable/facturable.module';
+
 
 @Module({
   imports: [
@@ -38,7 +39,7 @@ import { FacturableModule } from './facturable/facturable.module';
     }),
     UsersModule,
     SubscriptionsModule,
-    SchedulesModule,
+    ScheduleModule,
     RatesModule,
     DocumentsModule,
     MovementsModule,

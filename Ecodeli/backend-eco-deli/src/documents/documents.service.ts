@@ -5,6 +5,7 @@ import { Document } from './entities/document.entity';
 import { User } from 'src/users/entities/user.entity';
 import * as fs from 'fs';
 import * as path from 'path';
+import { In } from 'typeorm';
 
 @Injectable()
 export class DocumentsService {
@@ -16,37 +17,31 @@ export class DocumentsService {
   ) {}
 
   async uploadDocument(userId: number, documentDto: any) {
-    console.log('Début du traitement du document');
-    console.log('userId:', userId);
-    console.log('documentDto:', documentDto);
-
     if (!documentDto.file) {
       throw new BadRequestException('Fichier manquant');
     }
 
     const documentDate = new Date(documentDto.documentDate);
     const expirationDate = new Date(documentDto.expirationDate);
-    if (isNaN(documentDate.getTime())) {
-      throw new BadRequestException(`La date documentDate est invalide: ${documentDto.documentDate}`);
-    }
-    if (isNaN(expirationDate.getTime())) {
-      throw new BadRequestException(`La date expirationDate est invalide: ${documentDto.expirationDate}`);
+
+    if (isNaN(documentDate.getTime()) || isNaN(expirationDate.getTime())) {
+      throw new BadRequestException('Dates invalides');
     }
 
-    const uploadFolder = path.join(__dirname, '..', '..', 'uploads', 'documents');
+    const uploadFolder = path.join(__dirname, '..', '..', 'public', 'uploads', 'documents');
     if (!fs.existsSync(uploadFolder)) {
       fs.mkdirSync(uploadFolder, { recursive: true });
     }
 
     const timestamp = Date.now();
-    const fileName = `${timestamp}-${documentDto.file.originalname}`;
-    const filePath = path.join(uploadFolder, fileName);
+    const safeFileName = `${timestamp}-${documentDto.file.originalname.replace(/\s+/g, '_')}`;
+    const filePath = path.join(uploadFolder, safeFileName);
 
     try {
       fs.writeFileSync(filePath, documentDto.file.buffer);
     } catch (err) {
-      console.error('Erreur lors de l\'écriture du fichier sur le disque:', err);
-      throw new BadRequestException('Erreur lors de la sauvegarde du fichier sur le disque');
+      console.error('Erreur d’écriture fichier:', err);
+      throw new BadRequestException('Échec de l’écriture du fichier');
     }
 
     const document = this.documentRepository.create({
@@ -56,16 +51,14 @@ export class DocumentsService {
       expirationDate,
       format: documentDto.format,
       fileName: documentDto.file.originalname,
-      filePath,
+      filePath: `uploads/documents/${safeFileName}`, // chemin relatif public
     });
 
     try {
-      const savedDocument = await this.documentRepository.save(document);
-      console.log('Document traité:', savedDocument);
-      return savedDocument;
+      return await this.documentRepository.save(document);
     } catch (error) {
-      console.error('Erreur lors du traitement du document:', error.message);
-      throw new BadRequestException('Erreur lors du téléchargement du document');
+      console.error('Erreur lors de la sauvegarde:', error.message);
+      throw new BadRequestException('Erreur en base de données');
     }
   }
 
@@ -74,11 +67,9 @@ export class DocumentsService {
       where: { id: documentId },
       relations: ['user'],
     });
-    if (!document) {
-      throw new BadRequestException('Document non trouvé');
-    }
-    if (!document.user) {
-      throw new BadRequestException('Document sans utilisateur associé');
+
+    if (!document || !document.user) {
+      throw new BadRequestException('Document ou utilisateur introuvable');
     }
 
     const user = document.user;
@@ -94,11 +85,41 @@ export class DocumentsService {
     return await this.userRepository.save(user);
   }
 
-  // ✅ Nouvelle méthode pour récupérer tous les documents (avec l'utilisateur lié)
-  async findAll() {
-    return await this.documentRepository.find({
+  // ✅ Méthode pour récupérer les documents par statut d'utilisateur
+  async findDocumentsByStatus(userStatus: 'livreur' | 'prestataire') {
+    // On récupère les utilisateurs avec le statut souhaité
+    const users = await this.userRepository.find({
+      where: { userStatus },
+    });
+
+    if (!users.length) {
+      throw new BadRequestException(`Aucun utilisateur avec le statut ${userStatus}`);
+    }
+
+    // On récupère les documents associés à ces utilisateurs
+    const documents = await this.documentRepository.find({
+      where: { userId: In(users.map((user) => user.id)) },
       relations: ['user'],
       order: { id: 'DESC' },
+    });
+
+    // Ajouter l'URL du fichier pour chaque document
+    return documents.map((doc) => {
+      const fileUrl = `http://51.15.231.248:3001/${doc.filePath}`;
+      return { ...doc, fileUrl };
+    });
+  }
+
+  async findAll() {
+    const docs = await this.documentRepository.find({
+      relations: ['user'],
+      order: { id: 'DESC' },
+    });
+
+    // Générer un champ fileUrl pour chaque document (accessible depuis le frontend)
+    return docs.map((doc) => {
+      const fileUrl = `http://51.15.231.248:3001/${doc.filePath}`;
+      return { ...doc, fileUrl };
     });
   }
 }
