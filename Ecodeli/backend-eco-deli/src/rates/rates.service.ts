@@ -1,26 +1,20 @@
 import { Injectable } from '@nestjs/common';
-import { CreateRateDto } from './dto/create-rate.dto';
-import { UpdateRateDto } from './dto/update-rate.dto';
+import { InjectRepository } from '@nestjs/typeorm';
+import { Repository } from 'typeorm';
+import { Rates } from './entities/rates.entity';
 
 @Injectable()
 export class RatesService {
-  create(createRateDto: CreateRateDto) {
-    return 'This action adds a new rate';
-  }
+  constructor(
+    @InjectRepository(Rates)
+    private readonly ratesRepository: Repository<Rates>,
+  ) {}
 
-  findAll() {
-    return `This action returns all rates`;
-  }
-
-  findOne(id: number) {
-    return `This action returns a #${id} rate`;
-  }
-
-  update(id: number, updateRateDto: UpdateRateDto) {
-    return `This action updates a #${id} rate`;
-  }
-
-  remove(id: number) {
-    return `This action removes a #${id} rate`;
+  async findByProvider(providerId: number): Promise<Rates[]> {
+    return this.ratesRepository.find({
+      where: { provider: { id: providerId } },
+      relations: ['client'],
+      order: { createdAt: 'DESC' },
+    });
   }
 }
