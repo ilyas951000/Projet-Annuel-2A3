@@ -47,9 +47,9 @@ export class User {
   subscription: Subscription[];
 
   @ManyToOne(() => Contract, (contract) => contract.users)
-  contract: Contract;
+contract: Contract;
 
-  @ManyToOne(() => Advertisement, (advertisement) => advertisement.users)
+  @OneToMany(() => Advertisement, (advertisement) => advertisement.user)
   advertisement: Advertisement;
 
   @ManyToOne(() => Invoice, (invoice) => invoice.user)

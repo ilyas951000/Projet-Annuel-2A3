@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useEffect, useState } from "react"
 import { Settings, PlusCircle, User, Menu, X } from "lucide-react"
 import Link from "next/link"
 import Image from "next/image"
@@ -9,7 +9,6 @@ export default function Dashboard() {
   const [sidebarOpen, setSidebarOpen] = useState(false)
   const [showModal, setShowModal] = useState(false)
 
-  // États pour le formulaire
   const [advertisementQuantity, setAdvertisementQuantity] = useState(0)
   const [advertisementPrice, setAdvertisementPrice] = useState(0)
   const [advertisementWeight, setAdvertisementWeight] = useState(0)
@@ -21,19 +20,82 @@ export default function Dashboard() {
   const [error, setError] = useState<string | null>(null)
   const [loading, setLoading] = useState(false)
 
+  const [userId, setUserId] = useState<number | null>(null)
+  const [userLoading, setUserLoading] = useState(true)
+  const [userError, setUserError] = useState<string | null>(null)
+
+  useEffect(() => {
+    const fetchUserId = async () => {
+      try {
+        const token = localStorage.getItem('token')
+        if (!token) {
+          console.error("❌ Aucun token trouvé dans le localStorage")
+          setUserError("Token manquant")
+          setUserLoading(false)
+          return
+        }
+        
+        console.log("Token récupéré:", token)
+  
+        const res = await fetch('http://127.0.0.1:3001/auth/me', {
+          method: 'GET',
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        })
+  
+        console.log("📡 Status de la réponse:", res.status)
+  
+        if (!res.ok) {
+          const text = await res.text()
+          console.log("Réponse non OK:", text)
+          throw new Error("Erreur lors de la récupération de l'utilisateur")
+        }
+  
+        const data = await res.json()
+        console.log("Données utilisateur récupérées:", data)
+        console.log(Object.keys(data), data)
+  
+        setUserId(data.userId)
+      } catch (err: any) {
+        console.error("Erreur dans fetchUserId:", err)
+        setUserError(err.message)
+      } finally {
+        setUserLoading(false)
+      }
+    }
+  
+    fetchUserId()
+  }, [])
+  
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setLoading(true)
     setError(null)
-
+  
     if (!file) {
       setError("Veuillez sélectionner une photo.")
       setLoading(false)
       return
     }
-
+  
+    if (userLoading) {
+      setError("Chargement de l'utilisateur en cours...")
+      setLoading(false)
+      return
+    }
+  
+    if (userError || userId === null) {
+      setError("Impossible de récupérer l'utilisateur.")
+      setLoading(false)
+      return
+    }
+  
+    console.log("Utilisateur ID:", userId); 
+  
     const fileName = file.name
-
+  
     try {
       const formData = new FormData()
       formData.append('photo', file)
@@ -45,24 +107,30 @@ export default function Dashboard() {
       formData.append('additionalInformation', additionalInformation)
       formData.append('creatorRole', 'user')
       formData.append('advertisementStatus', advertisementStatus)
-      formData.append('photoName', fileName),
-      formData.append('publicationDate', new Date().toISOString()) 
+      formData.append('photoName', fileName)
+      formData.append('publicationDate', new Date().toISOString())
+      formData.append('usersId', userId.toString())
+
+  
+      console.log("Données envoyées au backend :")
+      for (let pair of formData.entries()) {
+        console.log(`- ${pair[0]}:`, pair[1])
+      }
+  
       const token = localStorage.getItem('token')
-      console.log('💡 token récupéré dans handleSubmit :', token)
-      console.log('💡 headers envoyés :', { Authorization: `Bearer ${token}` })
       const res = await fetch('http://127.0.0.1:3001/advertisements', {
         method: 'POST',
         headers: {
-          'Authorization': `Bearer ${token}`,
+          Authorization: `Bearer ${token}`,
         },
         body: formData,
       })
-
+  
       if (!res.ok) {
         const text = await res.text()
         throw new Error(text || res.statusText)
       }
-
+  
       setShowModal(false)
     } catch (err: any) {
       setError(err.message)
@@ -70,6 +138,7 @@ export default function Dashboard() {
       setLoading(false)
     }
   }
+  
 
   return (
     <div className="flex h-screen bg-gray-100 relative">
@@ -79,10 +148,8 @@ export default function Dashboard() {
           onClick={() => setSidebarOpen(false)}
         />
       )}
-      <aside
-        className={`fixed z-40 top-0 left-0 h-full w-64 bg-white p-5 flex-col justify-between transform transition-transform duration-300 ease-in-out
-        ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'} md:translate-x-0 md:static md:flex`}
-      >
+      <aside className={`fixed z-40 top-0 left-0 h-full w-64 bg-white p-5 flex-col justify-between transform transition-transform duration-300 ease-in-out
+        ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'} md:translate-x-0 md:static md:flex`}>
         <div>
           <div className="flex justify-between items-center md:hidden mb-6">
             <h1 className="text-xl font-bold text-gray-900">EcoDeli</h1>
@@ -153,74 +220,31 @@ export default function Dashboard() {
             <form className="space-y-4" onSubmit={handleSubmit}>
               <div>
                 <label className="block text-sm text-gray-700 mb-1">Quantité</label>
-                <input
-                  type="number"
-                  min="1"
-                  value={advertisementQuantity}
-                  onChange={e => setAdvertisementQuantity(+e.target.value)}
-                  className="w-full border border-gray-300 rounded-lg p-2 bg-white text-gray-900"
-                  required
-                />
+                <input type="number" min="1" value={advertisementQuantity} onChange={e => setAdvertisementQuantity(+e.target.value)} className="w-full border border-gray-300 rounded-lg p-2 bg-white text-gray-900" required />
               </div>
               <div>
                 <label className="block text-sm text-gray-700 mb-1">Prix (€)</label>
-                <input
-                  type="number"
-                  step="0.01"
-                  value={advertisementPrice}
-                  onChange={e => setAdvertisementPrice(+e.target.value)}
-                  className="w-full border border-gray-300 rounded-lg p-2 bg-white text-gray-900"
-                  required
-                />
+                <input type="number" step="0.01" value={advertisementPrice} onChange={e => setAdvertisementPrice(+e.target.value)} className="w-full border border-gray-300 rounded-lg p-2 bg-white text-gray-900" required />
               </div>
               <div>
                 <label className="block text-sm text-gray-700 mb-1">Poids (kg)</label>
-                <input
-                  type="number"
-                  step="0.01"
-                  value={advertisementWeight}
-                  onChange={e => setAdvertisementWeight(+e.target.value)}
-                  className="w-full border border-gray-300 rounded-lg p-2 bg-white text-gray-900"
-                  required
-                />
+                <input type="number" step="0.01" value={advertisementWeight} onChange={e => setAdvertisementWeight(+e.target.value)} className="w-full border border-gray-300 rounded-lg p-2 bg-white text-gray-900" required />
               </div>
               <div>
                 <label className="block text-sm text-gray-700 mb-1">Dimensions</label>
-                <input
-                  type="text"
-                  value={advertisementDimension}
-                  onChange={e => setAdvertisementDimension(e.target.value)}
-                  className="w-full border border-gray-300 rounded-lg p-2 bg-white text-gray-900"
-                  placeholder="30x20x10 cm"
-                />
+                <input type="text" value={advertisementDimension} onChange={e => setAdvertisementDimension(e.target.value)} className="w-full border border-gray-300 rounded-lg p-2 bg-white text-gray-900" placeholder="30x20x10 cm" />
               </div>
               <div>
                 <label className="block text-sm text-gray-700 mb-1">Objet</label>
-                <input
-                  type="text"
-                  value={advertisementItem}
-                  onChange={e => setAdvertisementItem(e.target.value)}
-                  className="w-full border border-gray-300 rounded-lg p-2 bg-white text-gray-900"
-                  placeholder="Nom de l'objet"
-                  required
-                />
+                <input type="text" value={advertisementItem} onChange={e => setAdvertisementItem(e.target.value)} className="w-full border border-gray-300 rounded-lg p-2 bg-white text-gray-900" placeholder="Nom de l'objet" required />
               </div>
               <div>
                 <label className="block text-sm text-gray-700 mb-1">Informations complémentaires</label>
-                <textarea
-                  value={additionalInformation}
-                  onChange={e => setAdditionalInformation(e.target.value)}
-                  className="w-full border border-gray-300 rounded-lg p-2 bg-white text-gray-900"
-                />
+                <textarea value={additionalInformation} onChange={e => setAdditionalInformation(e.target.value)} className="w-full border border-gray-300 rounded-lg p-2 bg-white text-gray-900" />
               </div>
               <div>
                 <label className="block text-sm text-gray-700 mb-1">Type d’envoi</label>
-                <select
-                  value={advertisementStatus}
-                  onChange={e => setAdvertisementStatus(e.target.value)}
-                  className="w-full border border-gray-300 rounded-lg p-2 bg-white text-gray-900"
-                  required
-                >
+                <select value={advertisementStatus} onChange={e => setAdvertisementStatus(e.target.value)} className="w-full border border-gray-300 rounded-lg p-2 bg-white text-gray-900" required>
                   <option value="" disabled>-- Choisir une formule --</option>
                   <option value="free">Free - Supplément de 5%</option>
                   <option value="starter">Starter - 3 envois prioritaires offerts, puis 5%</option>
@@ -229,20 +253,10 @@ export default function Dashboard() {
               </div>
               <div>
                 <h4 className="text-lg font-semibold mb-2">Photo de l'objet</h4>
-                <input
-                  type="file"
-                  accept="image/*"
-                  onChange={e => setFile(e.target.files?.[0] || null)}
-                  className="w-full border border-gray-300 rounded-lg p-2 bg-white text-gray-900"
-                  required
-                />
+                <input type="file" accept="image/*" onChange={e => setFile(e.target.files?.[0] || null)} className="w-full border border-gray-300 rounded-lg p-2 bg-white text-gray-900" required />
               </div>
               {error && <p className="text-red-500">{error}</p>}
-              <button
-                type="submit"
-                disabled={loading}
-                className="bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded-lg w-full"
-              >
+              <button type="submit" disabled={loading} className="bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded-lg w-full">
                 {loading ? "En cours..." : "Enregistrer"}
               </button>
             </form>
