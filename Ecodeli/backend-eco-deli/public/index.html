@@ -42,7 +42,7 @@
 
     <script>
         document.getElementById("registerForm").addEventListener("submit", async function(event) {
-            event.preventDefault(); // Empêche le rechargement de la page
+            event.preventDefault();
 
             const data = {
                 userFirstName: document.getElementById("userFirstName").value,
@@ -61,14 +61,12 @@
                     body: JSON.stringify(data)
                 });
 
-                // Gestion de la réponse
                 if (response.ok) {
                     const result = await response.json();
                     document.getElementById("message").textContent = result.message || "Inscription réussie !";
 
-                    document.getElementById("registerForm").reset(); // Vide le formulaire après inscription
+                    document.getElementById("registerForm").reset(); 
                 } else {
-                    // Si le serveur renvoie une erreur
                     const error = await response.json();
                     document.getElementById("message").textContent = error.message || "Erreur lors de l'inscription.";
                 }
