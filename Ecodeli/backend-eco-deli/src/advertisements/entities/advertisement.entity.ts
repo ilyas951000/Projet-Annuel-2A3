@@ -1,7 +1,6 @@
 import { Picture } from "src/pictures/entities/picture.entity";
 import { User } from "src/users/entities/user.entity";
 import { Column, Entity, JoinColumn, ManyToOne, OneToMany, PrimaryGeneratedColumn } from "typeorm";
-import { Column, Entity, ManyToOne, PrimaryGeneratedColumn } from "typeorm";
 
 @Entity()
 export class Advertisement {
@@ -51,7 +50,7 @@ export class Advertisement {
 
     @ManyToOne(() => User, (user) => user.advertisement, { onDelete: 'SET NULL' })
     @JoinColumn({ name: 'usersId' }) 
-    user: User; 
+    users: User; 
     
 
     @OneToMany(() => Picture, (picture) => picture.advertisement)
