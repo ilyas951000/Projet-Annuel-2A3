@@ -18,6 +18,7 @@ import { ProductsModule } from './products/products.module';
 import { AuthModule } from './auth/auth.module';  
 import { DashboardModule } from './dashboard/dashboard.module';
 import { FacturableModule } from './facturable/facturable.module';
+import { PicturesModule } from './pictures/pictures.module';
 
 
 @Module({
@@ -52,6 +53,7 @@ import { FacturableModule } from './facturable/facturable.module';
     DashboardModule,
     Advertisement,
     FacturableModule,
+    PicturesModule,
   ],
   controllers: [AppController],
   providers: [AppService],

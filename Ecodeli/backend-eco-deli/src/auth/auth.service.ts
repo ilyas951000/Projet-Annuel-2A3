@@ -41,6 +41,7 @@ export class AuthService {
       occasionalCourier: user.occasionalCourier,
       valid: user.valid,
       userStatus: user.userStatus,
+      userSubscription: user.userSubscription,
     };    
     const accessToken = this.jwtService.sign(payload);
 

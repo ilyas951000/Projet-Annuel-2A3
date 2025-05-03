@@ -1,36 +1,55 @@
 // advertisements.controller.ts
-import { Controller, Post, Body, UploadedFile, UseInterceptors, UseGuards, Req } from '@nestjs/common';
+import { Controller, Post, Body, UploadedFile, UseInterceptors, UseGuards, Req, Get, Patch, Param } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { AdvertisementsService } from './advertisements.service';
 import { CreateAdvertisementDto } from './dto/create-advertisement.dto';
 import { JwtAuthGuard } from 'src/auth/jwt-auth.guard';
+import { UpdateAdvertisementDto } from './dto/update-advertisement.dto';
 
 @Controller('advertisements')
 export class AdvertisementsController {
   constructor(private readonly advertisementsService: AdvertisementsService) {}
 
-  // advertisements.controller.ts
   @Post()
-  @UseGuards(JwtAuthGuard)                       // PROTÉGER la route
+  @UseGuards(JwtAuthGuard)                      
   @UseInterceptors(FileInterceptor('photo'))
   async create(
     @UploadedFile() file: Express.Multer.File,
     @Body() createAdvertisementDto: CreateAdvertisementDto,
-    @Req() req                                  // récupère req.user
+    @Req() req                                 
   ) {
-    // 1) Ajoutez la photo si présente
     if (file) {
       createAdvertisementDto.advertisementPhoto = file.filename;
     }
 
-    // 2) Extrait vraiment l’ID du token
     const userId = req.user.userId || req.user.sub;
 
-    // 3) Passez-le au service (et retirez userId du DTO côté client)
     return this.advertisementsService.create({
       ...createAdvertisementDto,
       userId,
     });
+  }
+  @Get('me')
+  @UseGuards(JwtAuthGuard)
+  async findMyAds(@Req() req) {
+    const userId = req.user.userId || req.user.sub;
+    return this.advertisementsService.findByUser(userId);
+  }
+  @Patch(':id')
+  @UseGuards(JwtAuthGuard)
+  async update(
+    @Param('id') id: string,
+    @Body() updateDto: UpdateAdvertisementDto,
+    @Req() req
+  ) {
+    return this.advertisementsService.update(+id, updateDto);
+  }
+  
+  @Get('others')
+  @UseGuards(JwtAuthGuard)
+  async findOtherAds(@Req() req) {
+    const userId = req.user.userId || req.user.sub;
+    return this.advertisementsService.findOthers(userId);
   }
 
 }
