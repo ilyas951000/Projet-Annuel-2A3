@@ -37,6 +37,7 @@ import { PicturesModule } from './pictures/pictures.module';
       autoLoadEntities: true,
     }),
     JwtModule.register({
+      global: true,
       secret: '5115231248', 
       signOptions: { expiresIn: '1h' },
     }),

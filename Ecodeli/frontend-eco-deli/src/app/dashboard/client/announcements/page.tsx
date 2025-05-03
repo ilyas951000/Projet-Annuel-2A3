@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useEffect, useState } from "react"
 import { Settings, PlusCircle, User, Menu, X } from "lucide-react"
 import Link from "next/link"
 import Image from "next/image"

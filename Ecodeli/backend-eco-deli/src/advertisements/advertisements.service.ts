@@ -59,5 +59,9 @@ export class AdvertisementsService {
       order: { publicationDate: 'DESC' },
     });
   }
-
+  async findValidated() {
+    return await this.advertisementRepository.find({
+      where: { isValidated: true },
+    });
+  }
 }

@@ -1,13 +1,6 @@
 // advertisements.controller.ts
 import { Controller, Post, Body, UploadedFile, UseInterceptors, UseGuards, Req, Get, Patch, Param } from '@nestjs/common';
-import { 
-  Controller, 
-  Get, 
-  Post, 
-  Body, 
-  UploadedFile, 
-  UseInterceptors 
-} from '@nestjs/common';
+
 import { FileInterceptor } from '@nestjs/platform-express';
 import { AdvertisementsService } from './advertisements.service';
 import { CreateAdvertisementDto } from './dto/create-advertisement.dto';
@@ -39,7 +32,7 @@ export class AdvertisementsController {
 
     return this.advertisementsService.create({
       ...createAdvertisementDto,
-      userId,
+      //usersId,
     });
     return this.advertisementsService.create(createAdvertisementDto);
   }
