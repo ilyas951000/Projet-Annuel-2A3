@@ -34,8 +34,9 @@ export class User {
   @Column({ default: false })
   hasAccount: boolean;
 
-  @Column({ default: false })
-  userInsurance: boolean;
+  @Column({ type: 'int', default: 0 }) // 0 = Free, 1 = Starter, 2 = Premium
+  userSubscription: number;
+
 
   @Column({ default: false })
   occasionalCourier: boolean;

@@ -35,11 +35,9 @@ export class AuthController {
     }
   }
 
-  // Endpoint pour récupérer l'utilisateur connecté
   @UseGuards(JwtAuthGuard)
   @Get('me')
   getMe(@Request() req) {
-    // On ajoute occasionalCourier depuis req.user
     return {
       userId: req.user.sub,
       userLastName: req.user.userLastName,
@@ -47,6 +45,7 @@ export class AuthController {
       userStatus: req.user.userStatus,
       occasionalCourier: req.user.occasionalCourier,
       valid: req.user.valid,
+      userSubscription: req.user.userSubscription,
     };
   }
 

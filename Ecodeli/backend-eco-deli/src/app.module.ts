@@ -20,6 +20,8 @@ import { DashboardModule } from './dashboard/dashboard.module';
 import { FacturableModule } from './facturable/facturable.module';
 import { InterventionModule } from './intervention/intervention.module';
 import { PublicProfileModule } from './public-profile/public-profile.module';
+import { PicturesModule } from './pictures/pictures.module';
+
 
 @Module({
   imports: [
@@ -55,6 +57,7 @@ import { PublicProfileModule } from './public-profile/public-profile.module';
     Advertisement,
     FacturableModule,
     InterventionModule,
+    PicturesModule,
   ],
   controllers: [AppController],
   providers: [AppService],
