@@ -3,6 +3,6 @@ export class RegisterUserDto {
     userLastName: string;
     email: string;
     password: string;
-    role: string;
+    userRole: string;
   }
   

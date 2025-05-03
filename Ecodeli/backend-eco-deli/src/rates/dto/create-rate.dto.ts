@@ -1,6 +1,7 @@
 export class CreateRateDto {
-    evaluatorType: string;
-    rate: number;
-    ratingComment: string;
-    ratingDate: Date;
-}
+    rating: number;
+    comment?: string;
+    clientId: number;
+    providerId: number;
+  }
+  

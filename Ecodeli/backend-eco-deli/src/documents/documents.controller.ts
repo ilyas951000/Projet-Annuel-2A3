@@ -1,34 +1,70 @@
-import { Controller, Get, Post, Body, Patch, Param, Delete } from '@nestjs/common';
+import {
+  Controller,
+  Post,
+  Param,
+  Body,
+  UseGuards,
+  Request,
+  BadRequestException,
+  UploadedFiles,
+  UseInterceptors,
+} from '@nestjs/common';
+import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { DocumentsService } from './documents.service';
-import { CreateDocumentDto } from './dto/create-document.dto';
-import { UpdateDocumentDto } from './dto/update-document.dto';
+import { FilesInterceptor } from '@nestjs/platform-express';
+import { Express } from 'express';
+import { Document } from './entities/document.entity';
 
 @Controller('documents')
 export class DocumentsController {
   constructor(private readonly documentsService: DocumentsService) {}
 
-  @Post()
-  create(@Body() createDocumentDto: CreateDocumentDto) {
-    return this.documentsService.create(createDocumentDto);
+  @Post('multi-upload')
+  @UseGuards(JwtAuthGuard)
+  @UseInterceptors(FilesInterceptor('file'))
+  async multiUploadDocuments(
+    @Request() req,
+    @UploadedFiles() files: Express.Multer.File[],
+    @Body() body: any,
+  ) {
+    if (!req.user) {
+      throw new BadRequestException('Utilisateur non authentifié');
+    }
+    const userId = req.user.userId || req.user.sub;
+
+    let documentsData: any[];
+    try {
+      documentsData = JSON.parse(body.documents);
+    } catch {
+      throw new BadRequestException('Format des métadonnées JSON invalide');
+    }
+
+    if (!Array.isArray(documentsData) || documentsData.length !== files.length) {
+      throw new BadRequestException('Nombre de fichiers et de métadonnées incohérent');
+    }
+
+    const uploaded: Document[] = [];
+    for (let i = 0; i < files.length; i++) {
+      const documentDto = { ...documentsData[i], file: files[i] };
+      const saved = await this.documentsService.uploadDocument(userId, documentDto);
+      uploaded.push(saved);
+    }
+
+    return { message: 'Documents téléchargés avec succès', uploaded };
   }
 
-  @Get()
-  findAll() {
-    return this.documentsService.findAll();
-  }
+  @Post(':userId/refuse-all')
+  @UseGuards(JwtAuthGuard)
+  async refuseAllByUser(@Request() req, @Param('userId') userIdParam: string) {
+    if (!req.user) {
+      throw new BadRequestException('Utilisateur non authentifié');
+    }
+    const userId = parseInt(userIdParam, 10);
+    if (isNaN(userId)) {
+      throw new BadRequestException('userId invalide');
+    }
 
-  @Get(':id')
-  findOne(@Param('id') id: string) {
-    return this.documentsService.findOne(+id);
-  }
-
-  @Patch(':id')
-  update(@Param('id') id: string, @Body() updateDocumentDto: UpdateDocumentDto) {
-    return this.documentsService.update(+id, updateDocumentDto);
-  }
-
-  @Delete(':id')
-  remove(@Param('id') id: string) {
-    return this.documentsService.remove(+id);
+    await this.documentsService.deleteDocumentsByUser(userId);
+    return { message: `Tous les documents de l'utilisateur #${userId} ont été supprimés.` };
   }
 }

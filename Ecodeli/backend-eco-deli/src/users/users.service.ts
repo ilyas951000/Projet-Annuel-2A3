@@ -16,7 +16,6 @@ export class UsersService {
     const user = new User();
     user.userFirstName = createUserDto.userFirstName;
     user.userLastName = createUserDto.userLastName;
-
     return this.usersRepository.save(user);
   }
 
@@ -28,7 +27,29 @@ export class UsersService {
     return this.usersRepository.findOneBy({ id: id });
   }
 
-  async remove(id: string): Promise<void> {
-    await this.usersRepository.delete(id);
+  async update(id: number, updateUserDto: UpdateUserDto): Promise<User | null> {
+    await this.usersRepository.update(id, updateUserDto);
+    return this.findOne(id);
+  }
+
+  async remove(id: number): Promise<void> {
+    await this.usersRepository.delete(id);  // Le type id est maintenant un nombre
+  }
+
+  async getPendingUsers(): Promise<User[]> {
+    return this.usersRepository.find({
+      where: { valid: false },
+      relations: ['justificationDocument'], // Charge le document associé
+    });
+  }
+
+  async validateUser(id: number): Promise<User | null> {
+    await this.usersRepository.update(id, { valid: true });
+    return this.findOne(id);
+  }
+
+  async rejectUser(id: number): Promise<User | null> {
+    return this.findOne(id);
   }
 }
+

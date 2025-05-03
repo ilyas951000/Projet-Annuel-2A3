@@ -5,17 +5,21 @@ import { JwtModule } from '@nestjs/jwt';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { UsersModule } from './users/users.module';
 import { SubscriptionsModule } from './subscriptions/subscriptions.module';
-import { SchedulesModule } from './schedules/schedules.module';
+import { ScheduleModule } from './schedules/schedules.module';
 import { RatesModule } from './rates/rates.module';
 import { DocumentsModule } from './documents/documents.module';
 import { MovementsModule } from './movements/movements.module';
 import { ContractsModule } from './contracts/contracts.module';
 import { InvoicesModule } from './invoices/invoices.module';
 import { AdvertisementsModule } from './advertisements/advertisements.module';
+import { Advertisement } from './advertisements/entities/advertisement.entity';
 import { PackagesModule } from './packages/packages.module';
 import { ProductsModule } from './products/products.module';
-import { AuthModule } from './auth/auth.module';  // <-- AJOUTE ICI
+import { AuthModule } from './auth/auth.module';  
 import { DashboardModule } from './dashboard/dashboard.module';
+import { FacturableModule } from './facturable/facturable.module';
+import { InterventionModule } from './intervention/intervention.module';
+import { PublicProfileModule } from './public-profile/public-profile.module';
 
 @Module({
   imports: [
@@ -31,12 +35,13 @@ import { DashboardModule } from './dashboard/dashboard.module';
       autoLoadEntities: true,
     }),
     JwtModule.register({
-      secret: '5115231248', // Remplace par une vraie clé secrète
+      secret: '5115231248', 
       signOptions: { expiresIn: '1h' },
     }),
     UsersModule,
+    PublicProfileModule,
     SubscriptionsModule,
-    SchedulesModule,
+    ScheduleModule,
     RatesModule,
     DocumentsModule,
     MovementsModule,
@@ -45,8 +50,11 @@ import { DashboardModule } from './dashboard/dashboard.module';
     AdvertisementsModule,
     PackagesModule,
     ProductsModule,
-    AuthModule,  // <-- AJOUTE ICI
+    AuthModule, 
     DashboardModule,
+    Advertisement,
+    FacturableModule,
+    InterventionModule,
   ],
   controllers: [AppController],
   providers: [AppService],

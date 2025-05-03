@@ -1,3 +1,4 @@
+// src/schedule/entities/schedule.entity.ts
 import { User } from "src/users/entities/user.entity";
 import { Column, Entity, JoinTable, ManyToMany, PrimaryGeneratedColumn } from "typeorm";
 
@@ -20,5 +21,5 @@ export class Schedule {
 
     @ManyToMany(() => User)
     @JoinTable({ name: "courierSchedule" })
-    user: User[]
+    user: User[];
 }

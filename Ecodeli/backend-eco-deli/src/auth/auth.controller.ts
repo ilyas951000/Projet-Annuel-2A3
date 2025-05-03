@@ -1,7 +1,8 @@
-import { Controller, Post, Body, UnauthorizedException, BadRequestException } from '@nestjs/common';
+import { Controller, Post, Body, Get, UseGuards, Request, BadRequestException, UnauthorizedException } from '@nestjs/common';
 import { AuthService } from './auth.service';
 import { RegisterUserDto } from '../users/dto/register-user.dto';
 import { LoginUserDto } from '../users/dto/login-user.dto';
+import { JwtAuthGuard } from './jwt-auth.guard';
 
 @Controller('auth')
 export class AuthController {
@@ -24,14 +25,29 @@ export class AuthController {
   async login(@Body() loginUserDto: LoginUserDto) {
     try {
       const { accessToken, userStatus } = await this.authService.login(loginUserDto);
-
       return {
         message: 'Connexion réussie',
         accessToken,
-        userStatus, 
+        userStatus,
       };
     } catch (error) {
       throw new UnauthorizedException('Email ou mot de passe incorrect');
     }
   }
+
+  // Endpoint pour récupérer l'utilisateur connecté
+  @UseGuards(JwtAuthGuard)
+  @Get('me')
+  getMe(@Request() req) {
+    // On ajoute occasionalCourier depuis req.user
+    return {
+      userId: req.user.sub,
+      userLastName: req.user.userLastName,
+      userFirstName: req.user.userFirstName,
+      userStatus: req.user.userStatus,
+      occasionalCourier: req.user.occasionalCourier,
+      valid: req.user.valid,
+    };
+  }
+
 }

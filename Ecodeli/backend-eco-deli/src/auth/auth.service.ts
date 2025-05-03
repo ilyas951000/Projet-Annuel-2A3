@@ -16,11 +16,16 @@ export class AuthService {
   ) {}
 
   async register(registerUserDto: RegisterUserDto): Promise<User> {
+    const { password, userRole } = registerUserDto; 
+  
     const hashedPassword = await bcrypt.hash(registerUserDto.password, 10);
+  
     const user = this.usersRepository.create({
       ...registerUserDto,
       password: hashedPassword,
+      userRole,
     });
+  
     return this.usersRepository.save(user);
   }
 
@@ -31,8 +36,16 @@ export class AuthService {
       throw new UnauthorizedException("Email ou mot de passe incorrect");
     }
 
-    const payload = { sub: user.id, userStatus: user.userStatus };
+    const payload = {
+      sub: user.id,
+      occasionalCourier: user.occasionalCourier,
+      userFirstName: user.userFirstName,
+      userLastName: user.userLastName,
+      valid: user.valid,
+      userStatus: user.userStatus,
+    };    
     const accessToken = this.jwtService.sign(payload);
+
 
     return { 
       accessToken, 

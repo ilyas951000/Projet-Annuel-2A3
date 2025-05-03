@@ -1,34 +1,35 @@
-import { Controller, Get, Post, Body, Patch, Param, Delete } from '@nestjs/common';
+import { 
+  Controller,
+  Post,
+  Body,
+  Param,
+  Get,
+  Patch,
+  ParseIntPipe,
+} from '@nestjs/common';
 import { MovementsService } from './movements.service';
 import { CreateMovementDto } from './dto/create-movement.dto';
-import { UpdateMovementDto } from './dto/update-movement.dto';
+import { Movement } from './entities/movement.entity';
 
 @Controller('movements')
 export class MovementsController {
-  constructor(private readonly movementsService: MovementsService) {}
+  constructor(private readonly svc: MovementsService) {}
 
+  /** POST /movements */
   @Post()
-  create(@Body() createMovementDto: CreateMovementDto) {
-    return this.movementsService.create(createMovementDto);
+  create(@Body() dto: CreateMovementDto): Promise<Movement> {
+    return this.svc.create(dto);
   }
 
-  @Get()
-  findAll() {
-    return this.movementsService.findAll();
+  /** GET /movements/user/:userId */
+  @Get('user/:userId')
+  findByUser(@Param('userId', ParseIntPipe) userId: number): Promise<Movement[]> {
+    return this.svc.findByUser(userId);
   }
 
-  @Get(':id')
-  findOne(@Param('id') id: string) {
-    return this.movementsService.findOne(+id);
-  }
-
-  @Patch(':id')
-  update(@Param('id') id: string, @Body() updateMovementDto: UpdateMovementDto) {
-    return this.movementsService.update(+id, updateMovementDto);
-  }
-
-  @Delete(':id')
-  remove(@Param('id') id: string) {
-    return this.movementsService.remove(+id);
+  /** PATCH /movements/:id/deactivate */
+  @Patch(':id/deactivate')
+  deactivate(@Param('id', ParseIntPipe) id: number): Promise<void> {
+    return this.svc.deactivate(id);
   }
 }
