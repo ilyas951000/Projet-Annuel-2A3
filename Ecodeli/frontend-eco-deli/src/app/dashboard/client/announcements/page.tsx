@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, useState } from "react"
+import { useState } from "react"
 import { Settings, PlusCircle, User, Menu, X } from "lucide-react"
 import Link from "next/link"
 import Image from "next/image"
@@ -99,6 +99,9 @@ export default function Dashboard() {
       setLoadingAdd(false)
       return
     }
+
+    const fileName = file.name
+
     try {
       const formData = new FormData()
       formData.append('photo', file)
@@ -144,8 +147,10 @@ export default function Dashboard() {
       {sidebarOpen && (
         <div className="fixed inset-0 bg-black bg-opacity-50 z-30 md:hidden" onClick={() => setSidebarOpen(false)}/>
       )}
-      <aside className={`fixed z-40 top-0 left-0 h-full w-64 bg-white p-5 flex-col justify-between transform transition-transform duration-300 ease-in-out
-        ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'} md:translate-x-0 md:static md:flex`}>
+      <aside
+        className={`fixed z-40 top-0 left-0 h-full w-64 bg-white p-5 flex-col justify-between transform transition-transform duration-300 ease-in-out
+        ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'} md:translate-x-0 md:static md:flex`}
+      >
         <div>
           <div className="flex justify-between items-center md:hidden mb-6">
             <h1 className="text-xl font-bold text-gray-900">EcoDeli</h1>

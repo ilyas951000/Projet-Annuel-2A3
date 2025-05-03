@@ -21,12 +21,6 @@ export class AdvertisementsService {
     return await this.advertisementRepository.find();
   }
 
-  async findValidated() {
-    return await this.advertisementRepository.find({
-      where: { isValidated: true },
-    });
-  }
-
   async findOne(id: number) {
     const advertisement = await this.advertisementRepository.findOne({ where: { id } });
     if (!advertisement) {
