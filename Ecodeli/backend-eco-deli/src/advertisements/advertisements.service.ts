@@ -40,19 +40,6 @@ export class AdvertisementsService {
     return this.findOne(id);
   }
 
-  async findOne(id: number) {
-    const advertisement = await this.advertisementRepository.findOne({ where: { id } });
-    if (!advertisement) {
-      throw new NotFoundException('Annonce non trouvée');
-    }
-    return advertisement;
-  }
-
-  async update(id: number, updateAdvertisementDto: UpdateAdvertisementDto) {
-    await this.advertisementRepository.update(id, updateAdvertisementDto);
-    return this.findOne(id);
-  }
-
   async remove(id: number) {
     const advertisement = await this.findOne(id);
     return await this.advertisementRepository.remove(advertisement);
