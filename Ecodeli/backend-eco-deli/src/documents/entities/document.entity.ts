@@ -1,4 +1,13 @@
-import { Column, Entity, ManyToOne, PrimaryGeneratedColumn, JoinColumn } from 'typeorm';
+// ===========================
+// src/documents/entities/document.entity.ts
+// ===========================
+import {
+  Column,
+  Entity,
+  ManyToOne,
+  PrimaryGeneratedColumn,
+  JoinColumn,
+} from 'typeorm';
 import { User } from 'src/users/entities/user.entity';
 
 @Entity('document')
@@ -9,13 +18,13 @@ export class Document {
   @Column()
   documentType: string;
 
-  @Column()
+  @Column({ type: 'date' })
   documentDate: Date;
 
   @Column()
   format: string;
 
-  @Column()
+  @Column({ type: 'date' })
   expirationDate: Date;
 
   @Column()
@@ -24,12 +33,10 @@ export class Document {
   @Column()
   filePath: string;
 
-  @ManyToOne(() => User, (user) => user.id, { onDelete: 'SET NULL' })
+  @ManyToOne(() => User, { onDelete: 'SET NULL' })
   @JoinColumn({ name: 'userId' })
   user: User;
-  
+
   @Column({ nullable: true })
   userId: number;
-
-  // L'attribut "file" a été supprimé car il n'est plus nécessaire.
 }

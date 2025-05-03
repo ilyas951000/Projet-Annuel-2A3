@@ -1,4 +1,4 @@
-
+// dto/create-advertisement.dto.ts
 import { IsNotEmpty, IsNumber, IsOptional, IsString } from 'class-validator';
 
 export class CreateAdvertisementDto {
@@ -35,5 +35,5 @@ export class CreateAdvertisementDto {
   advertisementStatus: string;
 
   @IsNumber()
-  userId: number;
+  usersId: number;     // ← on conserve ce champ pour recevoir l’ID depuis le controller
 }

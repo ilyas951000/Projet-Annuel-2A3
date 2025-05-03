@@ -1,6 +1,5 @@
-import { Picture } from "src/pictures/entities/picture.entity";
 import { User } from "src/users/entities/user.entity";
-import { Column, Entity, JoinColumn, ManyToOne, OneToMany, PrimaryGeneratedColumn } from "typeorm";
+import { Column, Entity, ManyToOne, PrimaryGeneratedColumn } from "typeorm";
 
 @Entity()
 export class Advertisement {
@@ -44,15 +43,7 @@ export class Advertisement {
 
     @Column({ default: false })
     isValidated: boolean;
-    
-    @Column({ nullable: true })
-    usersId: number;
 
-    @ManyToOne(() => User, (user) => user.advertisement, { onDelete: 'SET NULL' })
-    @JoinColumn({ name: 'usersId' }) 
-    user: User; 
-    
-
-    @OneToMany(() => Picture, (picture) => picture.advertisement)
-    picture: Picture;
+    @ManyToOne(() => User, (user) => user.advertisement)
+    users: User;
 }

@@ -1,34 +1,21 @@
-import { Controller, Get, Post, Body, Patch, Param, Delete } from '@nestjs/common';
+import { Controller, Get, Param, ParseIntPipe, Post, Body } from '@nestjs/common';
 import { RatesService } from './rates.service';
+import { Rates } from './entities/rates.entity';
 import { CreateRateDto } from './dto/create-rate.dto';
-import { UpdateRateDto } from './dto/update-rate.dto';
 
 @Controller('rates')
 export class RatesController {
   constructor(private readonly ratesService: RatesService) {}
 
+  @Get('provider/:id')
+  async getByProvider(
+    @Param('id', ParseIntPipe) id: number,
+  ): Promise<Rates[]> {
+    return this.ratesService.findByProvider(id);
+  }
+
   @Post()
-  create(@Body() createRateDto: CreateRateDto) {
-    return this.ratesService.create(createRateDto);
-  }
-
-  @Get()
-  findAll() {
-    return this.ratesService.findAll();
-  }
-
-  @Get(':id')
-  findOne(@Param('id') id: string) {
-    return this.ratesService.findOne(+id);
-  }
-
-  @Patch(':id')
-  update(@Param('id') id: string, @Body() updateRateDto: UpdateRateDto) {
-    return this.ratesService.update(+id, updateRateDto);
-  }
-
-  @Delete(':id')
-  remove(@Param('id') id: string) {
-    return this.ratesService.remove(+id);
+  async createRate(@Body() dto: CreateRateDto): Promise<Rates> {
+    return this.ratesService.create(dto);
   }
 }

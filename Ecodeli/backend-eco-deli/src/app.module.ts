@@ -18,8 +18,8 @@ import { ProductsModule } from './products/products.module';
 import { AuthModule } from './auth/auth.module';  
 import { DashboardModule } from './dashboard/dashboard.module';
 import { FacturableModule } from './facturable/facturable.module';
-import { PicturesModule } from './pictures/pictures.module';
-
+import { InterventionModule } from './intervention/intervention.module';
+import { PublicProfileModule } from './public-profile/public-profile.module';
 
 @Module({
   imports: [
@@ -39,6 +39,7 @@ import { PicturesModule } from './pictures/pictures.module';
       signOptions: { expiresIn: '1h' },
     }),
     UsersModule,
+    PublicProfileModule,
     SubscriptionsModule,
     ScheduleModule,
     RatesModule,
@@ -53,7 +54,7 @@ import { PicturesModule } from './pictures/pictures.module';
     DashboardModule,
     Advertisement,
     FacturableModule,
-    PicturesModule,
+    InterventionModule,
   ],
   controllers: [AppController],
   providers: [AppService],

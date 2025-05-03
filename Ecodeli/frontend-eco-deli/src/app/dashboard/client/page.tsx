@@ -34,12 +34,11 @@ export default function Dashboard() {
 
             <nav className="mt-5">
               <ul className="space-y-3">
-                <NavItem title="Accueil" link="./" />
+                <NavItem title="Accueil" link="/" />
                 <NavItem title="Mes Annonces" link="./client/announcements" />
-                <NavItem title="Annonces des Autres" link="./client/otherAnnouncements" />
+                <NavItem title="Annonces des Autres" link="/annonces-autres" />
                 <NavItem title="Suivi des Livraisons" link="/suivi-livraisons" />
                 <NavItem title="Mes Paiements" link="/paiements" />
-                <NavItem title="Abonnement" link="./client/subscription" />
                 <NavItem title="Services & Prestataires" link="/services" />
                 <NavItem title="Profil / Compte" link="/compte" />
               </ul>

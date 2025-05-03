@@ -1,48 +1,70 @@
-import { Controller, Post, Body, UseGuards, Request, BadRequestException, UploadedFile, UseInterceptors } from '@nestjs/common';
+import {
+  Controller,
+  Post,
+  Param,
+  Body,
+  UseGuards,
+  Request,
+  BadRequestException,
+  UploadedFiles,
+  UseInterceptors,
+} from '@nestjs/common';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { DocumentsService } from './documents.service';
-import { FileInterceptor } from '@nestjs/platform-express';
+import { FilesInterceptor } from '@nestjs/platform-express';
 import { Express } from 'express';
+import { Document } from './entities/document.entity';
 
 @Controller('documents')
 export class DocumentsController {
   constructor(private readonly documentsService: DocumentsService) {}
 
-  @Post('upload')
+  @Post('multi-upload')
   @UseGuards(JwtAuthGuard)
-  @UseInterceptors(FileInterceptor('file'))
-  async uploadDocument(
-    @Request() req, 
-    @UploadedFile() file: Express.Multer.File, 
-    @Body() documentDto: any,
+  @UseInterceptors(FilesInterceptor('file'))
+  async multiUploadDocuments(
+    @Request() req,
+    @UploadedFiles() files: Express.Multer.File[],
+    @Body() body: any,
   ) {
-    console.log('Début du traitement du document');
-    
-    // Vérifier que l'utilisateur est authentifié
     if (!req.user) {
       throw new BadRequestException('Utilisateur non authentifié');
     }
-    
-    // Si votre stratégie JWT utilise "sub" pour l'ID, utilisez req.user.sub
     const userId = req.user.userId || req.user.sub;
-    console.log('userId:', userId);
-    console.log('documentDto:', documentDto);
 
-    if (!file) {
-      throw new BadRequestException('Fichier manquant');
-    }
-
+    let documentsData: any[];
     try {
-      // Ajout du fichier à l'objet documentDto
-      const document = await this.documentsService.uploadDocument(userId, { ...documentDto, file });
-
-      return {
-        message: 'Document téléchargé avec succès',
-        document,
-      };
-    } catch (error) {
-      console.error('Erreur lors du téléchargement du document:', error.message);
-      throw new BadRequestException('Erreur lors du téléchargement du document');
+      documentsData = JSON.parse(body.documents);
+    } catch {
+      throw new BadRequestException('Format des métadonnées JSON invalide');
     }
+
+    if (!Array.isArray(documentsData) || documentsData.length !== files.length) {
+      throw new BadRequestException('Nombre de fichiers et de métadonnées incohérent');
+    }
+
+    const uploaded: Document[] = [];
+    for (let i = 0; i < files.length; i++) {
+      const documentDto = { ...documentsData[i], file: files[i] };
+      const saved = await this.documentsService.uploadDocument(userId, documentDto);
+      uploaded.push(saved);
+    }
+
+    return { message: 'Documents téléchargés avec succès', uploaded };
+  }
+
+  @Post(':userId/refuse-all')
+  @UseGuards(JwtAuthGuard)
+  async refuseAllByUser(@Request() req, @Param('userId') userIdParam: string) {
+    if (!req.user) {
+      throw new BadRequestException('Utilisateur non authentifié');
+    }
+    const userId = parseInt(userIdParam, 10);
+    if (isNaN(userId)) {
+      throw new BadRequestException('userId invalide');
+    }
+
+    await this.documentsService.deleteDocumentsByUser(userId);
+    return { message: `Tous les documents de l'utilisateur #${userId} ont été supprimés.` };
   }
 }

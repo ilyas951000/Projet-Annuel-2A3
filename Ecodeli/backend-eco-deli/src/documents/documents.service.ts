@@ -1,22 +1,21 @@
 import { Injectable, BadRequestException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { Repository, In } from 'typeorm';
 import { Document } from './entities/document.entity';
 import { User } from 'src/users/entities/user.entity';
 import * as fs from 'fs';
 import * as path from 'path';
-import { In } from 'typeorm';
 
 @Injectable()
 export class DocumentsService {
   constructor(
     @InjectRepository(Document)
-    private documentRepository: Repository<Document>,
+    private readonly documentRepository: Repository<Document>,
     @InjectRepository(User)
-    private userRepository: Repository<User>,
+    private readonly userRepository: Repository<User>,
   ) {}
 
-  async uploadDocument(userId: number, documentDto: any) {
+  async uploadDocument(userId: number, documentDto: any): Promise<Document> {
     if (!documentDto.file) {
       throw new BadRequestException('Fichier manquant');
     }
@@ -35,10 +34,10 @@ export class DocumentsService {
 
     const timestamp = Date.now();
     const safeFileName = `${timestamp}-${documentDto.file.originalname.replace(/\s+/g, '_')}`;
-    const filePath = path.join(uploadFolder, safeFileName);
+    const filePathOnDisk = path.join(uploadFolder, safeFileName);
 
     try {
-      fs.writeFileSync(filePath, documentDto.file.buffer);
+      fs.writeFileSync(filePathOnDisk, documentDto.file.buffer);
     } catch (err) {
       console.error('Erreur d’écriture fichier:', err);
       throw new BadRequestException('Échec de l’écriture du fichier');
@@ -51,7 +50,7 @@ export class DocumentsService {
       expirationDate,
       format: documentDto.format,
       fileName: documentDto.file.originalname,
-      filePath: `uploads/documents/${safeFileName}`, // chemin relatif public
+      filePath: `uploads/documents/${safeFileName}`,
     });
 
     try {
@@ -62,7 +61,7 @@ export class DocumentsService {
     }
   }
 
-  async validateDocument(documentId: number, action: 'accept' | 'refuse') {
+  async validateDocument(documentId: number, action: 'accept' | 'refuse'): Promise<User> {
     const document = await this.documentRepository.findOne({
       where: { id: documentId },
       relations: ['user'],
@@ -73,7 +72,6 @@ export class DocumentsService {
     }
 
     const user = document.user;
-
     if (user.userStatus === 'livreur') {
       user.occasionalCourier = action === 'accept';
     } else if (user.userStatus === 'prestataire') {
@@ -85,41 +83,41 @@ export class DocumentsService {
     return await this.userRepository.save(user);
   }
 
-  // ✅ Méthode pour récupérer les documents par statut d'utilisateur
-  async findDocumentsByStatus(userStatus: 'livreur' | 'prestataire') {
-    // On récupère les utilisateurs avec le statut souhaité
-    const users = await this.userRepository.find({
-      where: { userStatus },
-    });
+  /**
+   * Supprime tous les documents (en base et fichiers) d'un même utilisateur
+   */
+  async deleteDocumentsByUser(userId: number): Promise<void> {
+    const docs = await this.documentRepository.find({ where: { userId } });
+    for (const doc of docs) {
+      const fullPath = path.join(__dirname, '..', '..', 'public', doc.filePath);
+      if (fs.existsSync(fullPath)) {
+        try {
+          fs.unlinkSync(fullPath);
+        } catch (err) {
+          console.error(`Erreur suppression fichier ${fullPath}:`, err);
+        }
+      }
+    }
+    await this.documentRepository.delete({ userId });
+  }
 
+  async findDocumentsByStatus(userStatus: 'livreur' | 'prestataire'): Promise<(Document & { fileUrl: string })[]> {
+    const users = await this.userRepository.find({ where: { userStatus } });
     if (!users.length) {
       throw new BadRequestException(`Aucun utilisateur avec le statut ${userStatus}`);
     }
 
-    // On récupère les documents associés à ces utilisateurs
-    const documents = await this.documentRepository.find({
-      where: { userId: In(users.map((user) => user.id)) },
+    const docs = await this.documentRepository.find({
+      where: { userId: In(users.map((u) => u.id)) },
       relations: ['user'],
       order: { id: 'DESC' },
     });
 
-    // Ajouter l'URL du fichier pour chaque document
-    return documents.map((doc) => {
-      const fileUrl = `http://51.15.231.248:3001/${doc.filePath}`;
-      return { ...doc, fileUrl };
-    });
+    return docs.map((d) => ({ ...d, fileUrl: `http://51.15.231.248:3001/${d.filePath}` }));
   }
 
-  async findAll() {
-    const docs = await this.documentRepository.find({
-      relations: ['user'],
-      order: { id: 'DESC' },
-    });
-
-    // Générer un champ fileUrl pour chaque document (accessible depuis le frontend)
-    return docs.map((doc) => {
-      const fileUrl = `http://51.15.231.248:3001/${doc.filePath}`;
-      return { ...doc, fileUrl };
-    });
+  async findAll(): Promise<(Document & { fileUrl: string })[]> {
+    const docs = await this.documentRepository.find({ relations: ['user'], order: { id: 'DESC' } });
+    return docs.map((d) => ({ ...d, fileUrl: `http://51.15.231.248:3001/${d.filePath}` }));
   }
 }
