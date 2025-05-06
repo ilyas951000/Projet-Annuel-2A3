@@ -5,6 +5,7 @@ import { Settings, PlusCircle, User, Menu, X } from "lucide-react"
 import Link from "next/link"
 import Image from "next/image"
 
+
 interface Ad {
   id: number
   advertisementPhoto?: string
@@ -22,7 +23,10 @@ export default function Dashboard() {
   const [sidebarOpen, setSidebarOpen] = useState(false)
   const [showAddModal, setShowAddModal] = useState(false)
   const [showModal, setShowModal] = useState(false)
-
+  const [objects, setObjects] = useState([
+    { quantity: 1, item: "", dimension: "", weight: 0 }
+  ])
+  
   // États pour le formulaire
   const [advertisementQuantity, setAdvertisementQuantity] = useState(0)
   const [advertisementPrice, setAdvertisementPrice] = useState(0)
@@ -44,7 +48,10 @@ export default function Dashboard() {
   const [errorAds, setErrorAds] = useState<string | null>(null)
 
   const [selectedAd, setSelectedAd] = useState<Ad | null>(null)
-
+  const handleAddObject = () => {
+    setObjects([...objects, { quantity: 1, item: "", dimension: "", weight: 0 }])
+  }
+  
   useEffect(() => {
     const fetchUser = async () => {
       try {
@@ -105,13 +112,17 @@ export default function Dashboard() {
     try {
       const formData = new FormData()
       formData.append('photo', file)
-      formData.append('advertisementQuantity', advertisementQuantity.toString())
-      formData.append('advertisementPrice', advertisementPrice.toString())
-      formData.append('advertisementWeight', advertisementWeight.toString())
-      formData.append('advertisementDimension', advertisementDimension)
-      formData.append('advertisementItem', advertisementItem)
       formData.append('additionalInformation', additionalInformation)
-      formData.append('creatorRole', 'user')
+
+      //formData.append('advertisementQuantity', advertisementQuantity.toString())
+      //formData.append('advertisementItem', advertisementItem)
+      //formData.append('advertisementDimension', advertisementDimension)
+      //formData.append('advertisementWeight', advertisementWeight.toString())
+      formData.append('packages', JSON.stringify(objects))
+
+      
+      formData.append('advertisementPrice', advertisementPrice.toString())
+      formData.append('creatorRole', 'client')
       formData.append('advertisementStatus', advertisementStatus)
       formData.append('photoName', file.name)
       formData.append('publicationDate', new Date().toISOString())
@@ -235,34 +246,62 @@ export default function Dashboard() {
             <h3 className="text-lg font-semibold mb-4 text-gray-900">Ajouter une annonce</h3>
             <form className="space-y-4" onSubmit={handleAddSubmit}>
               <div>
-                <label className="block text-sm text-gray-700 mb-1">Quantité</label>
-                <input type="number" min="1" value={advertisementQuantity} onChange={e => setAdvertisementQuantity(+e.target.value)} className="w-full border border-gray-300 rounded-lg p-2" required />
+                <h4 className="text-lg font-semibold mb-2">Les photos</h4>
+                <input type="file" accept="image/*" onChange={e => setFile(e.target.files?.[0] || null)} className="w-full border border-gray-300 rounded-lg p-2" />
               </div>
+              {objects.map((obj, index) => (
+                <div key={index} className="border p-3 rounded-lg space-y-3 bg-gray-50">
+                  <div>
+                    <label className="block text-sm text-gray-700 mb-1">Quantité</label>
+                    <input type="number" min="1" value={obj.quantity} onChange={e => {
+                      const newObjects = [...objects]
+                      newObjects[index].quantity = +e.target.value
+                      setObjects(newObjects)
+                    }} className="w-full border border-gray-300 rounded-lg p-2" required />
+                  </div>
+                  <div>
+                    <label className="block text-sm text-gray-700 mb-1">Objet</label>
+                    <input type="text" value={obj.item} onChange={e => {
+                      const newObjects = [...objects]
+                      newObjects[index].item = e.target.value
+                      setObjects(newObjects)
+                    }} className="w-full border border-gray-300 rounded-lg p-2" placeholder="Nom de l'objet" required />
+                  </div>
+                  <div>
+                    <label className="block text-sm text-gray-700 mb-1">Dimensions</label>
+                    <input type="text" value={obj.dimension} onChange={e => {
+                      const newObjects = [...objects]
+                      newObjects[index].dimension = e.target.value
+                      setObjects(newObjects)
+                    }} className="w-full border border-gray-300 rounded-lg p-2" placeholder="30x20x10 cm" />
+                  </div>
+                  <div>
+                    <label className="block text-sm text-gray-700 mb-1">Poids (kg)</label>
+                    <input type="number" step="0.01" value={obj.weight} onChange={e => {
+                      const newObjects = [...objects]
+                      newObjects[index].weight = +e.target.value
+                      setObjects(newObjects)
+                    }} className="w-full border border-gray-300 rounded-lg p-2" required />
+                  </div>
+                </div>
+              ))}
+              <button type="button" onClick={handleAddObject} className="text-sm text-green-600 hover:underline">
+                + Ajouter un objet
+              </button>
+
               <div>
                 <label className="block text-sm text-gray-700 mb-1">Prix (€)</label>
                 <input type="number" step="0.01" value={advertisementPrice} onChange={e => setAdvertisementPrice(+e.target.value)} className="w-full border border-gray-300 rounded-lg p-2" required />
               </div>
+              
+              
+              
               <div>
-                <label className="block text-sm text-gray-700 mb-1">Poids (kg)</label>
-                <input type="number" step="0.01" value={advertisementWeight} onChange={e => setAdvertisementWeight(+e.target.value)} className="w-full border border-gray-300 rounded-lg p-2" required />
-              </div>
-              <div>
-                <label className="block text-sm text-gray-700 mb-1">Dimensions</label>
-                <input type="text" value={advertisementDimension} onChange={e => setAdvertisementDimension(e.target.value)} className="w-full border border-gray-300 rounded-lg p-2" placeholder="30x20x10 cm" />
-              </div>
-              <div>
-                <label className="block text-sm text-gray-700 mb-1">Objet</label>
-                <input type="text" value={advertisementItem} onChange={e => setAdvertisementItem(e.target.value)} className="w-full border border-gray-300 rounded-lg p-2" placeholder="Nom de l'objet" required />
-              </div>
-              <div>
-                <label className="block text-sm text-gray-700 mb-1">Informations complémentaires</label>
+                <label className="block text-sm text-gray-700 mb-1">Informations complémentaires global</label>
                 <textarea value={additionalInformation} onChange={e => setAdditionalInformation(e.target.value)} className="w-full border border-gray-300 rounded-lg p-2" />
               </div>
               
-              <div>
-                <h4 className="text-lg font-semibold mb-2">Photo de l'objet</h4>
-                <input type="file" accept="image/*" onChange={e => setFile(e.target.files?.[0] || null)} className="w-full border border-gray-300 rounded-lg p-2" />
-              </div>
+              
               {errorAdd && <p className="text-red-500">{errorAdd}</p>}
               <button type="submit" disabled={loadingAdd} className="bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded-lg w-full">
                 {loadingAdd ? "En cours..." : "Enregistrer"}

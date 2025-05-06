@@ -4,6 +4,7 @@ import { UpdateAdvertisementDto } from './dto/update-advertisement.dto';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Not, Repository } from 'typeorm';
 import { Advertisement } from './entities/advertisement.entity';
+import { Package } from 'src/packages/entities/package.entity';
 
 @Injectable()
 export class AdvertisementsService {
@@ -12,10 +13,28 @@ export class AdvertisementsService {
     private advertisementRepository: Repository<Advertisement>,
   ) {}
 
-  async create(createAdvertisementDto: CreateAdvertisementDto) {
-    const advertisement = this.advertisementRepository.create(createAdvertisementDto);
-    return await this.advertisementRepository.save(advertisement);
+  async create(dto: CreateAdvertisementDto): Promise<Advertisement> {
+    const { packages: dtoPackages, ...adProps } = dto;
+
+    const ad = this.advertisementRepository.create(adProps);
+
+    if (Array.isArray(dtoPackages)) {
+      ad.packages = dtoPackages.map(pkgDto => {
+        const pkg = new Package();
+        pkg.packageName        = pkgDto.item;
+        pkg.packageWeight      = pkgDto.weight  ?? 0;
+        pkg.packageDimension   = pkgDto.dimension ?? '';
+        pkg.packageDescription = '';
+        pkg.senderAddress      = '';
+        pkg.recipientAddress   = '';
+        pkg.packageRequirements= '';
+        return pkg;
+      });
+    }
+
+    return this.advertisementRepository.save(ad);
   }
+  
 
   async findAll() {
     return await this.advertisementRepository.find();
@@ -64,4 +83,6 @@ export class AdvertisementsService {
       where: { isValidated: true },
     });
   }
+
+  
 }

@@ -1,5 +1,5 @@
 // advertisements.controller.ts
-import { Controller, Post, Body, UploadedFile, UseInterceptors, UseGuards, Req, Get, Patch, Param } from '@nestjs/common';
+import { Controller, Post, Body, UploadedFile, UseInterceptors, UseGuards, Req, Get, Patch, Param, BadRequestException } from '@nestjs/common';
 
 import { FileInterceptor } from '@nestjs/platform-express';
 import { AdvertisementsService } from './advertisements.service';
@@ -24,16 +24,25 @@ export class AdvertisementsController {
     @Body() createAdvertisementDto: CreateAdvertisementDto,
     @Req() req                                 
   ) {
+    // 1. parser la string JSON en tableau
+    if (typeof createAdvertisementDto.packages === 'string') {
+      try {
+        createAdvertisementDto.packages = JSON.parse(createAdvertisementDto.packages);
+      } catch {
+        throw new BadRequestException('Le champ packages doit être un JSON valide.');
+      }
+    }
+  
+    // 2. sauver le fichier photo si fourni
     if (file) {
       createAdvertisementDto.advertisementPhoto = file.filename;
     }
-
+  
+    // 3. l’id utilisateur
     const userId = req.user.userId || req.user.sub;
-
-    return this.advertisementsService.create({
-      ...createAdvertisementDto,
-      //usersId,
-    });
+    createAdvertisementDto.usersId = userId;
+  
+    // 4. créer l’annonce (avec cascade pour les packages)
     return this.advertisementsService.create(createAdvertisementDto);
   }
   @Get('me')

@@ -36,7 +36,7 @@ export default function LivreurDashboard() {
     const fetchCurrentUser = async () => {
       try {
         console.log('Tentative de récupération de l\'utilisateur connecté...');
-        const res = await axios.get('http://51.15.231.248:3001/auth/me', {
+        const res = await axios.get('http://127.0.0.1:3001/auth/me', {
           headers: {
             Authorization: `Bearer ${token}`,
           },
@@ -67,7 +67,7 @@ export default function LivreurDashboard() {
 
   const fetchPackages = async () => {
     try {
-      const response = await axios.get('http://51.15.231.248:3001/packages/available');
+      const response = await axios.get('http://127.0.0.1:3001/packages/available');
       setPackages(response.data);
     } catch (err) {
       console.error('Erreur lors de la récupération des colis :', err);
@@ -83,7 +83,7 @@ export default function LivreurDashboard() {
     }
 
     try {
-      await axios.post(`http://51.15.231.248:3001/packages/${packageId}/take`, {
+      await axios.post(`http://127.0.0.1:3001/packages/${packageId}/take`, {
         userId: livreurId,
       });
       alert('Colis pris en charge !');

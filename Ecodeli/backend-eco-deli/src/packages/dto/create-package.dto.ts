@@ -1,10 +1,19 @@
+
+import { IsNotEmpty, IsNumber, IsString } from 'class-validator';
+
 export class CreatePackageDto {
-    id: number;
+    @IsString()
     packageName: string;
+    @IsNumber()
     packageWeight: number;
+    @IsString()
     packageDimension: string;
+    @IsString()
     packageDescription: string;
+    @IsString()
     senderAddress: string;
+    @IsString()
     recipientAddress: string;
+    @IsString()
     packageRequirements: string;
 }
