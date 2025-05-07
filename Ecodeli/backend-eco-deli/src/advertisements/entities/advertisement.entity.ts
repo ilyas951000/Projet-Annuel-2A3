@@ -31,8 +31,16 @@ export class Advertisement {
     @Column({ nullable: true })
     advertisementStatus: string;
 
+
     @Column({ default: false })
     isValidated: boolean;
+
+    @Column({ nullable: true })
+    advertisementBeginning: string;
+
+    @Column({ nullable: true })
+    advertisementEnd: string;
+    
     
     @Column({ nullable: true })
     usersId: number;

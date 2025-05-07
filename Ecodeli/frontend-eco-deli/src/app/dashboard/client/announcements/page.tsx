@@ -23,9 +23,13 @@ export default function Dashboard() {
   const [sidebarOpen, setSidebarOpen] = useState(false)
   const [showAddModal, setShowAddModal] = useState(false)
   const [showModal, setShowModal] = useState(false)
-  const [objects, setObjects] = useState([
-    { quantity: 1, item: "", dimension: "", weight: 0 }
-  ])
+  const [objects, setObjects] = useState([{
+    quantity: 1,
+    item: "",
+    dimension: "",
+    weight: 0
+  }]);
+  
   
   // États pour le formulaire
   const [advertisementQuantity, setAdvertisementQuantity] = useState(0)
@@ -38,6 +42,24 @@ export default function Dashboard() {
   const [file, setFile] = useState<File | null>(null)
   const [errorAdd, setErrorAdd] = useState<string | null>(null)
   const [loadingAdd, setLoadingAdd] = useState(false)
+
+  const [currentStreet, setcurrentStreet] = useState('');
+  const [currentCity, setcurrentCity] = useState('');
+  const [currentPostalCode, setcurrentPostalCode] = useState('');
+
+  const [destinationStreet, setdestinationStreet] = useState('');
+  const [destinationCity, setdestinationCity] = useState('');
+  const [destinationPostalCode, setdestinationPostalCode] = useState('');
+
+  const [departurePostalCode, setDeparturePostalCode] = useState('');
+
+  const [advertisementBeginning, setadvertisementBeginning] = useState('');
+  const [advertisementEnd, setadvertisementEnd] = useState('');
+
+  const [arrivalStreet, setArrivalStreet] = useState('');
+  const [arrivalCity, setArrivalCity] = useState('');
+  const [arrivalPostalCode, setArrivalPostalCode] = useState('');
+
 
   const [userId, setUserId] = useState<number | null>(null)
   const [userLoading, setUserLoading] = useState(true)
@@ -123,10 +145,24 @@ export default function Dashboard() {
       
       formData.append('advertisementPrice', advertisementPrice.toString())
       formData.append('creatorRole', 'client')
+
       formData.append('advertisementStatus', advertisementStatus)
+      formData.append('advertisementBeginning', advertisementBeginning);
+      formData.append('advertisementEnd', advertisementEnd);
+      
+
+      /*formData.append('currentStreet', currentStreet);
+      formData.append('currentCity', currentCity);
+      formData.append('currentPostalCode', currentPostalCode);
+
+      formData.append('destinationStreet', destinationStreet);
+      formData.append('destinationCity', destinationCity);
+      formData.append('destinationPostalCode', destinationPostalCode);*/
+
       formData.append('photoName', file.name)
       formData.append('publicationDate', new Date().toISOString())
       formData.append('usersId', userId.toString())
+      
 
       const token = localStorage.getItem('token')
       const res = await fetch('http://127.0.0.1:3001/advertisements', {
@@ -233,12 +269,10 @@ export default function Dashboard() {
         )}
       </main>
 
-      {/* Bouton + pour ajouter */}
       <button onClick={() => setShowAddModal(true)} className="fixed bottom-6 right-6 z-50 bg-green-500 hover:bg-green-600 text-white rounded-full p-4 shadow-lg">
         <PlusCircle className="w-6 h-6" />
       </button>
 
-      {/* Modal Ajouter */}
       {showAddModal && (
         <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center px-4 overflow-y-auto">
           <div className="bg-white rounded-xl p-6 w-full max-w-md shadow-lg relative max-h-[90vh] overflow-y-auto">
@@ -293,7 +327,101 @@ export default function Dashboard() {
                 <label className="block text-sm text-gray-700 mb-1">Prix (€)</label>
                 <input type="number" step="0.01" value={advertisementPrice} onChange={e => setAdvertisementPrice(+e.target.value)} className="w-full border border-gray-300 rounded-lg p-2" required />
               </div>
-              
+              <h1>Ville de départ:</h1>
+              <div className="flex gap-1">
+                <div className="flex-2">
+                  <label className="block text-sm text-gray-700 mb-1">Rue et numéro</label>
+                  <input
+                    type="text"
+                    value={currentStreet}
+                    onChange={e => setcurrentStreet(e.target.value)}
+                    className="w-full border border-gray-300 rounded-lg p-2"
+                    required
+                  />
+                </div>
+
+                <div className="flex-1">
+                  <label className="block text-sm text-gray-700 mb-1">Ville</label>
+                  <input
+                    type="text"
+                    value={currentCity}
+                    onChange={e => setcurrentCity(e.target.value)}
+                    className="w-full border border-gray-300 rounded-lg p-2"
+                    required
+                  />
+                </div>
+
+                <div className="flex-1">
+                  <label className="block text-sm text-gray-700 mb-1">Code postal</label>
+                  <input
+                    type="text"
+                    value={currentPostalCode}
+                    onChange={e => setcurrentPostalCode(e.target.value)}
+                    className="w-full border border-gray-300 rounded-lg p-2"
+                    required
+                  />
+                </div>
+              </div>
+
+
+
+              <h1 className="mt-4">Ville d’arrivée :</h1>
+                <div className="flex gap-1">
+                  <div className="flex-2">
+                    <label className="block text-sm text-gray-700 mb-1">Rue et numéro</label>
+                    <input
+                      type="text"
+                      value={destinationStreet}
+                      onChange={e => setdestinationStreet(e.target.value)}
+                      className="w-full border border-gray-300 rounded-lg p-2"
+                      required
+                    />
+                  </div>
+
+                  <div className="flex-1">
+                    <label className="block text-sm text-gray-700 mb-1">Ville</label>
+                    <input
+                      type="text"
+                      value={destinationCity}
+                      onChange={e => setdestinationCity(e.target.value)}
+                      className="w-full border border-gray-300 rounded-lg p-2"
+                      required
+                    />
+                  </div>
+
+                  <div className="flex-1">
+                    <label className="block text-sm text-gray-700 mb-1">Code postal</label>
+                    <input
+                      type="text"
+                      value={destinationPostalCode}
+                      onChange={e => setdestinationPostalCode(e.target.value)}
+                      className="w-full border border-gray-300 rounded-lg p-2"
+                      required
+                    />
+                  </div>
+                </div>
+                <div>
+                  <label className="block text-sm text-gray-700 mb-1">Date de livraison début</label>
+                  <input
+                    type="date"
+                    value={advertisementBeginning}
+                    onChange={(e) => setadvertisementBeginning(e.target.value)}
+                    className="w-full border border-gray-300 rounded-lg p-2"
+                    required
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm text-gray-700 mb-1">Date de livraison début</label>
+                  <input
+                    type="date"
+                    value={advertisementEnd}
+                    onChange={(e) => setadvertisementEnd(e.target.value)}
+                    className="w-full border border-gray-300 rounded-lg p-2"
+                    required
+                  />
+                </div>
+
               
               
               <div>

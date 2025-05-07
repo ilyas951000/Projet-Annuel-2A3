@@ -24,10 +24,14 @@ export class AdvertisementsService {
         pkg.packageName        = pkgDto.item;
         pkg.packageWeight      = pkgDto.weight  ?? 0;
         pkg.packageDimension   = pkgDto.dimension ?? '';
+        pkg.packageQuantity    = pkgDto.quantity ?? '';
         pkg.packageDescription = '';
-        pkg.senderAddress      = '';
-        pkg.recipientAddress   = '';
-        pkg.packageRequirements= '';
+        pkg.currentStreet      = pkgDto.currentStreet ?? '';
+        pkg.currentCity        = pkgDto.currentCity ?? '';
+        pkg.currentPostalCode  = pkgDto.currentPostalCode ?? 0;
+        pkg.destinationStreet  = pkgDto.destinationStreet ?? '';
+        pkg.destinationCity    = pkgDto.destinationCity ?? '';
+        pkg.destinationPostalCode= pkgDto.destinationPostalCode ?? 0;
         return pkg;
       });
     }

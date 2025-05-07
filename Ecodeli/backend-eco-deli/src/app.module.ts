@@ -21,6 +21,7 @@ import { FacturableModule } from './facturable/facturable.module';
 import { InterventionModule } from './intervention/intervention.module';
 import { PublicProfileModule } from './public-profile/public-profile.module';
 import { PicturesModule } from './pictures/pictures.module';
+import { LocalisationModule } from './localisation/localisation.module';
 
 
 @Module({
@@ -59,6 +60,7 @@ import { PicturesModule } from './pictures/pictures.module';
     FacturableModule,
     InterventionModule,
     PicturesModule,
+    LocalisationModule,
   ],
   controllers: [AppController],
   providers: [AppService],

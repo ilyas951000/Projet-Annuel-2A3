@@ -1,4 +1,5 @@
 import { Advertisement } from 'src/advertisements/entities/advertisement.entity';
+import { Localisation } from 'src/localisation/entities/localisation.entity';
 import { User } from 'src/users/entities/user.entity';
 import { Column, Entity, PrimaryGeneratedColumn, ManyToMany, JoinTable, OneToMany, ManyToOne, JoinColumn } from 'typeorm';
 
@@ -14,21 +15,33 @@ export class Package {
   packageWeight: number;
 
   @Column()
+  packageQuantity: number;
+
+  @Column()
   packageDimension: string;
 
   @Column()
   packageDescription: string;
 
   @Column()
-  senderAddress: string;
+  currentStreet: string;
 
   @Column()
-  recipientAddress: string;
+  currentCity: string;
 
   @Column()
-  packageRequirements: string;
+  currentPostalCode: number;
 
-  // Nouvel attribut pour le statut de livraison (ex: "pris en charge", "en transit", "livré")
+  @Column()
+  destinationStreet: string;
+
+  @Column()
+  destinationCity: string;
+
+  @Column()
+  destinationPostalCode: number;
+
+
   @Column({ default: 'en attente' })
   deliveryStatus: string;
 
@@ -51,6 +64,10 @@ export class Package {
   @ManyToOne(() => Advertisement, ad => ad.packages, { onDelete: 'CASCADE' })
   @JoinColumn({ name: 'advertisementId' })
   advertisement: Advertisement;
+
+  @OneToMany(() => Localisation, loc => loc.package, { cascade: true })
+  localisations: Localisation[];
+
 
   @Column()
   advertisementId: number;

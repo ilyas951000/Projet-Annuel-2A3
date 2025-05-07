@@ -4,16 +4,35 @@ import { IsNotEmpty, IsNumber, IsString } from 'class-validator';
 export class CreatePackageDto {
     @IsString()
     packageName: string;
+
+    @IsNumber()
+    packageQuantity: number;
+
     @IsNumber()
     packageWeight: number;
+
     @IsString()
     packageDimension: string;
+
     @IsString()
     packageDescription: string;
+
     @IsString()
-    senderAddress: string;
+      currentStreet: string;
+    
     @IsString()
-    recipientAddress: string;
+    currentCity: string;
+
+    @IsNumber()
+    currentPostalCode: number;
+
     @IsString()
-    packageRequirements: string;
+    destinationStreet: string;
+
+    @IsString()
+    destinationCity: string;
+
+    @IsNumber()
+    destinationPostalCode: number;
+
 }

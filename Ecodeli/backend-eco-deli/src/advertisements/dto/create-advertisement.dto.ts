@@ -20,9 +20,6 @@ export class CreateAdvertisementDto {
   @IsString()
   creatorRole: string;
 
-  @IsString()
-  advertisementStatus: string;
-
   @IsNumber()
   usersId: number;
   
@@ -33,5 +30,11 @@ export class CreateAdvertisementDto {
     item: string;
     dimension?: string;
     weight?: number;
+    currentStreet?:string;
+    currentCity?:string;
+    currentPostalCode?:number;
+    destinationStreet?:string;
+    destinationCity?:string;
+    destinationPostalCode?:number;
   }>;
 }
