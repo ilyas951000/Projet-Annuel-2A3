@@ -24,7 +24,6 @@ export class AdvertisementsController {
     @Body() createAdvertisementDto: CreateAdvertisementDto,
     @Req() req
   ) {
-    // 1) parser packages si c'est une string
     let pkgs: any[] = [];
     if (createAdvertisementDto.packages) {
       if (typeof createAdvertisementDto.packages === 'string') {
@@ -38,10 +37,8 @@ export class AdvertisementsController {
       }
     }
 
-    // **Réassignation du DTO pour la création en cascade**
     createAdvertisementDto.packages = pkgs;
 
-    // 2) validation “manuelle” sommaire
     for (const [i, p] of pkgs.entries()) {
       if (typeof p.quantity !== 'number' || p.quantity < 1) {
         throw new BadRequestException(`packages[${i}].quantity invalide`);
@@ -49,7 +46,6 @@ export class AdvertisementsController {
       if (typeof p.item !== 'string' || !p.item.trim()) {
         throw new BadRequestException(`packages[${i}].item invalide`);
       }
-      // … même chose pour p.dimension, p.weight, etc.
 
       if (!Array.isArray(p.localisations) || p.localisations.length === 0) {
         throw new BadRequestException(`packages[${i}].localisations manquantes`);
@@ -60,7 +56,6 @@ export class AdvertisementsController {
             `packages[${i}].localisations[${j}].currentStreet invalide`
           );
         }
-        // … répétez pour chaque champ de localisation
       }
     }
 
