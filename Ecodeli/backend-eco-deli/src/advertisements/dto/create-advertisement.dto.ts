@@ -26,15 +26,18 @@ export class CreateAdvertisementDto {
   @IsOptional()
   @IsArray()
   packages?: Array<{
-    quantity: number;
-    item: string;
-    dimension?: string;
-    weight?: number;
-    currentStreet?:string;
-    currentCity?:string;
-    currentPostalCode?:number;
-    destinationStreet?:string;
-    destinationCity?:string;
-    destinationPostalCode?:number;
+    quantity:    number;
+    item:        string;
+    dimension?:  string;
+    weight?:     number;
+    // si vous gérez déjà “localisations” ici, ajoutez-le aussi
+    localisations?: Array<{
+      currentStreet:        string;
+      currentCity:          string;
+      currentPostalCode:    number;
+      destinationStreet:    string;
+      destinationCity:      string;
+      destinationPostalCode:number;
+    }>;
   }>;
 }

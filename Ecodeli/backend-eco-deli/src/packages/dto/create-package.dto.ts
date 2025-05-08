@@ -1,38 +1,22 @@
 
-import { IsNotEmpty, IsNumber, IsString } from 'class-validator';
+import { IsNotEmpty, IsNumber, IsOptional, IsString } from 'class-validator';
 
 export class CreatePackageDto {
+    @IsOptional()
     @IsString()
     packageName: string;
 
+    @IsOptional()
     @IsNumber()
     packageQuantity: number;
 
+    @IsOptional()
     @IsNumber()
     packageWeight: number;
 
+    @IsOptional()
     @IsString()
     packageDimension: string;
 
-    @IsString()
-    packageDescription: string;
-
-    @IsString()
-      currentStreet: string;
-    
-    @IsString()
-    currentCity: string;
-
-    @IsNumber()
-    currentPostalCode: number;
-
-    @IsString()
-    destinationStreet: string;
-
-    @IsString()
-    destinationCity: string;
-
-    @IsNumber()
-    destinationPostalCode: number;
 
 }

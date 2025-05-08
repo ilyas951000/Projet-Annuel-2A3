@@ -5,10 +5,11 @@ import { PackagesController } from './packages.controller';
 import { Package } from './entities/package.entity';
 import { User } from '../users/entities/user.entity';
 import { UsersModule } from '../users/users.module';
+import { Localisation } from 'src/localisation/entities/localisation.entity';
 
 @Module({
   imports: [
-    TypeOrmModule.forFeature([Package, User]),
+    TypeOrmModule.forFeature([Package, User, Localisation,]),
     UsersModule,
   ],
   controllers: [PackagesController],

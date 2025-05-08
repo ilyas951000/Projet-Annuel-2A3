@@ -140,7 +140,6 @@ export default function Dashboard() {
       //formData.append('advertisementItem', advertisementItem)
       //formData.append('advertisementDimension', advertisementDimension)
       //formData.append('advertisementWeight', advertisementWeight.toString())
-      formData.append('packages', JSON.stringify(objects))
 
       
       formData.append('advertisementPrice', advertisementPrice.toString())
@@ -162,7 +161,27 @@ export default function Dashboard() {
       formData.append('photoName', file.name)
       formData.append('publicationDate', new Date().toISOString())
       formData.append('usersId', userId.toString())
-      
+
+      const packageData = objects.map(obj => ({
+        quantity:      obj.quantity,
+        item:          obj.item,
+        dimension:     obj.dimension,
+        weight:        obj.weight,
+        localisations: [
+          {
+            currentStreet,
+            currentCity,
+            currentPostalCode:   Number(currentPostalCode),
+            destinationStreet,
+            destinationCity,
+            destinationPostalCode: Number(destinationPostalCode)
+          }
+          //
+        ]
+      }));
+
+      formData.append('packages', JSON.stringify(packageData));
+
 
       const token = localStorage.getItem('token')
       const res = await fetch('http://127.0.0.1:3001/advertisements', {

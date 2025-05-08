@@ -8,42 +8,20 @@ export class Package {
   @PrimaryGeneratedColumn()
   id: number;
 
-  @Column()
-  packageName: string;
+  @Column({ nullable: true })
+  packageName?: string;
 
-  @Column('decimal', { precision: 10, scale: 2 })
-  packageWeight: number;
+  @Column('decimal', { precision: 10, scale: 2, nullable: true })
+  packageWeight?: number;
 
-  @Column()
-  packageQuantity: number;
+  @Column({ nullable: true })
+  packageQuantity?: number;
 
-  @Column()
-  packageDimension: string;
+  @Column({ nullable: true })
+  packageDimension?: string;
 
-  @Column()
-  packageDescription: string;
-
-  @Column()
-  currentStreet: string;
-
-  @Column()
-  currentCity: string;
-
-  @Column()
-  currentPostalCode: number;
-
-  @Column()
-  destinationStreet: string;
-
-  @Column()
-  destinationCity: string;
-
-  @Column()
-  destinationPostalCode: number;
-
-
-  @Column({ default: 'en attente' })
-  deliveryStatus: string;
+  @Column({ nullable: true, default: 'en attente' })
+  deliveryStatus?: string;
 
   @ManyToMany(() => User)
   @JoinTable({
@@ -61,14 +39,17 @@ export class Package {
 
   
 
-  @ManyToOne(() => Advertisement, ad => ad.packages, { onDelete: 'CASCADE' })
+  @ManyToOne(() => Advertisement, ad => ad.packages, { onDelete: 'CASCADE', nullable: true })
   @JoinColumn({ name: 'advertisementId' })
-  advertisement: Advertisement;
+  advertisement?: Advertisement;
 
   @OneToMany(() => Localisation, loc => loc.package, { cascade: true })
   localisations: Localisation[];
 
-
-  @Column()
-  advertisementId: number;
+  @Column({ nullable: true })
+  advertisementId?: number;
+  toJSON() {
+    const { advertisement, ...rest } = this;
+    return rest;
+  }
 }

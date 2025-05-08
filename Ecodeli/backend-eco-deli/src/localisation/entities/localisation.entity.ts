@@ -3,10 +3,21 @@ import { Column, Entity, JoinColumn, ManyToOne, PrimaryGeneratedColumn } from "t
 
 @Entity()
 export class Localisation {
-  @PrimaryGeneratedColumn() id: number;
+  @PrimaryGeneratedColumn() 
+  id: number;
+  @Column() 
+  currentStreet: string;
+  @Column() 
+  currentCity:   string;
+  @Column() 
+  currentPostalCode: number;
+  @Column() 
+  destinationStreet: string;
+  @Column() 
+  destinationCity:   string;
+  @Column() 
+  destinationPostalCode: number;
 
-  @Column() type: string;
-  @Column({ type: 'date' }) date: string;
 
   @ManyToOne(() => Package, pkg => pkg.localisations, { onDelete: 'CASCADE' })
   @JoinColumn({ name: 'packageId' })
@@ -14,10 +25,8 @@ export class Localisation {
 
   @Column() packageId: number;
 
-  @Column() currentStreet: string;
-  @Column() currentCity:   string;
-  @Column() currentPostalCode: number;
-  @Column() destinationStreet: string;
-  @Column() destinationCity:   string;
-  @Column() destinationPostalCode: number;
+  toJSON() {
+    const { package: pkg, ...rest } = this;
+    return rest;
+  }
 }
