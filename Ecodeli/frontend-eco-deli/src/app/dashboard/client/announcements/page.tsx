@@ -1,5 +1,5 @@
 "use client"
-
+import '../globals.css'
 import { useEffect, useState } from "react"
 import { Settings, PlusCircle, User, Menu, X } from "lucide-react"
 import Link from "next/link"
@@ -213,41 +213,7 @@ export default function Dashboard() {
       {sidebarOpen && (
         <div className="fixed inset-0 bg-black bg-opacity-50 z-30 md:hidden" onClick={() => setSidebarOpen(false)}/>
       )}
-      <aside
-        className={`fixed z-40 top-0 left-0 h-full w-64 bg-white p-5 flex-col justify-between transform transition-transform duration-300 ease-in-out
-        ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'} md:translate-x-0 md:static md:flex`}
-      >
-        <div>
-          <div className="flex justify-between items-center md:hidden mb-6">
-            <h1 className="text-xl font-bold text-gray-900">EcoDeli</h1>
-            <button onClick={() => setSidebarOpen(false)}><X className="text-gray-700"/></button>
-          </div>
-          <Link href="/connexion" className="bg-green-600 px-4 py-2 rounded-lg text-black font-semibold inline-block mb-4">
-            <Image src="/logo1.png" alt="EcoDeli Logo" width={120} height={20} className="h-10 w-auto"/>
-          </Link>
-          <nav className="mt-5">
-            <ul className="space-y-3">
-                <NavItem title="Accueil" link="../client" />
-                <NavItem title="Mes Annonces" link="./announcements" />
-                <NavItem title="Annonces des Autres" link=".//otherAnnouncements" />
-                <NavItem title="Suivi des Livraisons" link="/suivi-livraisons" />
-                <NavItem title="Mes Paiements" link="/paiements" />
-                <NavItem title="Abonnement" link="./subscription" />
-                <NavItem title="Services & Prestataires" link="/services" />
-                <NavItem title="Profil / Compte" link="/compte" />
-            </ul>
-          </nav>
-          <div className="mt-10 space-y-3">
-            <NavItem title="À propos" link="/a-propos" />
-            <NavItem title="Nous contacter" link="/contact" />
-          </div>
-        </div>
-        <div className="flex items-center space-x-3 mt-10">
-          <User className="w-5 h-5 text-gray-500" />
-          <span className="text-gray-700">Mon compte</span>
-          <Settings className="w-5 h-5 text-gray-500 cursor-pointer" />
-        </div>
-      </aside>
+    
 
       <main className="flex-1 p-5 md:p-10 overflow-auto w-full">
         <div className="flex justify-between items-center md:hidden mb-5">
@@ -257,7 +223,6 @@ export default function Dashboard() {
           Bienvenue Chez <span className="text-black">Eco</span><span className="text-green-500">Deli</span> - Mes annonces
         </h2>
 
-        {/* Listing des annonces */}
         {loadingAds ? (
           <p>Chargement des annonces...</p>
         ) : errorAds ? (
@@ -431,7 +396,7 @@ export default function Dashboard() {
                 </div>
 
                 <div>
-                  <label className="block text-sm text-gray-700 mb-1">Date de livraison début</label>
+                  <label className="block text-sm text-gray-700 mb-1">Date de livraison fin de délais</label>
                   <input
                     type="date"
                     value={advertisementEnd}
