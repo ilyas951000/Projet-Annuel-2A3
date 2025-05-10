@@ -52,9 +52,6 @@ export class User {
   @ManyToOne(() => Advertisement, (advertisement) => advertisement.users)
   advertisement: Advertisement;
 
-  @ManyToOne(() => Invoice, (invoice) => invoice.user)
-  invoice: Invoice;
-
   @OneToOne(() => Document, { nullable: true, eager: true, cascade: true })
   @JoinColumn()
   justificationDocument: Document | null;

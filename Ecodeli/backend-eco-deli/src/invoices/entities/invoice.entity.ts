@@ -1,32 +1,38 @@
-import { User } from "src/users/entities/user.entity";
-import { Column, Entity, JoinColumn, OneToMany, OneToOne, PrimaryGeneratedColumn } from "typeorm";
+import { Column, Entity, OneToMany, PrimaryGeneratedColumn } from "typeorm";
+import { InvoiceItem } from "./invoice-item.entity";
 
 @Entity()
 export class Invoice {
-    @PrimaryGeneratedColumn()
-    id: number;
-    
-    @Column()
-    invoiceNumber: number;
-    
-    @Column()
-    issueDate: Date;
+  @PrimaryGeneratedColumn()
+  id: number;
 
-    @Column()
-    paymentDate: Date;
+  @Column()
+  invoiceNumber: string;
 
-    @Column("decimal", { precision: 10, scale: 2 }) 
-    totalAmount: string;
+  @Column()
+  issueDate: Date;
 
-    @Column()
-    paymentStatus: boolean;
+  @Column()
+  paymentDate: Date;
 
-    @Column()
-    paymentMethod: string;
-    
-    @Column()
-    serviceTitle: string;
+  @Column("decimal", { precision: 10, scale: 2 })
+  totalAmount: string;
 
-    @OneToMany(() => User, (user) => user.invoice)
-    user: User[];
+  @Column()
+  paymentStatus: boolean;
+
+  @Column()
+  paymentMethod: string;
+
+  @Column()
+  serviceTitle: string;
+
+  @Column()
+  userType: string;
+
+  @Column()
+  userId: number;
+
+  @OneToMany(() => InvoiceItem, (item) => item.invoice, { cascade: true })
+  items: InvoiceItem[];
 }
