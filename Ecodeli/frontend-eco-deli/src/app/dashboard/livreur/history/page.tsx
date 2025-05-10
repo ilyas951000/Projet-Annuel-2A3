@@ -31,7 +31,7 @@ export default function DeliveryHistory() {
     }
     const fetchCurrentUser = async () => {
       try {
-        const res = await axios.get('http://51.15.231.248:3001/auth/me', {
+        const res = await axios.get('http://127.0.0.1:3001/auth/me', {
           headers: { Authorization: `Bearer ${token}` },
         });
         if (res.data && res.data.userId) {
@@ -57,7 +57,7 @@ export default function DeliveryHistory() {
 
   const fetchHistory = async () => {
     try {
-      const response = await axios.get('http://51.15.231.248:3001/packages/history', {
+      const response = await axios.get('http://127.0.0.1:3001/packages/history', {
         params: { userId: livreurId },
       });
       setHistory(response.data);

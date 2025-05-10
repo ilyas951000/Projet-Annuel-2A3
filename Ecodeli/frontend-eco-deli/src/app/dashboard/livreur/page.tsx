@@ -30,7 +30,7 @@ const AdminConnexion: NextPage = () => {
       }
 
       try {
-        const res = await axios.get('http://51.15.231.248:3001/auth/me', {
+        const res = await axios.get('http://127.0.0.1:3001/auth/me', {
           headers: {
             Authorization: `Bearer ${token}`,
           },
@@ -145,7 +145,7 @@ const AdminConnexion: NextPage = () => {
 
           <h2 className="text-3xl font-semibold text-gray-900 dark:text-white">
             Bienvenue Chez <span className="text-black">Eco</span>
-            <span className="text-green-500">Deli</span> - partie Client
+            <span className="text-green-500">Deli</span> - partie Livreur
           </h2>
         </main>
 

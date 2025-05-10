@@ -1,35 +1,27 @@
+import { Advertisement } from 'src/advertisements/entities/advertisement.entity';
+import { Localisation } from 'src/localisation/entities/localisation.entity';
 import { User } from 'src/users/entities/user.entity';
-import { Column, Entity, PrimaryGeneratedColumn, ManyToMany, JoinTable } from 'typeorm';
+import { Column, Entity, PrimaryGeneratedColumn, ManyToMany, JoinTable, OneToMany, ManyToOne, JoinColumn } from 'typeorm';
 
 @Entity()
 export class Package {
   @PrimaryGeneratedColumn()
   id: number;
 
-  @Column()
-  packageName: string;
+  @Column({ nullable: true })
+  packageName?: string;
 
-  @Column('decimal', { precision: 10, scale: 2 })
-  packageWeight: number;
+  @Column('decimal', { precision: 10, scale: 2, nullable: true })
+  packageWeight?: number;
 
-  @Column()
-  packageDimension: string;
+  @Column({ nullable: true })
+  packageQuantity?: number;
 
-  @Column()
-  packageDescription: string;
+  @Column({ nullable: true })
+  packageDimension?: string;
 
-  @Column()
-  senderAddress: string;
-
-  @Column()
-  recipientAddress: string;
-
-  @Column()
-  packageRequirements: string;
-
-  // Nouvel attribut pour le statut de livraison (ex: "pris en charge", "en transit", "livré")
-  @Column({ default: 'en attente' })
-  deliveryStatus: string;
+  @Column({ nullable: true, default: 'en attente' })
+  deliveryStatus?: string;
 
   @ManyToMany(() => User)
   @JoinTable({
@@ -43,5 +35,21 @@ export class Package {
       referencedColumnName: 'id',
     },
   })
-  users: User[]; // Même si un seul, TypeORM exige un tableau pour ManyToMany
+  users: User[]; 
+
+  
+
+  @ManyToOne(() => Advertisement, ad => ad.packages, { onDelete: 'CASCADE', nullable: true })
+  @JoinColumn({ name: 'advertisementId' })
+  advertisement?: Advertisement;
+
+  @OneToMany(() => Localisation, loc => loc.package, { cascade: true })
+  localisations: Localisation[];
+
+  @Column({ nullable: true })
+  advertisementId?: number;
+  toJSON() {
+    const { advertisement, ...rest } = this;
+    return rest;
+  }
 }

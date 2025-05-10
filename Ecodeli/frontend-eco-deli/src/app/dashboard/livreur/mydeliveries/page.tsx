@@ -47,7 +47,7 @@ export default function MyDeliveries() {
     }
     const fetchCurrentUser = async () => {
       try {
-        const res = await axios.get('http://51.15.231.248:3001/auth/me', {
+        const res = await axios.get('http://127.0.0.1:3001/auth/me', {
           headers: { Authorization: `Bearer ${token}` },
         });
         if (res.data && res.data.userId) {
@@ -68,7 +68,7 @@ export default function MyDeliveries() {
   useEffect(() => {
     const fetchLivreurs = async () => {
       try {
-        const res = await axios.get('http://51.15.231.248:3001/users'); // Endpoint qui retourne tous les utilisateurs
+        const res = await axios.get('http://127.0.0.1:3001/users'); // Endpoint qui retourne tous les utilisateurs
         const livreursData = res.data.filter((user: IUser) => user.userStatus === "livreur");
         setLivreurs(livreursData);
       } catch (err) {
@@ -86,7 +86,7 @@ export default function MyDeliveries() {
 
   const fetchDeliveries = async () => {
     try {
-      const response = await axios.get('http://51.15.231.248:3001/packages/mydeliveries', {
+      const response = await axios.get('http://127.0.0.1:3001/packages/mydeliveries', {
         params: { userId: livreurId },
       });
       setDeliveries(response.data);
@@ -112,7 +112,7 @@ export default function MyDeliveries() {
       return;
     }
     try {
-      await axios.patch(`http://51.15.231.248:3001/packages/${packageId}/status`, {
+      await axios.patch(`http://127.0.0.1:3001/packages/${packageId}/status`, {
         status: newStatus,
         fromCourierId: livreurId,
         toCourierId: newStatus === "transféré" ? transferSelections[packageId] : null,

@@ -20,6 +20,7 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
       userStatus: payload.userStatus, 
       occasionalCourier: payload.occasionalCourier, 
       valid: payload.valid,
+      userSubscription: payload.userSubscription,
     };
   }
 }

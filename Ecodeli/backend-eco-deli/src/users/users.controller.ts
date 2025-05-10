@@ -50,5 +50,15 @@ export class UsersController {
   async rejectUser(@Param('id', ParseIntPipe) id: number): Promise<User | null> {
     return this.usersService.rejectUser(id);
   }
+
+  @Patch(':id/subscription')
+  async updateSubscription(
+    @Param('id', ParseIntPipe) id: number,
+    @Body() updateUserDto: UpdateUserDto,
+  ): Promise<User | null> {
+    return this.usersService.update(id, updateUserDto);
+  }
+
+
 }
 

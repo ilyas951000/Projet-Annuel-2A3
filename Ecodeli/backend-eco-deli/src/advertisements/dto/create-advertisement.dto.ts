@@ -1,25 +1,14 @@
-// dto/create-advertisement.dto.ts
-import { IsNotEmpty, IsNumber, IsOptional, IsString } from 'class-validator';
+
+import { IsArray, IsNotEmpty, IsNumber, IsOptional, IsString } from 'class-validator';
 
 export class CreateAdvertisementDto {
   @IsOptional()
   @IsString()
   advertisementPhoto?: string;
 
-  @IsNumber()
-  advertisementQuantity: number;
-
-  @IsString()
-  advertisementItem: string;
 
   @IsNotEmpty()
   publicationDate: Date;
-
-  @IsString()
-  advertisementDimension: string;
-
-  @IsNumber()
-  advertisementWeight: number;
 
   @IsString()
   @IsOptional()
@@ -31,9 +20,24 @@ export class CreateAdvertisementDto {
   @IsString()
   creatorRole: string;
 
-  @IsString()
-  advertisementStatus: string;
-
   @IsNumber()
-  usersId: number;     // ← on conserve ce champ pour recevoir l’ID depuis le controller
+  usersId: number;
+  
+  @IsOptional()
+  @IsArray()
+  packages?: Array<{
+    quantity:    number;
+    item:        string;
+    dimension?:  string;
+    weight?:     number;
+    // si vous gérez déjà “localisations” ici, ajoutez-le aussi
+    localisations?: Array<{
+      currentStreet:        string;
+      currentCity:          string;
+      currentPostalCode:    number;
+      destinationStreet:    string;
+      destinationCity:      string;
+      destinationPostalCode:number;
+    }>;
+  }>;
 }

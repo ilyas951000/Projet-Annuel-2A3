@@ -1,10 +1,25 @@
+
+import { IsNotEmpty, IsNumber, IsOptional, IsString } from 'class-validator';
+
 export class CreatePackageDto {
-    id: number;
+    @IsOptional()
+    @IsString()
     packageName: string;
+
+    @IsOptional()
+    @IsNumber()
+    packageQuantity: number;
+
+    @IsOptional()
+    @IsNumber()
     packageWeight: number;
+
+    @IsOptional()
+    @IsString()
     packageDimension: string;
-    packageDescription: string;
-    senderAddress: string;
-    recipientAddress: string;
-    packageRequirements: string;
+
+    @IsOptional()
+    @IsNumber()
+    advertisementId?: number;
+
 }

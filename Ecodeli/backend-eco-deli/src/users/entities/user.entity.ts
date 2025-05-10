@@ -34,8 +34,9 @@ export class User {
   @Column({ default: false })
   hasAccount: boolean;
 
-  @Column({ default: false })
-  userInsurance: boolean;
+  @Column({ type: 'int', default: 0 }) // 0 = Free, 1 = Starter, 2 = Premium
+  userSubscription: number;
+
 
   @Column({ default: false })
   occasionalCourier: boolean;
@@ -49,8 +50,8 @@ export class User {
   @ManyToOne(() => Contract, (contract) => contract.users)
   contract: Contract;
 
-  @ManyToOne(() => Advertisement, (advertisement) => advertisement.users)
-  advertisement: Advertisement;
+  @OneToMany(() => Advertisement, (advertisement) => advertisement.users)
+  advertisements: Advertisement[];
 
   @OneToOne(() => Document, { nullable: true, eager: true, cascade: true })
   @JoinColumn()

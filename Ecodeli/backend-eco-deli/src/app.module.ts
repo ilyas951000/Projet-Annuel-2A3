@@ -22,6 +22,9 @@ import { FacturableModule } from './facturable/facturable.module';
 import { InterventionModule } from './intervention/intervention.module';
 import { PublicProfileModule } from './public-profile/public-profile.module';
 import { StripeModule } from './payments/stripe.module'; // ✅ Module Stripe
+import { PicturesModule } from './pictures/pictures.module';
+import { LocalisationModule } from './localisation/localisation.module';
+
 
 @Module({
   imports: [
@@ -41,7 +44,8 @@ import { StripeModule } from './payments/stripe.module'; // ✅ Module Stripe
       autoLoadEntities: true,
     }),
     JwtModule.register({
-      secret: '5115231248',
+      global: true,
+      secret: '5115231248', 
       signOptions: { expiresIn: '1h' },
     }),
     UsersModule,
@@ -62,6 +66,8 @@ import { StripeModule } from './payments/stripe.module'; // ✅ Module Stripe
     FacturableModule,
     InterventionModule,
     StripeModule,
+    PicturesModule,
+    LocalisationModule,
   ],
   controllers: [AppController],
   providers: [AppService],
