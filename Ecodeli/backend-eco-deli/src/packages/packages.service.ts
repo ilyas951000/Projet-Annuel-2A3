@@ -15,9 +15,11 @@ export class PackagesService {
     private readonly userRepository: Repository<User>,
   ) {}
 
-  create(createPackageDto: CreatePackageDto) {
-    return this.packageRepository.save(createPackageDto);
+  async create(createPackageDto: CreatePackageDto): Promise<Package> {
+    const pkg = this.packageRepository.create(createPackageDto);
+    return this.packageRepository.save(pkg);
   }
+
 
   findAll() {
     return this.packageRepository.find();
@@ -106,4 +108,14 @@ export class PackagesService {
       .andWhere('p.deliveryStatus = :status', { status: 'livré' })
       .getMany();
   }
+  /**
+ * Retourne tous les colis associés à une annonce donnée.
+ */
+async findByAdvertisementId(advertisementId: number): Promise<Package[]> {
+  return this.packageRepository.find({
+    where: { advertisementId },
+    order: { id: 'ASC' },
+  });
+}
+
 }

@@ -18,5 +18,8 @@ export class CreatePackageDto {
     @IsString()
     packageDimension: string;
 
+    @IsOptional()
+    @IsNumber()
+    advertisementId?: number;
 
 }
