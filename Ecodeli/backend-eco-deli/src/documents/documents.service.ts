@@ -113,11 +113,11 @@ export class DocumentsService {
       order: { id: 'DESC' },
     });
 
-    return docs.map((d) => ({ ...d, fileUrl: `http://51.15.231.248:3001/${d.filePath}` }));
+    return docs.map((d) => ({ ...d, fileUrl: `http://127.0.0.1:3001/${d.filePath}` }));
   }
 
   async findAll(): Promise<(Document & { fileUrl: string })[]> {
     const docs = await this.documentRepository.find({ relations: ['user'], order: { id: 'DESC' } });
-    return docs.map((d) => ({ ...d, fileUrl: `http://51.15.231.248:3001/${d.filePath}` }));
+    return docs.map((d) => ({ ...d, fileUrl: `http://127.0.0.1:3001/${d.filePath}` }));
   }
 }

@@ -1,5 +1,5 @@
 // advertisements.controller.ts
-import { Controller, Post, Body, UploadedFile, UseInterceptors, UseGuards, Req, Get, Patch, Param } from '@nestjs/common';
+import { Controller, Post, Body, UploadedFile, UseInterceptors, UseGuards, Req, Get, Patch, Param, BadRequestException } from '@nestjs/common';
 
 import { FileInterceptor } from '@nestjs/platform-express';
 import { AdvertisementsService } from './advertisements.service';
@@ -22,18 +22,50 @@ export class AdvertisementsController {
   async create(
     @UploadedFile() file: Express.Multer.File,
     @Body() createAdvertisementDto: CreateAdvertisementDto,
-    @Req() req                                 
+    @Req() req
   ) {
+    let pkgs: any[] = [];
+    if (createAdvertisementDto.packages) {
+      if (typeof createAdvertisementDto.packages === 'string') {
+        try {
+          pkgs = JSON.parse(createAdvertisementDto.packages);
+        } catch {
+          throw new BadRequestException('packages doit être un JSON valide');
+        }
+      } else {
+        pkgs = createAdvertisementDto.packages;
+      }
+    }
+
+    createAdvertisementDto.packages = pkgs;
+
+    for (const [i, p] of pkgs.entries()) {
+      if (typeof p.quantity !== 'number' || p.quantity < 1) {
+        throw new BadRequestException(`packages[${i}].quantity invalide`);
+      }
+      if (typeof p.item !== 'string' || !p.item.trim()) {
+        throw new BadRequestException(`packages[${i}].item invalide`);
+      }
+
+      if (!Array.isArray(p.localisations) || p.localisations.length === 0) {
+        throw new BadRequestException(`packages[${i}].localisations manquantes`);
+      }
+      for (const [j, loc] of p.localisations.entries()) {
+        if (typeof loc.currentStreet !== 'string') {
+          throw new BadRequestException(
+            `packages[${i}].localisations[${j}].currentStreet invalide`
+          );
+        }
+      }
+    }
+
     if (file) {
       createAdvertisementDto.advertisementPhoto = file.filename;
     }
 
     const userId = req.user.userId || req.user.sub;
+    createAdvertisementDto.usersId = userId;
 
-    return this.advertisementsService.create({
-      ...createAdvertisementDto,
-      //usersId,
-    });
     return this.advertisementsService.create(createAdvertisementDto);
   }
   @Get('me')

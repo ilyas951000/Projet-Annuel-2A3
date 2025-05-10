@@ -31,7 +31,7 @@ export default function MovementsPage() {
 
     const fetchUser = async () => {
       try {
-        const res = await axios.get('http://51.15.231.248:3001/auth/me', {
+        const res = await axios.get('http://127.0.0.1:3001/auth/me', {
           headers: { Authorization: `Bearer ${token}` },
         });
         setLivreurId(res.data.userId);
@@ -51,7 +51,7 @@ export default function MovementsPage() {
 
   const fetchMovements = async () => {
     try {
-      const res = await axios.get(`http://51.15.231.248:3001/movements/user/${livreurId}`);
+      const res = await axios.get(`http://127.0.0.1:3001/movements/user/${livreurId}`);
       setMovements(res.data);
     } catch (err) {
       setError('Erreur chargement des villes');
@@ -67,9 +67,9 @@ export default function MovementsPage() {
 
     try {
       if (existing) {
-        await axios.patch(`http://51.15.231.248:3001/movements/${existing.id}/deactivate`);
+        await axios.patch(`http://127.0.0.1:3001/movements/${existing.id}/deactivate`);
       } else {
-        await axios.post(`http://51.15.231.248:3001/movements`, {
+        await axios.post(`http://127.0.0.1:3001/movements`, {
           userId: livreurId,
           city,
           isOrigin,

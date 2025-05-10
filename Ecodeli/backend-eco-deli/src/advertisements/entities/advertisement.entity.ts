@@ -1,3 +1,4 @@
+import { Package } from "src/packages/entities/package.entity";
 import { Picture } from "src/pictures/entities/picture.entity";
 import { User } from "src/users/entities/user.entity";
 import { Column, Entity, JoinColumn, ManyToOne, OneToMany, PrimaryGeneratedColumn } from "typeorm";
@@ -9,12 +10,6 @@ export class Advertisement {
     
     @Column({ nullable: true })
     advertisementPhoto: string;
-    
-    @Column({ nullable: true })
-    advertisementQuantity: number;
-
-    @Column({ nullable: true })
-    advertisementItem: string;
 
     @Column({
         type: 'timestamp',
@@ -22,12 +17,6 @@ export class Advertisement {
       })
     publicationDate: Date;
 
-    @Column({ nullable: true })
-    advertisementDimension: string;
-
-    @Column("decimal",{precision:10, scale:2})
-    @Column({ nullable: true })
-    advertisementWeight: number;
 
     @Column({ nullable: true })
     additionalInformation: string;
@@ -42,17 +31,28 @@ export class Advertisement {
     @Column({ nullable: true })
     advertisementStatus: string;
 
+
     @Column({ default: false })
     isValidated: boolean;
+
+    @Column({ nullable: true })
+    advertisementBeginning: string;
+
+    @Column({ nullable: true })
+    advertisementEnd: string;
+    
     
     @Column({ nullable: true })
     usersId: number;
 
-    @ManyToOne(() => User, (user) => user.advertisement, { onDelete: 'SET NULL' })
+    @ManyToOne(() => User, (user) => user.advertisements, { onDelete: 'SET NULL' })
     @JoinColumn({ name: 'usersId' }) 
     users: User; 
     
 
     @OneToMany(() => Picture, (picture) => picture.advertisement)
     picture: Picture;
+
+    @OneToMany(() => Package, it => it.advertisement, { cascade: true })
+    packages: Package[];
 }

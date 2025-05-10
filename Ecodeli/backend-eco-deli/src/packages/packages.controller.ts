@@ -78,4 +78,9 @@ export class PackagesController {
   remove(@Param('id') id: string) {
     return this.packagesService.remove(+id);
   }
+
+  @Get('advertisement/:adId')
+  findByAdvertisement(@Param('adId') adId: string) {
+    return this.packagesService.findByAdvertisementId(+adId);
+  }
 }
