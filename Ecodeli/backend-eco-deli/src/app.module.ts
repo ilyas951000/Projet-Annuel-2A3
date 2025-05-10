@@ -1,4 +1,5 @@
 import { Module } from '@nestjs/common';
+import { ConfigModule } from '@nestjs/config'; // ✅ Ajouté pour .env
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import { JwtModule } from '@nestjs/jwt';
@@ -15,24 +16,29 @@ import { AdvertisementsModule } from './advertisements/advertisements.module';
 import { Advertisement } from './advertisements/entities/advertisement.entity';
 import { PackagesModule } from './packages/packages.module';
 import { ProductsModule } from './products/products.module';
-import { AuthModule } from './auth/auth.module';  
+import { AuthModule } from './auth/auth.module';
 import { DashboardModule } from './dashboard/dashboard.module';
 import { FacturableModule } from './facturable/facturable.module';
 import { InterventionModule } from './intervention/intervention.module';
 import { PublicProfileModule } from './public-profile/public-profile.module';
+import { StripeModule } from './payments/stripe.module'; // ✅ Module Stripe
 import { PicturesModule } from './pictures/pictures.module';
 import { LocalisationModule } from './localisation/localisation.module';
 
 
 @Module({
   imports: [
+    ConfigModule.forRoot({
+      isGlobal: true,           // ✅ Rends process.env accessible partout
+      envFilePath: '.env',      // ✅ Charge le fichier .env à la racine
+    }),
     TypeOrmModule.forRoot({
       type: 'mariadb',
       host: '51.15.231.248',
       port: 3306,
       username: 'eric',
       password: 'eric2024_2025',
-      database: 'projet', 
+      database: 'projet',
       entities: [__dirname + '/**/*.entity{.ts,.js}'],
       synchronize: true,
       autoLoadEntities: true,
@@ -54,11 +60,12 @@ import { LocalisationModule } from './localisation/localisation.module';
     AdvertisementsModule,
     PackagesModule,
     ProductsModule,
-    AuthModule, 
+    AuthModule,
     DashboardModule,
     Advertisement,
     FacturableModule,
     InterventionModule,
+    StripeModule,
     PicturesModule,
     LocalisationModule,
   ],

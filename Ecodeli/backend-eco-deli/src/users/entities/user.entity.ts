@@ -53,9 +53,6 @@ export class User {
   @OneToMany(() => Advertisement, (advertisement) => advertisement.users)
   advertisements: Advertisement[];
 
-  @ManyToOne(() => Invoice, (invoice) => invoice.user)
-  invoice: Invoice;
-
   @OneToOne(() => Document, { nullable: true, eager: true, cascade: true })
   @JoinColumn()
   justificationDocument: Document | null;
