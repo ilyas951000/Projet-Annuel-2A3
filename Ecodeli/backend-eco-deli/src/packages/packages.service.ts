@@ -5,6 +5,7 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Package } from './entities/package.entity';
 import { User } from 'src/users/entities/user.entity';
+import { IsNull } from 'typeorm'; // en haut de ton fichier service si besoin
 
 @Injectable()
 export class PackagesService {
@@ -19,6 +20,28 @@ export class PackagesService {
     const pkg = this.packageRepository.create(createPackageDto);
     return this.packageRepository.save(pkg);
   }
+
+  async findUnpaidPackagesByClient(clientId: number): Promise<Package[]> {
+    return this.packageRepository
+      .createQueryBuilder('package')
+      .leftJoin('package.advertisement', 'ad')
+      .where('ad.usersId = :clientId', { clientId })
+      .andWhere('package.isPaid = false OR package.isPaid = 0') // supporte booléen et number
+      .getMany();
+  }
+
+  async markAsPaid(id: number) {
+    const pkg = await this.packageRepository.findOne({ where: { id } });
+    if (!pkg) {
+      throw new NotFoundException('Colis non trouvé');
+    }
+
+    pkg.isPaid = true; // 🔁 on passe de 0/false à 1/true
+    await this.packageRepository.save(pkg);
+
+    return { message: 'Colis marqué comme payé.' };
+  }
+
 
 
   findAll() {
@@ -51,26 +74,31 @@ export class PackagesService {
   /**
    * Permet au livreur (userId) de "prendre" un colis (packageId).
    */
-  async takePackage(packageId: number, userId: number): Promise<Package> {
-    const pkg = await this.packageRepository.findOne({
-      where: { id: packageId },
-      relations: ['users'],
-    });
-  
-    if (!pkg) throw new NotFoundException('Colis non trouvé');
-  
-    if (pkg.users && pkg.users.length > 0) {
-      throw new BadRequestException('Colis déjà pris en charge');
-    }
-  
-    const user = await this.userRepository.findOne({ where: { id: userId } });
-  
-    if (!user) throw new NotFoundException('Utilisateur non trouvé');
-  
-    pkg.users = [user];
-  
-    return this.packageRepository.save(pkg);
+  async takePackage(packageId: number, userId: number) {
+  const pkg = await this.packageRepository.findOne({ where: { id: packageId }, relations: ['users'] });
+
+  if (!pkg) {
+    throw new NotFoundException('Colis non trouvé');
   }
+
+  const user = await this.userRepository.findOne({ where: { id: userId } });
+  if (!user) {
+    throw new NotFoundException('Utilisateur non trouvé');
+  }
+
+  // Évite d'ajouter deux fois le même utilisateur
+  if (!pkg.users) pkg.users = [];
+  if (!pkg.users.some(u => u.id === user.id)) {
+    pkg.users.push(user);
+  }
+
+  // isPaid passe à false uniquement ici
+  pkg.isPaid = false;
+
+  await this.packageRepository.save(pkg);
+  return { message: 'Colis pris en charge avec succès.' };
+}
+
   
   /**
    * Retourne les colis (livraisons) en cours pour un livreur donné.

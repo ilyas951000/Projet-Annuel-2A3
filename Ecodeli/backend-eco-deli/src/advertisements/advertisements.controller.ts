@@ -16,6 +16,11 @@ export class AdvertisementsController {
     return this.advertisementsService.findValidated();
   }
 
+  @Get(':id')
+  async findOne(@Param('id') id: string) {
+    return this.advertisementsService.findOne(+id);
+  }
+
   @Post()
   @UseGuards(JwtAuthGuard)                      
   @UseInterceptors(FileInterceptor('photo'))
