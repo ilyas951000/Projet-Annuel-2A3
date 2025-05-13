@@ -54,7 +54,7 @@ export default function JustificationPage() {
     documents.forEach((d) => d.file && formData.append('file', d.file));
 
     try {
-      const res = await fetch('http://51.15.231.248:3001/documents/multi-upload', {
+      const res = await fetch('http://localhost:3001/documents/multi-upload', {
         method: 'POST',
         headers: { Authorization: `Bearer ${localStorage.getItem('token') || ''}` },
         body: formData,

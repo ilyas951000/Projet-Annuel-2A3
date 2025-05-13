@@ -79,7 +79,7 @@ export default function Dashboard() {
       try {
         const token = localStorage.getItem('token')
         if (!token) throw new Error("Token manquant")
-        const res = await fetch('http://127.0.0.1:3001/auth/me', {
+        const res = await fetch('http://localhost:3001/auth/me', {
           headers: { Authorization: `Bearer ${token}` },
         })
         if (!res.ok) throw new Error("Erreur récupération utilisateur")
@@ -99,7 +99,7 @@ export default function Dashboard() {
       const fetchAds = async () => {
         try {
           const token = localStorage.getItem('token')
-          const res = await fetch('http://127.0.0.1:3001/advertisements/me', {
+          const res = await fetch('http://localhost:3001/advertisements/me', {
             headers: { Authorization: `Bearer ${token}` },
           })
           if (!res.ok) throw new Error(await res.text())
@@ -184,7 +184,7 @@ export default function Dashboard() {
 
 
       const token = localStorage.getItem('token')
-      const res = await fetch('http://127.0.0.1:3001/advertisements', {
+      const res = await fetch('http://localhost:3001/advertisements', {
         method: 'POST',
         headers: { Authorization: `Bearer ${token}` },
         body: formData,
@@ -452,7 +452,7 @@ function EditAdModal({ ad, onClose, onSave }: { ad: Ad; onClose: () => void; onS
     e.preventDefault(); setSaving(true); setError(null)
     try {
       const token = localStorage.getItem('token')
-      const res = await fetch(`http://127.0.0.1:3001/advertisements/${ad.id}`, {
+      const res = await fetch(`http://localhost:3001/advertisements/${ad.id}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
         body: JSON.stringify({ advertisementQuantity: quantity, advertisementPrice: price, advertisementWeight: weight, advertisementDimension: dimension, advertisementItem: item, additionalInformation: info, advertisementStatus: status })

@@ -63,13 +63,22 @@ export class PackagesService {
   /**
    * Retourne la liste des colis disponibles (aucun livreur ne l'a pris)
    */
-  async findAvailablePackages(): Promise<Package[]> {
-    return this.packageRepository
-      .createQueryBuilder('p')
-      .leftJoin('p.users', 'u')
+  async findAvailablePackages(): Promise<any[]> {
+    const packages = await this.packageRepository
+      .createQueryBuilder('package')
+      .leftJoinAndSelect('package.advertisement', 'ad')
+      .leftJoin('package.users', 'u')
       .where('u.id IS NULL')
       .getMany();
+
+    // Ajouter clientId à chaque objet retourné
+    return packages.map((pkg) => ({
+      ...pkg,
+      clientId: pkg.advertisement?.usersId || null,
+    }));
   }
+
+
   
   /**
    * Permet au livreur (userId) de "prendre" un colis (packageId).

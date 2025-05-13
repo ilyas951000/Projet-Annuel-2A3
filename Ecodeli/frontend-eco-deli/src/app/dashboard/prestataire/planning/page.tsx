@@ -25,7 +25,7 @@ export default function PlanningPage() {
     }
     const fetchCurrentUser = async () => {
       try {
-        const res = await axios.get('http://51.15.231.248:3001/auth/me', {
+        const res = await axios.get('http://localhost:3001/auth/me', {
           headers: { Authorization: `Bearer ${token}` },
         });
         console.log('Réponse de auth/me:', res.data);
@@ -52,7 +52,7 @@ export default function PlanningPage() {
     const token = getToken();
     try {
       const response = await axios.get(
-        `http://51.15.231.248:3001/courier/${courierId}/schedule`,
+        `http://localhost:3001/courier/${courierId}/schedule`,
         { headers: { Authorization: `Bearer ${token}` } }
       );
       console.log('Créneaux récupérés:', response.data);
@@ -87,7 +87,7 @@ export default function PlanningPage() {
     
     try {
       const res = await axios.post(
-        `http://51.15.231.248:3001/courier/${courierId}/schedule`,
+        `http://localhost:3001/courier/${courierId}/schedule`,
         payload,
         { headers: { Authorization: `Bearer ${token}` } }
       );
@@ -109,7 +109,7 @@ export default function PlanningPage() {
       try {
         console.log(`Suppression du créneau avec id ${event.id}`);
         const res = await axios.delete(
-          `http://51.15.231.248:3001/courier/${courierId}/schedule/${event.id}`,
+          `http://localhost:3001/courier/${courierId}/schedule/${event.id}`,
           { headers: { Authorization: `Bearer ${token}` } }
         );
         console.log('Réponse DELETE créneau:', res.data);

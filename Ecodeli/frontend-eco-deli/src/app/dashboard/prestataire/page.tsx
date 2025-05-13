@@ -30,7 +30,7 @@ const AdminConnexion: NextPage = () => {
       }
 
       try {
-        const res = await axios.get("http://51.15.231.248:3001/auth/me", {
+        const res = await axios.get("http://localhost:3001/auth/me", {
           headers: {
             Authorization: `Bearer ${token}`,
           },

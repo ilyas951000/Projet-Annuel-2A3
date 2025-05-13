@@ -14,6 +14,7 @@ interface IPackage {
   recipientAddress: string;
   packageRequirements: string;
   advertisementId?: number;
+  clientId?: number; // 👈 ajouter cette info
 }
 
 export default function LivreurDashboard() {
@@ -135,14 +136,27 @@ export default function LivreurDashboard() {
                   <p><strong>Adresse d'envoi :</strong> {pkg.senderAddress}</p>
                   <p><strong>Adresse de réception :</strong> {pkg.recipientAddress}</p>
                   <p><strong>Exigences :</strong> {pkg.packageRequirements}</p>
-                  <button
-                    onClick={() => handleTakePackage(pkg.id)}
-                    className="mt-2 px-3 py-1 bg-blue-600 text-white rounded hover:bg-blue-700"
-                  >
-                    Prendre
-                  </button>
+                  
+                  <div className="flex gap-2 mt-2">
+                    <button
+                      onClick={() => handleTakePackage(pkg.id)}
+                      className="px-3 py-1 bg-blue-600 text-white rounded hover:bg-blue-700"
+                    >
+                      Prendre
+                    </button>
+
+                    {pkg.clientId && (
+                      <Link
+                        href={`/dashboard/livreur/chat/${pkg.clientId}?packageId=${pkg.id}`}
+                        className="px-3 py-1 bg-gray-600 text-white rounded hover:bg-gray-700"
+                      >
+                        Contacter le client
+                      </Link>
+                    )}
+                  </div>
                 </div>
               ))}
+
               {pkgs.length > 1 && (
                 <button
                   onClick={() => handleTakeAll(pkgs)}

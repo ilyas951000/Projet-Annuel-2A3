@@ -44,7 +44,7 @@ export default function ProfilPrestataire() {
       setLoading(false);
       return;
     }
-    axios.get('http://51.15.231.248:3001/auth/me', { headers: { Authorization: `Bearer ${token}` } })
+    axios.get('http://localhost:3001/auth/me', { headers: { Authorization: `Bearer ${token}` } })
       .then(r => setUserId(r.data.userId))
       .catch(e => setError('Impossible de récupérer l’utilisateur'))
       .finally(() => setLoading(false));
@@ -55,7 +55,7 @@ export default function ProfilPrestataire() {
     if (!userId) return;
     setLoading(true);
     const token = localStorage.getItem('token')!;
-    axios.get(`http://51.15.231.248:3001/public-profile/${userId}`, {
+    axios.get(`http://localhost:3001/public-profile/${userId}`, {
       headers: { Authorization: `Bearer ${token}` },
     })
     .then(res => {
@@ -90,14 +90,14 @@ export default function ProfilPrestataire() {
     try {
       if (profile) {
         await axios.put(
-          `http://51.15.231.248:3001/public-profile/${profile.id}`,
+          `http://localhost:3001/public-profile/${profile.id}`,
           payload,
           { headers: { Authorization: `Bearer ${token}` } }
         );
         alert('Profil mis à jour');
       } else {
         await axios.post(
-          `http://51.15.231.248:3001/public-profile/${userId}`,
+          `http://localhost:3001/public-profile/${userId}`,
           payload,
           { headers: { Authorization: `Bearer ${token}` } }
         );
