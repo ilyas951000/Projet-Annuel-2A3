@@ -13,6 +13,18 @@ export class StripeController {
     return this.stripeService.createStripeExpressAccount(req.user.userId);
   }
 
+  @Post('intervention-intent')
+  createIntentForIntervention(@Body('interventionId') interventionId: number) {
+    return this.stripeService.createPaymentIntentForIntervention(interventionId);
+  }
+
+  @Post('intervention/:id')
+  createPaymentIntentForIntervention(@Param('id') id: number) {
+    return this.stripeService.createPaymentIntentForIntervention(+id);
+  }
+
+
+
   @Post('intent')
   createIntent(@Body() body: { clientId: number; providerId: number; amount: number }) {
     return this.stripeService.createPaymentIntent(body.clientId, body.providerId, body.amount);

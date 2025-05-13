@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import axios from 'axios';
 import Link from 'next/link';
 
+// ---- Interfaces ----
 interface IProfile {
   id: number;
   prestationType: string;
@@ -16,24 +17,136 @@ interface IProfile {
   };
 }
 
+// ---- Modal réservation ----
+function ReservationModal({
+  providerId,
+  clientId,
+  prestationType,
+  onClose,
+}: {
+  providerId: number;
+  clientId: number;
+  prestationType: string;
+  onClose: () => void;
+}) {
+  const [prix, setPrix] = useState('');
+  const [message, setMessage] = useState('');
+  const [loading, setLoading] = useState(false);
+  const [success, setSuccess] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const handleSubmit = async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      const res = await axios.post('http://localhost:3001/intervention', {
+        prestataireId: providerId,
+        clientId,
+        type: prestationType,
+        prix: parseFloat(prix),
+        description: message,
+      });
+      if (res.status === 201 || res.status === 200) {
+        setSuccess(true);
+      } else {
+        setError('Une erreur est survenue');
+      }
+    } catch (err) {
+      setError('Erreur lors de la réservation');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <div className="fixed inset-0 bg-black bg-opacity-40 flex items-center justify-center z-50">
+      <div className="bg-white p-6 rounded shadow max-w-md w-full relative">
+        <button onClick={onClose} className="absolute top-2 right-3 text-gray-500 text-xl">&times;</button>
+        <h2 className="text-xl font-semibold mb-4">Réserver cette prestation</h2>
+        {success ? (
+          <p className="text-green-600">✅ Demande envoyée avec succès.</p>
+        ) : (
+          <>
+            <div className="mb-4">
+              <label className="block font-medium">Prix proposé (€)</label>
+              <input
+                type="number"
+                value={prix}
+                onChange={(e) => setPrix(e.target.value)}
+                className="border p-2 rounded w-full"
+              />
+            </div>
+            <div className="mb-4">
+              <label className="block font-medium">Message au prestataire</label>
+              <textarea
+                value={message}
+                onChange={(e) => setMessage(e.target.value)}
+                className="border p-2 rounded w-full"
+                rows={4}
+              />
+            </div>
+            {error && <p className="text-red-600 mb-2">{error}</p>}
+            <button
+              onClick={handleSubmit}
+              disabled={loading}
+              className="bg-indigo-600 text-white px-4 py-2 rounded hover:bg-indigo-700"
+            >
+              {loading ? 'Envoi…' : 'Envoyer la demande'}
+            </button>
+          </>
+        )}
+      </div>
+    </div>
+  );
+}
+
+// ---- Page principale ----
 export default function ListePrestataires() {
   const [profiles, setProfiles] = useState<IProfile[]>([]);
+  const [clientId, setClientId] = useState<number | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [startDate, setStartDate] = useState('');
   const [endDate, setEndDate] = useState('');
   const [requestSent, setRequestSent] = useState(false);
+  const [selectedReservation, setSelectedReservation] = useState<{
+    providerId: number;
+    prestationType: string;
+  } | null>(null);
 
+  // --- Fetch client ID ---
+  useEffect(() => {
+    const fetchClientId = async () => {
+      const token = localStorage.getItem('token');
+      if (!token) return;
+
+      try {
+        const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/auth/me`, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+
+        const userData = await res.json();
+
+        if (!res.ok || !userData.userId) {
+          throw new Error('Utilisateur non valide.');
+        }
+
+        setClientId(userData.userId);
+      } catch (err) {
+        console.error('Erreur lors de la récupération du client connecté.');
+      }
+    };
+
+    fetchClientId();
+  }, []);
+
+  // --- Fetch profils prestataires ---
   const fetchProfiles = (start?: string, end?: string) => {
-    if (typeof window === 'undefined') return;
-
     const token = localStorage.getItem('token');
     let url = 'http://localhost:3001/public-profile';
     if (start && end) {
       url = `http://localhost:3001/public-profile/available?start=${encodeURIComponent(start)}&end=${encodeURIComponent(end)}`;
     }
-
-    console.log('Fetching URL:', url);
 
     setLoading(true);
     setError(null);
@@ -106,7 +219,7 @@ export default function ListePrestataires() {
 
       {!loading && !requestSent && (
         <p className="text-yellow-600">
-          ⚠️ Aucune requête n’a été envoyée au serveur. Il se peut qu’un blocage empêche la récupération des données.
+          ⚠️ Aucune requête n’a été envoyée au serveur.
         </p>
       )}
 
@@ -137,8 +250,14 @@ export default function ListePrestataires() {
                 </button>
 
                 <button
-                  onClick={() => alert(`Réserver avec le prestataire ID: ${profile.user.id}`)}
+                  onClick={() =>
+                    setSelectedReservation({
+                      providerId: profile.user.id,
+                      prestationType: profile.prestationType,
+                    })
+                  }
                   className="bg-indigo-600 text-white px-4 py-2 rounded hover:bg-indigo-700"
+                  disabled={!clientId}
                 >
                   Prendre une réservation
                 </button>
@@ -146,6 +265,15 @@ export default function ListePrestataires() {
             </li>
           ))}
         </ul>
+      )}
+
+      {selectedReservation && clientId && (
+        <ReservationModal
+          providerId={selectedReservation.providerId}
+          clientId={clientId}
+          prestationType={selectedReservation.prestationType}
+          onClose={() => setSelectedReservation(null)}
+        />
       )}
     </div>
   );

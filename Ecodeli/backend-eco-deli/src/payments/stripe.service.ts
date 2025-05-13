@@ -4,6 +4,8 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { User } from '../users/entities/user.entity';
 import { Transfer } from '../payments/entities/transfer.entity';
+import { Intervention } from '../intervention/entities/intervention.entity';
+
 
 // ✅ Typage local étendu pour éviter l'erreur TS2339
 interface UserWithStripe extends User {
@@ -19,6 +21,8 @@ export class StripeService {
     private userRepo: Repository<User>,
     @InjectRepository(Transfer)
     private transferRepo: Repository<Transfer>,
+    @InjectRepository(Intervention)
+    private interventionRepo: Repository<Intervention>, // ✅ ajouter ceci
   ) {
     const stripeKey = process.env.STRIPE_SECRET_KEY;
 
@@ -72,6 +76,57 @@ export class StripeService {
       url: accountLink.url,
     };
   }
+
+  async createPaymentIntentForIntervention(interventionId: number) {
+    const intervention = await this.interventionRepo.findOne({
+      where: { id: interventionId },
+      relations: ['transfer'], // ✅ seulement 'transfer'
+    });
+
+    if (!intervention) throw new Error('Intervention introuvable');
+
+    // 🔥 ici tu remplaces le .client qui n’existe pas par une requête manuelle :
+    const client = await this.userRepo.findOneBy({ id: intervention.clientId });
+    const provider = await this.userRepo.findOneBy({ id: intervention.prestataireId });
+
+    if (!client || !provider) throw new Error('Client ou prestataire introuvable');
+
+    let transfer = intervention.transfer;
+
+    if (!transfer) {
+      transfer = this.transferRepo.create({
+        client,
+        provider,
+        amount: intervention.prix,
+        status: 'pending',
+        isValidatedByClient: false,
+        requestedAt: new Date(),
+      });
+
+      transfer = await this.transferRepo.save(transfer);
+      intervention.transfer = transfer;
+      await this.interventionRepo.save(intervention);
+    } else {
+      // ✅ S'il existe déjà : forcer à false pour éviter changement involontaire
+      transfer.isValidatedByClient = false;
+      await this.transferRepo.save(transfer);
+    }
+
+
+    const paymentIntent = await this.stripe.paymentIntents.create({
+      amount: transfer.amount * 100,
+      currency: 'eur',
+      payment_method_types: ['card'],
+    });
+
+    return {
+      clientSecret: paymentIntent.client_secret,
+      amount: transfer.amount * 100, // ✅ tu envoies aussi le montant au front
+    };
+  }
+
+
+
 
   async createPaymentIntent(clientId: number, providerId: number, amount: number) {
     const client = await this.userRepo.findOneBy({ id: clientId });

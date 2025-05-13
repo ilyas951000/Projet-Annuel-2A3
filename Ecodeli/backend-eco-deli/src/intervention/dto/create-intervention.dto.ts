@@ -1,18 +1,7 @@
-import { IsNotEmpty, IsNumber, IsString } from 'class-validator';
-
 export class CreateInterventionDto {
-  @IsNumber()
   prestataireId: number;
-
-  @IsNumber()
-  advertisementId: number;
-
-  @IsString()
+  clientId: number;
   type: string;
-
-  @IsNumber()
+  commentaireClient?: string;
   prix: number;
-
-  @IsString()
-  description: string;
 }

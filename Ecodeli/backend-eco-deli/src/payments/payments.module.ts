@@ -2,9 +2,11 @@
 import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { Transfer } from './entities/transfer.entity';
+import { Intervention } from '../intervention/entities/intervention.entity';
+
 
 @Module({
-  imports: [TypeOrmModule.forFeature([Transfer])],
+  imports: [TypeOrmModule.forFeature([Transfer,  Intervention])],
   exports: [TypeOrmModule], // pour que d'autres modules puissent injecter TransferRepository
 })
 export class PaymentsModule {}

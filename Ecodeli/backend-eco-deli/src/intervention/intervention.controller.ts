@@ -1,36 +1,51 @@
-
-import { InterventionsService } from './intervention.service';
+import { Controller, Post, Body, Put, Param, Get, Patch } from '@nestjs/common';
+import { InterventionService } from './intervention.service';
 import { CreateInterventionDto } from './dto/create-intervention.dto';
-import { Controller, Post, Body, Patch, Param, Get } from '@nestjs/common';  // Ajoute ici `Get`
 
-@Controller('interventions')
-export class InterventionsController {
-  constructor(private readonly interventionsService: InterventionsService) {}
+@Controller('intervention')
+export class InterventionController {
+  constructor(private readonly interventionService: InterventionService) {}
 
-  // Route pour créer une nouvelle intervention
   @Post()
-  create(@Body() createInterventionDto: CreateInterventionDto) {
-    return this.interventionsService.create(createInterventionDto);
+  create(@Body() dto: CreateInterventionDto) {
+    return this.interventionService.create(dto);
   }
 
-  // Route pour mettre à jour le statut d'une intervention
-  @Patch(':id/statut')
-  async updateStatut(
-    @Param('id') id: number,
-    @Body('statut') statut: string,
-  ) {
-    return this.interventionsService.updateStatut(id, statut);
+  @Get('prestataire/:id')
+  findByPrestataire(@Param('id') id: string) {
+    return this.interventionService.findByPrestataire(Number(id));
   }
 
-  // Route pour récupérer toutes les interventions
-  @Get()  // Ajoute cette route pour récupérer toutes les interventions
-  async findAll() {
-    return this.interventionsService.findAll();
+  @Get(':id')
+  async findOne(@Param('id') id: string) {
+    const intervention = await this.interventionService.findOneById(+id);
+    return {
+      ...intervention,
+      prix: Number(intervention.prix), // transformation ici
+    };
   }
 
-  // Route pour récupérer les interventions par statut
-  @Get('statut/:statut')  // Ajoute cette route pour filtrer par statut
-  async findByStatut(@Param('statut') statut: string) {
-    return this.interventionsService.findByStatut(statut);
+
+
+  @Patch(':id/paid') // ✅ PATCH & nom cohérent
+  markAsPaid(@Param('id') id: string) {
+    return this.interventionService.markAsPaid(Number(id));
   }
+
+  @Patch(':id/unvalidate')
+  unvalidateTransfer(@Param('id') id: string) {
+    return this.interventionService.unvalidateClientTransfer(Number(id));
+  }
+
+
+  @Get('client/:id')
+  findByClient(@Param('id') id: string) {
+    return this.interventionService.findByClient(Number(id));
+  }
+
+  @Put(':id/statut')
+  updateStatut(@Param('id') id: string, @Body('statut') statut: string) {
+    return this.interventionService.updateStatut(parseInt(id), statut as 'accepte' | 'refuse' | 'negociation');
+  }
+
 }

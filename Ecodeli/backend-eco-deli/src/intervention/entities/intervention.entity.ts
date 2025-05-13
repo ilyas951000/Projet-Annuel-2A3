@@ -1,4 +1,6 @@
 import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, UpdateDateColumn } from 'typeorm';
+import { Transfer } from 'src/payments/entities/transfer.entity';
+import { OneToOne, JoinColumn } from 'typeorm';
 
 @Entity()
 export class Intervention {
@@ -34,4 +36,8 @@ export class Intervention {
 
   @UpdateDateColumn()
   updatedAt: Date;
+
+  @OneToOne(() => Transfer, { eager: true, nullable: true })
+  @JoinColumn()
+  transfer?: Transfer;
 }

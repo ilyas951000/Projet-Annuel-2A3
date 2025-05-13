@@ -6,10 +6,11 @@ import { StripeController } from './stripe.controller';
 import { User } from 'src/users/entities/user.entity';
 import { Transfer } from './entities/transfer.entity';
 import { AuthModule } from 'src/auth/auth.module'; // ✅ à ajouter
+import { Intervention } from '../intervention/entities/intervention.entity'; // 👈
 
 @Module({
   imports: [
-    TypeOrmModule.forFeature([User, Transfer]),
+    TypeOrmModule.forFeature([User, Transfer, Intervention]),
     AuthModule, // ✅ indispensable pour que le guard fonctionne
   ],
   controllers: [StripeController],
