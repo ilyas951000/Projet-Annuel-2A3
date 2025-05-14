@@ -5,6 +5,7 @@ import { Repository } from 'typeorm';
 import { Intervention } from './entities/intervention.entity';
 import { CreateInterventionDto } from './dto/create-intervention.dto';
 import { Transfer } from '../payments/entities/transfer.entity';
+import { User } from 'src/users/entities/user.entity'; 
 
 @Injectable()
 export class InterventionService {
@@ -14,6 +15,9 @@ export class InterventionService {
 
     @InjectRepository(Transfer)
     private readonly transferRepo: Repository<Transfer>,
+
+    @InjectRepository(User)
+    private readonly userRepo: Repository<User>,
   ) {}
 
   async create(dto: CreateInterventionDto): Promise<Intervention> {
@@ -48,38 +52,19 @@ export class InterventionService {
       relations: ['transfer'],
     });
 
-    if (!intervention) throw new NotFoundException('Intervention introuvable');
+    if (!intervention) {
+      throw new NotFoundException('Intervention introuvable');
+    }
+
+    // Mise à jour simple du statut (accepte / refuse / negociation)
     intervention.statut = statut;
 
-    if (statut === 'accepte' && !intervention.transfer) {
-      // 💡 Vérification s’il existe déjà un transfert équivalent
-      const existingTransfer = await this.transferRepo.findOne({
-        where: {
-          client: { id: intervention.clientId },
-          provider: { id: intervention.prestataireId },
-          amount: intervention.prix,
-          status: 'pending',
-        },
-      });
-
-      if (existingTransfer) {
-        intervention.transfer = existingTransfer;
-      } else {
-        const newTransfer = this.transferRepo.create({
-          client: { id: intervention.clientId },
-          provider: { id: intervention.prestataireId },
-          amount: intervention.prix,
-          status: 'pending',
-          isValidatedByClient: false,
-          requestedAt: new Date(),
-        });
-        const savedTransfer = await this.transferRepo.save(newTransfer);
-        intervention.transfer = savedTransfer;
-      }
-    }
+    // ❌ Suppression de toute logique liée à la table `transfer`
+    // ✅ Aucune création, ni rattachement ici
 
     return this.interventionRepo.save(intervention);
   }
+
 
   async findOneById(id: number): Promise<Intervention> {
     const intervention = await this.interventionRepo.findOne({
@@ -93,6 +78,24 @@ export class InterventionService {
 
     return intervention;
   }
+
+  async forceIsValidatedFalse(interventionId: number) {
+    const intervention = await this.interventionRepo.findOne({
+      where: { id: interventionId },
+      relations: ['transfer'],
+    });
+
+    if (!intervention?.transfer) {
+      throw new Error('Transfert non trouvé');
+    }
+
+    await this.transferRepo.update(intervention.transfer.id, {
+      isValidatedByClient: false,
+    });
+
+    return { success: true };
+  }
+
 
   async unvalidateClientTransfer(interventionId: number): Promise<string> {
     const intervention = await this.interventionRepo.findOne({
@@ -114,17 +117,49 @@ export class InterventionService {
   async markAsPaid(id: number): Promise<Intervention> {
     const intervention = await this.interventionRepo.findOne({
       where: { id },
-      relations: ['transfer'],
+      relations: ['transfer'], // pas de client ni prestataire ici
     });
 
-    if (!intervention || !intervention.transfer) {
-      throw new NotFoundException('Intervention ou transfert introuvable');
+    if (!intervention) {
+      throw new NotFoundException('Intervention introuvable');
     }
 
-    intervention.transfer.status = 'completed';
-    intervention.transfer.isValidatedByClient = true;
+    if (
+      intervention.transfer &&
+      intervention.transfer.status === 'completed'
+    ) {
+      return intervention;
+    }
 
-    await this.transferRepo.save(intervention.transfer);
-    return this.interventionRepo.save(intervention);
+    // 🔁 Charger les entités User (client et prestataire)
+    const client = await this.userRepo.findOneBy({ id: intervention.clientId });
+    const provider = await this.userRepo.findOneBy({ id: intervention.prestataireId });
+
+    if (!client || !provider) {
+      throw new NotFoundException('Client ou prestataire introuvable');
+    }
+
+    if (!intervention.transfer) {
+      const newTransfer = this.transferRepo.create({
+        client,
+        provider,
+        amount: intervention.prix,
+        status: 'completed',
+        isValidatedByClient: false,
+        requestedAt: new Date(),
+      });
+
+      const savedTransfer = await this.transferRepo.save(newTransfer);
+      intervention.transfer = savedTransfer;
+      await this.interventionRepo.save(intervention);
+    } else {
+      intervention.transfer.status = 'completed';
+      intervention.transfer.isValidatedByClient = false;
+      await this.transferRepo.save(intervention.transfer);
+    }
+
+    return intervention;
   }
+
+
 }

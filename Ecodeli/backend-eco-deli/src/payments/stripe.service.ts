@@ -78,52 +78,40 @@ export class StripeService {
   }
 
   async createPaymentIntentForIntervention(interventionId: number) {
+    // ✅ Ne pas demander la relation "client" (car elle n'existe pas dans l'entité)
     const intervention = await this.interventionRepo.findOne({
       where: { id: interventionId },
-      relations: ['transfer'], // ✅ seulement 'transfer'
     });
 
-    if (!intervention) throw new Error('Intervention introuvable');
-
-    // 🔥 ici tu remplaces le .client qui n’existe pas par une requête manuelle :
-    const client = await this.userRepo.findOneBy({ id: intervention.clientId });
-    const provider = await this.userRepo.findOneBy({ id: intervention.prestataireId });
-
-    if (!client || !provider) throw new Error('Client ou prestataire introuvable');
-
-    let transfer = intervention.transfer;
-
-    if (!transfer) {
-      transfer = this.transferRepo.create({
-        client,
-        provider,
-        amount: intervention.prix,
-        status: 'pending',
-        isValidatedByClient: false,
-        requestedAt: new Date(),
-      });
-
-      transfer = await this.transferRepo.save(transfer);
-      intervention.transfer = transfer;
-      await this.interventionRepo.save(intervention);
-    } else {
-      // ✅ S'il existe déjà : forcer à false pour éviter changement involontaire
-      transfer.isValidatedByClient = false;
-      await this.transferRepo.save(transfer);
+    if (!intervention) {
+      throw new Error('Intervention introuvable');
     }
 
+    // ✅ Charger le client manuellement via clientId
+    const client = await this.userRepo.findOneBy({ id: intervention.clientId });
+    if (!client) {
+      throw new Error('Client introuvable');
+    }
 
+    // ✅ Créer uniquement le PaymentIntent ici
     const paymentIntent = await this.stripe.paymentIntents.create({
-      amount: transfer.amount * 100,
+      amount: Math.round(intervention.prix * 100),
       currency: 'eur',
       payment_method_types: ['card'],
+      metadata: {
+        interventionId: intervention.id,
+        clientId: client.id,
+      },
     });
 
     return {
       clientSecret: paymentIntent.client_secret,
-      amount: transfer.amount * 100, // ✅ tu envoies aussi le montant au front
+      amount: paymentIntent.amount,
     };
   }
+
+
+
 
 
 

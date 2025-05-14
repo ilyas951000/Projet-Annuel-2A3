@@ -25,6 +25,10 @@ export class InterventionController {
     };
   }
 
+  @Patch(':id/force-false')
+  forceIsValidatedFalse(@Param('id') id: string) {
+    return this.interventionService.forceIsValidatedFalse(Number(id));
+  }
 
 
   @Patch(':id/paid') // ✅ PATCH & nom cohérent

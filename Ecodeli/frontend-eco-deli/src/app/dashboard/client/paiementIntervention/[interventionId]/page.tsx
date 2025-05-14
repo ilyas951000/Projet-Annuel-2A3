@@ -1,14 +1,14 @@
-'use client';
+"use client";
 
-import { useEffect, useState } from 'react';
-import { useParams } from 'next/navigation';
-import { loadStripe } from '@stripe/stripe-js';
+import { useEffect, useState } from "react";
+import { useParams } from "next/navigation";
+import { loadStripe } from "@stripe/stripe-js";
 import {
   Elements,
   CardElement,
   useStripe,
   useElements,
-} from '@stripe/react-stripe-js';
+} from "@stripe/react-stripe-js";
 
 const stripePromise = loadStripe(process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY!);
 
@@ -23,41 +23,38 @@ export default function PaiementInterventionPage() {
 function PaiementForm() {
   const stripe = useStripe();
   const elements = useElements();
-  const params = useParams();
-  const interventionId = Array.isArray(params?.interventionId)
-    ? params.interventionId[0]
-    : params?.interventionId;
+  const { interventionId } = useParams();
 
-  const [clientId, setClientId] = useState<number | null>(null);
   const [amount, setAmount] = useState<number>(0);
   const [clientSecret, setClientSecret] = useState<string | null>(null);
-  const [message, setMessage] = useState<string>('');
+  const [message, setMessage] = useState<string>("");
   const [loading, setLoading] = useState<boolean>(false);
 
   useEffect(() => {
     const fetchData = async () => {
-      const token = localStorage.getItem('token');
+      const token = localStorage.getItem("token");
       if (!token || !interventionId) {
-        setMessage('Utilisateur ou intervention invalide.');
+        setMessage("Utilisateur ou intervention invalide.");
         return;
       }
 
       try {
-        // ✅ Authentification
+        // Authentifier utilisateur
         const userRes = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/auth/me`, {
           headers: { Authorization: `Bearer ${token}` },
         });
         const userData = await userRes.json();
-        if (!userRes.ok || !userData.userId) throw new Error('Utilisateur non valide');
-        setClientId(userData.userId);
+        if (!userRes.ok || !userData.userId) {
+          throw new Error("Utilisateur non valide.");
+        }
 
-        // ✅ PaiementIntent
+        // Créer PaymentIntent
         const res = await fetch(
           `${process.env.NEXT_PUBLIC_API_URL}/payments/intervention/${interventionId}`,
           {
-            method: 'POST',
+            method: "POST",
             headers: {
-              'Content-Type': 'application/json',
+              "Content-Type": "application/json",
               Authorization: `Bearer ${token}`,
             },
           }
@@ -65,13 +62,13 @@ function PaiementForm() {
 
         const data = await res.json();
         if (!res.ok || !data.clientSecret || !data.amount) {
-          throw new Error(data.message || 'Erreur de préparation du paiement.');
+          throw new Error(data.message || "Erreur de préparation du paiement.");
         }
 
         setClientSecret(data.clientSecret);
-        setAmount(data.amount / 100); // Stripe utilise les centimes
+        setAmount(data.amount / 100); // Stripe utilise des centimes
       } catch (err: any) {
-        setMessage(err.message || 'Erreur inattendue.');
+        setMessage(err.message || "Erreur inattendue.");
       }
     };
 
@@ -80,34 +77,40 @@ function PaiementForm() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setMessage('');
+    setMessage("");
 
-    if (!stripe || !elements) return setMessage('Stripe non prêt.');
-    if (!clientId || !interventionId || !amount || !clientSecret) {
-      return setMessage('Données manquantes.');
+    if (!stripe || !elements) {
+      setMessage("Stripe non prêt.");
+      return;
+    }
+    if (!clientSecret || !amount || !interventionId) {
+      setMessage("Données manquantes.");
+      return;
     }
 
     setLoading(true);
-
     try {
+      const card = elements.getElement(CardElement);
+      if (!card) throw new Error("Champ carte introuvable.");
+
       const result = await stripe.confirmCardPayment(clientSecret, {
-        payment_method: { card: elements.getElement(CardElement)! },
+        payment_method: { card },
       });
 
       if (result.error) throw new Error(result.error.message!);
 
-      if (result.paymentIntent?.status === 'succeeded') {
-        setMessage('✅ Paiement réussi !');
+      if (result.paymentIntent?.status === "succeeded") {
+        setMessage("✅ Paiement réussi !");
         elements.getElement(CardElement)?.clear();
 
-        // 🔁 Marquer l’intervention comme payée
+        // Marquer l'intervention comme payée dans la base
         await fetch(`${process.env.NEXT_PUBLIC_API_URL}/intervention/${interventionId}/paid`, {
-          method: 'PATCH',
-          headers: { 'Content-Type': 'application/json' },
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
         });
       }
     } catch (err: any) {
-      setMessage(err.message || 'Erreur de paiement.');
+      setMessage(err.message || "Erreur de paiement.");
     } finally {
       setLoading(false);
     }
@@ -128,23 +131,38 @@ function PaiementForm() {
           type="number"
           value={amount}
           readOnly
-          className="w-full border p-2 rounded bg-gray-100"
+          className="w-full border p-2 rounded bg-gray-100 cursor-not-allowed"
         />
       </label>
 
       <div className="mb-4">
-        <CardElement options={{ style: { base: { fontSize: '16px' } } }} />
+        <CardElement
+          options={{
+            style: {
+              base: {
+                fontSize: "16px",
+                color: "#32325d",
+                "::placeholder": { color: "#aab7c4" },
+              },
+              invalid: { color: "#fa755a" },
+            },
+          }}
+        />
       </div>
 
       <button
         type="submit"
-        disabled={loading || !clientId || !clientSecret}
+        disabled={loading || !clientSecret}
         className="w-full bg-blue-600 text-white p-3 rounded disabled:opacity-50"
       >
-        {loading ? 'Paiement en cours…' : `Payer ${amount.toFixed(2)} €`}
+        {loading ? "Paiement en cours…" : `Payer ${amount.toFixed(2)} €`}
       </button>
 
-      {message && <p className="mt-4 text-center text-red-600">{message}</p>}
+      {message && (
+        <p className={`mt-4 text-center ${message.includes("✅") ? "text-green-600" : "text-red-600"}`}>
+          {message}
+        </p>
+      )}
     </form>
   );
 }

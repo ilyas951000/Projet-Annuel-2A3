@@ -242,12 +242,15 @@ export default function ListePrestataires() {
                   Voir le profil complet
                 </Link>
 
-                <button
-                  onClick={() => alert(`Contacter le prestataire ID: ${profile.user.id}`)}
-                  className="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700"
-                >
-                  Contacter le prestataire
-                </button>
+                {clientId && (
+                  <Link
+                    href={`/dashboard/client/chat/${profile.user.id}?from=${clientId}`}
+                    className="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700"
+                  >
+                    Contacter le prestataire
+                  </Link>
+                )}
+
 
                 <button
                   onClick={() =>
