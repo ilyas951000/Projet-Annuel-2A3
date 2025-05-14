@@ -17,6 +17,8 @@ export class DashboardController {
         return { message: 'Bienvenue sur votre interface de livreur', dashboard: 'livreur' };
       case 'prestataire':
         return { message: 'Bienvenue sur votre tableau de bord prestataire', dashboard: 'prestataire' };
+      case 'commercant':
+        return { message: 'Bienvenue sur votre tableau de bord prestataire', dashboard: 'shopkeeper' };
       default:
         return { message: 'Accès interdit', error: 'NOT_FOUND' };
     }

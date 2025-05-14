@@ -1,9 +1,10 @@
 import { Advertisement } from "src/advertisements/entities/advertisement.entity";
-import { Contract } from "src/contracts/entities/contract.entity";
 import { Invoice } from "src/invoices/entities/invoice.entity";
 import { Subscription } from "src/subscriptions/entities/subscription.entity";
 import { Column, Entity, ManyToOne, OneToMany, OneToOne, JoinColumn, PrimaryGeneratedColumn } from "typeorm";
 import { Document } from "src/documents/entities/document.entity";
+import { CompanyDetail } from "src/company-detail/entities/company-detail.entity";
+import { ContractElement } from "src/contract-element/entities/contract-element.entity";
 
 @Entity('user')  // Utilisation explicite du nom de la table
 export class User {
@@ -47,8 +48,8 @@ export class User {
   @OneToMany(() => Subscription, (subscription) => subscription.users)
   subscription: Subscription[];
 
-  @ManyToOne(() => Contract, (contract) => contract.users)
-  contract: Contract;
+  @OneToMany(() => ContractElement, (contractElement) => contractElement.user)
+  contractElement: ContractElement[];
 
   @OneToMany(() => Advertisement, (advertisement) => advertisement.users)
   advertisements: Advertisement[];
@@ -56,4 +57,7 @@ export class User {
   @OneToOne(() => Document, { nullable: true, eager: true, cascade: true })
   @JoinColumn()
   justificationDocument: Document | null;
+
+  @OneToMany(() => CompanyDetail, (advertisement) => advertisement.user)
+  companyDetail: CompanyDetail[]; 
 }
