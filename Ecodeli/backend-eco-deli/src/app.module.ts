@@ -10,7 +10,6 @@ import { ScheduleModule } from './schedules/schedules.module';
 import { RatesModule } from './rates/rates.module';
 import { DocumentsModule } from './documents/documents.module';
 import { MovementsModule } from './movements/movements.module';
-import { ContractsModule } from './contracts/contracts.module';
 import { InvoicesModule } from './invoices/invoices.module';
 import { AdvertisementsModule } from './advertisements/advertisements.module';
 import { Advertisement } from './advertisements/entities/advertisement.entity';
@@ -24,6 +23,8 @@ import { PublicProfileModule } from './public-profile/public-profile.module';
 import { StripeModule } from './payments/stripe.module'; // ✅ Module Stripe
 import { PicturesModule } from './pictures/pictures.module';
 import { LocalisationModule } from './localisation/localisation.module';
+import { CompanyDetailModule } from './company-detail/company-detail.module';
+import { ContractElementModule } from './contract-element/contract-element.module';
 
 
 @Module({
@@ -55,7 +56,6 @@ import { LocalisationModule } from './localisation/localisation.module';
     RatesModule,
     DocumentsModule,
     MovementsModule,
-    ContractsModule,
     InvoicesModule,
     AdvertisementsModule,
     PackagesModule,
@@ -68,6 +68,8 @@ import { LocalisationModule } from './localisation/localisation.module';
     StripeModule,
     PicturesModule,
     LocalisationModule,
+    CompanyDetailModule,
+    ContractElementModule,
   ],
   controllers: [AppController],
   providers: [AppService],

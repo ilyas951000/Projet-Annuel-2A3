@@ -44,6 +44,9 @@ const DashboardPage: NextPage = () => {
         case 'prestataire':
           router.push('/dashboard/prestataire');
           break;
+        case 'commercant':
+          router.push('/dashboard/shopkeeper');
+          break;
         default:
           alert('Accès interdit');
           router.push('/');
