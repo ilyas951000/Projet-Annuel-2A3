@@ -1,10 +1,18 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import {
+  In,
+  Repository,
+  LessThanOrEqual,
+  MoreThanOrEqual,
+} from 'typeorm';
+import { startOfDay, endOfDay } from 'date-fns';
+
 import { PublicProfile } from './entities/public-profile.entity';
 import { CreatePublicProfileDto } from './dto/create-public-profile.dto';
 import { UpdatePublicProfileDto } from './dto/update-public-profile.dto';
 import { User } from '../users/entities/user.entity';
+import { Schedule } from '../schedules/entities/schedule.entity';
 
 @Injectable()
 export class PublicProfileService {
@@ -14,51 +22,108 @@ export class PublicProfileService {
 
     @InjectRepository(User)
     private readonly userRepository: Repository<User>,
+
+    @InjectRepository(Schedule)
+    private readonly scheduleRepository: Repository<Schedule>,
   ) {}
 
   /**
-   * Crée un nouveau profil public pour un prestataire.
+   * Crée un nouveau profil public.
    */
   async create(userId: number, dto: CreatePublicProfileDto): Promise<PublicProfile> {
     const user = await this.userRepository.findOne({ where: { id: userId } });
     if (!user) throw new NotFoundException(`Utilisateur avec l'ID ${userId} non trouvé`);
 
-    // On crée le profil à partir des champs du DTO + la relation user
     const profile = this.publicProfileRepository.create({
       ...dto,
       user,
     });
 
-    // save renvoie Promise<PublicProfile>
     return await this.publicProfileRepository.save(profile);
   }
 
   /**
-   * Récupère tous les profils publics d'un utilisateur.
+   * Récupère les profils publics disponibles sur une plage de dates.
+   */
+  async findAvailable(start: Date, end: Date): Promise<PublicProfile[]> {
+    const from = startOfDay(start);
+    const to = endOfDay(end);
+
+    console.log('🔍 Recherche de disponibilités entre', from.toISOString(), 'et', to.toISOString());
+
+    const schedules = await this.scheduleRepository.find({
+      where: {
+        scheduleStart: LessThanOrEqual(to),
+        scheduleEnd: MoreThanOrEqual(from),
+      },
+      relations: ['user'],
+    });
+
+    console.log(`📋 ${schedules.length} schedule(s) trouvés.`);
+
+    schedules.forEach((s, i) => {
+      console.log(`- Schedule ${i + 1}: start=${s.scheduleStart}, end=${s.scheduleEnd}, userIds=${s.user?.map(u => u.id)}`);
+    });
+
+    const userIds = schedules.flatMap(schedule =>
+      Array.isArray(schedule.user) ? schedule.user.map(user => user.id) : []
+    );
+
+    const uniqueUserIds = [...new Set(userIds)];
+
+    console.log('👤 Utilisateurs associés aux schedules :', uniqueUserIds);
+
+    if (uniqueUserIds.length === 0) {
+      console.log('❌ Aucun utilisateur avec des horaires disponibles.');
+      return [];
+    }
+
+    const profiles = await this.publicProfileRepository.find({
+      where: { user: { id: In(uniqueUserIds) } },
+      relations: ['user'],
+    });
+
+    console.log(`✅ ${profiles.length} profil(s) public(s) retourné(s).`);
+
+    return profiles;
+  }
+
+  /**
+   * Tous les profils publics.
+   */
+  async findAll(): Promise<PublicProfile[]> {
+    return this.publicProfileRepository.find({
+      relations: ['user'],
+    });
+  }
+
+  /**
+   * Profils d’un utilisateur.
    */
   async findByUser(userId: number): Promise<PublicProfile[]> {
-    return await this.publicProfileRepository.find({ where: { user: { id: userId } } });
+    return this.publicProfileRepository.find({
+      where: { user: { id: userId } },
+    });
   }
 
   /**
-   * Met à jour un profil public existant.
+   * Mise à jour d’un profil.
    */
   async update(id: number, dto: UpdatePublicProfileDto): Promise<PublicProfile> {
-    const existing = await this.publicProfileRepository.findOne({ where: { id } });
-    if (!existing) throw new NotFoundException(`Profil public avec l'ID ${id} non trouvé`);
+    const profile = await this.publicProfileRepository.findOne({ where: { id } });
+    if (!profile) throw new NotFoundException(`Profil avec l'ID ${id} non trouvé`);
 
     await this.publicProfileRepository.update(id, dto);
-    // findOneOrFail lance une exception si non trouvé
-    return await this.publicProfileRepository.findOneOrFail({ where: { id } });
+    return this.publicProfileRepository.findOneOrFail({ where: { id } });
   }
 
   /**
-   * Supprime un profil public (optionnel).
+   * Suppression d’un profil.
    */
   async remove(id: number): Promise<void> {
-    const existing = await this.publicProfileRepository.findOne({ where: { id } });
-    if (!existing) throw new NotFoundException(`Profil public avec l'ID ${id} non trouvé`);
+    const profile = await this.publicProfileRepository.findOne({ where: { id } });
+    if (!profile) throw new NotFoundException(`Profil avec l'ID ${id} non trouvé`);
 
-    await this.publicProfileRepository.remove(existing);
+    await this.publicProfileRepository.remove(profile);
   }
 }

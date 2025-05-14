@@ -25,7 +25,7 @@ export default function RateProviderPage() {
     if (!token) return;
 
     axios
-      .get('http://51.15.231.248:3001/auth/me', {
+      .get('http://localhost:3001/auth/me', {
         headers: { Authorization: `Bearer ${token}` },
       })
       .then(res => {
@@ -60,7 +60,7 @@ export default function RateProviderPage() {
 
     try {
       const response = await axios.post(
-        'http://51.15.231.248:3001/rates',
+        'http://localhost:3001/rates',
         {
           rating,
           comment,

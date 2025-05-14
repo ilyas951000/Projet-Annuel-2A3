@@ -1,64 +1,141 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
+
 import { Intervention } from './entities/intervention.entity';
-import { Advertisement } from '../advertisements/entities/advertisement.entity';
 import { CreateInterventionDto } from './dto/create-intervention.dto';
+import { Transfer } from '../payments/entities/transfer.entity';
+import { User } from 'src/users/entities/user.entity';
 
 @Injectable()
-export class InterventionsService {
+export class InterventionService {
   constructor(
     @InjectRepository(Intervention)
-    private interventionRepository: Repository<Intervention>,
+    private readonly interventionRepo: Repository<Intervention>,
 
-    @InjectRepository(Advertisement)
-    private advertisementRepository: Repository<Advertisement>,
+    @InjectRepository(Transfer)
+    private readonly transferRepo: Repository<Transfer>,
+
+    @InjectRepository(User)
+    private readonly userRepo: Repository<User>,
   ) {}
 
-  // Créer une nouvelle intervention
-  async create(createInterventionDto: CreateInterventionDto) {
-    const advertisement = await this.advertisementRepository.findOne({
-      where: { id: createInterventionDto.advertisementId },
-      relations: ['users'],
-    });
-
-    if (!advertisement) {
-      throw new NotFoundException('Annonce non trouvée');
-    }
-
-    const intervention = this.interventionRepository.create({
-      prestataireId: createInterventionDto.prestataireId,
-      clientId: advertisement.users.id,
-      type: createInterventionDto.type,
-      description: createInterventionDto.description,
-      prix: createInterventionDto.prix,
+  async create(dto: CreateInterventionDto): Promise<Intervention> {
+    const intervention = this.interventionRepo.create({
+      ...dto,
       statut: 'en_attente',
+      date: new Date(),
     });
 
-    return this.interventionRepository.save(intervention);
+    return this.interventionRepo.save(intervention);
   }
 
-  // Mettre à jour le statut de l'intervention
-  async updateStatut(interventionId: number, statut: string) {
-    const intervention = await this.interventionRepository.findOne({
-      where: { id: interventionId },
+  async findByPrestataire(prestataireId: number): Promise<Intervention[]> {
+    return this.interventionRepo.find({
+      where: { prestataireId },
+      order: { createdAt: 'DESC' },
+      relations: ['transfer'],
+    });
+  }
+
+  async findByClient(clientId: number): Promise<Intervention[]> {
+    return this.interventionRepo.find({
+      where: { clientId },
+      order: { createdAt: 'DESC' },
+      relations: ['transfer'],
+    });
+  }
+
+  async updateStatut(id: number, statut: 'accepte' | 'refuse' | 'negociation') {
+    const intervention = await this.interventionRepo.findOne({
+      where: { id },
+      relations: ['transfer'],
     });
 
     if (!intervention) {
-      throw new NotFoundException('Intervention non trouvée');
+      throw new NotFoundException('Intervention introuvable');
     }
 
     intervention.statut = statut;
-    return this.interventionRepository.save(intervention);
+    return this.interventionRepo.save(intervention);
   }
 
-  // Méthode pour récupérer toutes les interventions
-  async findAll() {
-    return this.interventionRepository.find();
+  async findOneById(id: number): Promise<Intervention> {
+    const intervention = await this.interventionRepo.findOne({
+      where: { id },
+      relations: ['transfer'],
+    });
+
+    if (!intervention) {
+      throw new NotFoundException('Intervention introuvable');
+    }
+
+    return intervention;
   }
 
-  // Récupérer les interventions par statut
-  async findByStatut(statut: string) {
-    return this.interventionRepository.find({ where: { statut } });
+  async forceIsValidatedFalse(interventionId: number) {
+    const intervention = await this.interventionRepo.findOne({
+      where: { id: interventionId },
+      relations: ['transfer'],
+    });
+
+    if (!intervention?.transfer) {
+      throw new Error('Transfert non trouvé');
+    }
+
+    await this.transferRepo.update(intervention.transfer.id, {
+      isValidatedByClient: false,
+    });
+
+    return { success: true };
   }
+
+  async validateClientTransfer(interventionId: number) {
+    const intervention = await this.interventionRepo.findOne({
+      where: { id: interventionId },
+      relations: ['transfer'],
+    });
+
+    if (!intervention || !intervention.transfer) {
+      throw new NotFoundException('Transfert non trouvé');
+    }
+
+    if (intervention.transfer.isValidatedByClient) {
+      throw new Error('Déjà validé');
+    }
+
+    intervention.transfer.isValidatedByClient = true;
+    return this.transferRepo.save(intervention.transfer);
+  }
+
+  async markAsPaid(interventionId: number) {
+    const intervention = await this.interventionRepo.findOne({
+      where: { id: interventionId },
+      relations: ['transfer'],
+    });
+
+    if (!intervention) {
+      throw new NotFoundException('Intervention introuvable');
+    }
+
+    if (intervention.transfer && intervention.transfer.status === 'completed') {
+      return intervention;
+    }
+
+    const newTransfer = this.transferRepo.create({
+      client: { id: intervention.clientId },
+      provider: { id: intervention.prestataireId },
+      amount: intervention.prix,
+      status: 'pending', // ✅ Fix ici
+      isValidatedByClient: false,
+      requestedAt: new Date(),
+    });
+
+    const savedTransfer = await this.transferRepo.save(newTransfer);
+    intervention.transfer = savedTransfer;
+    await this.interventionRepo.save(intervention);
+
+    return intervention;
+  }
+
 }

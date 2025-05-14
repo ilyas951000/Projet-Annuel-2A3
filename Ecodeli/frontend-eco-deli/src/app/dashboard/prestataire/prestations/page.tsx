@@ -39,7 +39,7 @@ export default function Advertisements() {
 
     const fetchCurrentUser = async () => {
       try {
-        const res = await axios.get('http://51.15.231.248:3001/auth/me', {
+        const res = await axios.get('http://localhost:3001/auth/me', {
           headers: { Authorization: `Bearer ${token}` },
         });
         console.log('Réponse de /auth/me:', res.data);
@@ -65,7 +65,7 @@ export default function Advertisements() {
     const fetchAdvertisements = async () => {
       try {
         console.log('Fetching validated advertisements...');
-        const response = await axios.get('http://51.15.231.248:3001/advertisements/validated');
+        const response = await axios.get('http://localhost:3001/advertisements/validated');
         console.log('Advertisements fetched:', response.data);
         setAdvertisements(response.data);
       } catch (err) {
@@ -97,7 +97,7 @@ export default function Advertisements() {
     console.log('Envoi du payload à /interventions:', payload);
 
     try {
-      const response = await axios.post('http://51.15.231.248:3001/interventions', payload, {
+      const response = await axios.post('http://localhost:3001/interventions', payload, {
         headers: { Authorization: `Bearer ${token}` },
       });
       console.log('Réponse reçue après prise en charge:', response.data);

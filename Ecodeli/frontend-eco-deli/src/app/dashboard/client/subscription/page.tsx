@@ -34,7 +34,7 @@ export default function Dashboard() {
         const token = localStorage.getItem('token')
         if (!token) throw new Error("Token manquant")
 
-        const res = await fetch('http://127.0.0.1:3001/auth/me', {
+        const res = await fetch('http://localhost:3001/auth/me', {
           headers: { Authorization: `Bearer ${token}` },
         })
         if (!res.ok) throw new Error("Erreur récupération utilisateur")
@@ -42,7 +42,7 @@ export default function Dashboard() {
         const id = authData.userId
         setUserId(id)
 
-        const userRes = await fetch(`http://127.0.0.1:3001/users/${id}`)
+        const userRes = await fetch(`http://localhost:3001/users/${id}`)
         if (!userRes.ok) throw new Error("Erreur récupération infos utilisateur")
         const userData = await userRes.json()
 
@@ -69,7 +69,7 @@ export default function Dashboard() {
     }
 
     try {
-      await axios.patch(`http://127.0.0.1:3001/users/${userId}/subscription`, {
+      await axios.patch(`http://localhost:3001/users/${userId}/subscription`, {
         userSubscription: newLevel,
       })
       alert("Abonnement mis à jour !")

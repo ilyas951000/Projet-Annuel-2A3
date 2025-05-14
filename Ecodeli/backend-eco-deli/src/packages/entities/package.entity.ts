@@ -18,6 +18,9 @@ export class Package {
   packageQuantity?: number;
 
   @Column({ nullable: true })
+  isPaid?: boolean;
+
+  @Column({ nullable: true })
   packageDimension?: string;
 
   @Column({ nullable: true, default: 'en attente' })

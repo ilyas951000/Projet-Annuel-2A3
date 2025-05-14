@@ -19,7 +19,8 @@ export class Schedule {
     @Column()
     scheduleDescription: string;
 
-    @ManyToMany(() => User)
+    @ManyToMany(() => User, { eager: true })
     @JoinTable({ name: "courierSchedule" })
     user: User[];
+
 }

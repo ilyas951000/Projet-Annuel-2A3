@@ -28,7 +28,7 @@ export default function EvaluationsPage() {
     }
 
     axios
-      .get('http://51.15.231.248:3001/auth/me', {
+      .get('http://localhost:3001/auth/me', {
         headers: { Authorization: `Bearer ${token}` },
       })
       .then(res => {
@@ -51,7 +51,7 @@ export default function EvaluationsPage() {
     const token = getToken();
     axios
       .get<Rate[]>(
-        `http://51.15.231.248:3001/rates/provider/${providerId}`,
+        `http://localhost:3001/rates/provider/${providerId}`,
         { headers: { Authorization: `Bearer ${token}` } }
       )
       .then(res => {

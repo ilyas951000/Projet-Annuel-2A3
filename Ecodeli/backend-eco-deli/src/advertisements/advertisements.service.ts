@@ -11,48 +11,44 @@ import { Localisation } from 'src/localisation/entities/localisation.entity';
 export class AdvertisementsService {
   constructor(
     @InjectRepository(Advertisement)
-    private advertisementRepository: Repository<Advertisement>,
+    private readonly advertisementRepository: Repository<Advertisement>,
   ) {}
 
-  // src/advertisements/advertisements.service.ts
-async create(dto: CreateAdvertisementDto): Promise<Advertisement> {
-  const { packages: pkgDtos, ...adProps } = dto;
-  const ad = this.advertisementRepository.create(adProps);
+  async create(dto: CreateAdvertisementDto): Promise<Advertisement> {
+    const { packages: pkgDtos, ...adProps } = dto;
+    const ad = this.advertisementRepository.create(adProps);
 
-  if (Array.isArray(pkgDtos)) {
-    ad.packages = pkgDtos.map(pkgDto => {
-      const pkg = new Package();
-      pkg.packageName        = pkgDto.item;
-      pkg.packageQuantity    = pkgDto.quantity;
-      pkg.packageDimension   = pkgDto.dimension ?? '';
-      pkg.packageWeight      = pkgDto.weight    ?? 0;
+    if (Array.isArray(pkgDtos)) {
+      ad.packages = pkgDtos.map(pkgDto => {
+        const pkg = new Package();
+        pkg.packageName      = pkgDto.item;
+        pkg.packageQuantity  = pkgDto.quantity;
+        pkg.packageDimension = pkgDto.dimension ?? '';
+        pkg.packageWeight    = pkgDto.weight ?? 0;
 
-      // on sécurise localisations en cas d'absence
-      const rawLocs = Array.isArray(pkgDto.localisations)
-        ? pkgDto.localisations
-        : [];
+        const rawLocs = Array.isArray(pkgDto.localisations)
+          ? pkgDto.localisations
+          : [];
 
-      pkg.localisations = rawLocs.map(locDto => {
-        const loc = new Localisation();
-        loc.currentStreet         = locDto.currentStreet;
-        loc.currentCity           = locDto.currentCity;
-        loc.currentPostalCode     = locDto.currentPostalCode;
-        loc.destinationStreet     = locDto.destinationStreet;
-        loc.destinationCity       = locDto.destinationCity;
-        loc.destinationPostalCode = locDto.destinationPostalCode;
-        loc.package               = pkg;
-        return loc;
+        pkg.localisations = rawLocs.map(locDto => {
+          const loc = new Localisation();
+          loc.currentStreet         = locDto.currentStreet;
+          loc.currentCity           = locDto.currentCity;
+          loc.currentPostalCode     = locDto.currentPostalCode;
+          loc.destinationStreet     = locDto.destinationStreet;
+          loc.destinationCity       = locDto.destinationCity;
+          loc.destinationPostalCode = locDto.destinationPostalCode;
+          loc.package               = pkg;
+          return loc;
+        });
+
+        pkg.advertisement = ad;
+        return pkg;
       });
+    }
 
-      pkg.advertisement = ad;
-      return pkg;
-    });
+    return this.advertisementRepository.save(ad);
   }
-
-  return this.advertisementRepository.save(ad);
-}
-
-  
 
   async findAll() {
     return await this.advertisementRepository.find();
@@ -66,12 +62,18 @@ async create(dto: CreateAdvertisementDto): Promise<Advertisement> {
     return advertisement;
   }
 
-  async update(id: number, updateAdvertisementDto: UpdateAdvertisementDto) {
-  const advertisement = await this.findOne(id);
-  Object.assign(advertisement, updateAdvertisementDto);
-  return await this.advertisementRepository.save(advertisement);
-}
+  async update(id: number, updateDto: UpdateAdvertisementDto) {
+    const advertisement = await this.findOne(id);
+    Object.assign(advertisement, updateDto);
+    return await this.advertisementRepository.save(advertisement);
+  }
 
+  async updatePrice(id: number, newPrice: number) {
+    const ad = await this.advertisementRepository.findOne({ where: { id } });
+    if (!ad) throw new NotFoundException('Annonce introuvable');
+    ad.advertisementPrice = newPrice;
+    return this.advertisementRepository.save(ad);
+  }
 
   async remove(id: number) {
     const advertisement = await this.findOne(id);
@@ -90,17 +92,17 @@ async create(dto: CreateAdvertisementDto): Promise<Advertisement> {
       order: { publicationDate: 'DESC' },
     });
   }
+
   async findOthers(userId: number): Promise<Advertisement[]> {
     return this.advertisementRepository.find({
       where: { usersId: Not(userId) },
       order: { publicationDate: 'DESC' },
     });
   }
+
   async findValidated() {
     return await this.advertisementRepository.find({
       where: { isValidated: true },
     });
   }
-
-  
 }
