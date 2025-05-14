@@ -26,8 +26,8 @@ export default function PrestataireInterventionsPage() {
     const fetchInterventions = async () => {
       try {
         const url = selectedStatut
-          ? `http://51.15.231.248:3001/interventions/statut/${selectedStatut}`
-          : 'http://51.15.231.248:3001/interventions'; // Si aucun filtre, récupérer toutes les interventions
+          ? `http://localhost:3001/interventions/statut/${selectedStatut}`
+          : 'http://localhost:3001/interventions'; // Si aucun filtre, récupérer toutes les interventions
         const response = await axios.get(url);
         setInterventions(response.data);
       } catch (err) {
@@ -43,7 +43,7 @@ export default function PrestataireInterventionsPage() {
 
   const handleStatusChange = async (id: number, newStatus: string) => {
     try {
-      await axios.patch(`http://51.15.231.248:3001/interventions/${id}/statut`, {
+      await axios.patch(`http://localhost:3001/interventions/${id}/statut`, {
         statut: newStatus,
       });
 

@@ -4,6 +4,8 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { User } from '../users/entities/user.entity';
 import { Transfer } from '../payments/entities/transfer.entity';
+import { Intervention } from '../intervention/entities/intervention.entity';
+
 
 // ✅ Typage local étendu pour éviter l'erreur TS2339
 interface UserWithStripe extends User {
@@ -19,6 +21,8 @@ export class StripeService {
     private userRepo: Repository<User>,
     @InjectRepository(Transfer)
     private transferRepo: Repository<Transfer>,
+    @InjectRepository(Intervention)
+    private interventionRepo: Repository<Intervention>, // ✅ ajouter ceci
   ) {
     const stripeKey = process.env.STRIPE_SECRET_KEY;
 
@@ -72,6 +76,45 @@ export class StripeService {
       url: accountLink.url,
     };
   }
+
+  async createPaymentIntentForIntervention(interventionId: number) {
+    // ✅ Ne pas demander la relation "client" (car elle n'existe pas dans l'entité)
+    const intervention = await this.interventionRepo.findOne({
+      where: { id: interventionId },
+    });
+
+    if (!intervention) {
+      throw new Error('Intervention introuvable');
+    }
+
+    // ✅ Charger le client manuellement via clientId
+    const client = await this.userRepo.findOneBy({ id: intervention.clientId });
+    if (!client) {
+      throw new Error('Client introuvable');
+    }
+
+    // ✅ Créer uniquement le PaymentIntent ici
+    const paymentIntent = await this.stripe.paymentIntents.create({
+      amount: Math.round(intervention.prix * 100),
+      currency: 'eur',
+      payment_method_types: ['card'],
+      metadata: {
+        interventionId: intervention.id,
+        clientId: client.id,
+      },
+    });
+
+    return {
+      clientSecret: paymentIntent.client_secret,
+      amount: paymentIntent.amount,
+    };
+  }
+
+
+
+
+
+
 
   async createPaymentIntent(clientId: number, providerId: number, amount: number) {
     const client = await this.userRepo.findOneBy({ id: clientId });

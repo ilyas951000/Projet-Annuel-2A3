@@ -54,6 +54,10 @@ export class PackagesController {
     return this.packagesService.updateStatus(+id, status);
   }
 
+  @Patch(':id/paid')
+  async markAsPaid(@Param('id') id: string) {
+    return this.packagesService.markAsPaid(+id);
+  }
   /**
    * Endpoint pour consulter l’historique des livraisons (statut "livré")
    * pour un livreur donné.
@@ -63,6 +67,16 @@ export class PackagesController {
   findDeliveredPackagesByUser(@Query('userId') userId: string) {
     return this.packagesService.findDeliveredPackagesByUser(+userId);
   }
+
+  /**
+ * Endpoint pour récupérer les colis d’un client (non encore payés)
+ * Ex : GET /packages/client/37
+ */
+  @Get('client/:clientId')
+  findUnpaidByClient(@Param('clientId') clientId: string) {
+    return this.packagesService.findUnpaidPackagesByClient(+clientId);
+  }
+
 
   @Get(':id')
   findOne(@Param('id') id: string) {

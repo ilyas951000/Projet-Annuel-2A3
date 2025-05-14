@@ -1,5 +1,5 @@
 import { Module } from '@nestjs/common';
-import { ConfigModule } from '@nestjs/config'; // ✅ Ajouté pour .env
+import { ConfigModule } from '@nestjs/config';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import { JwtModule } from '@nestjs/jwt';
@@ -20,18 +20,19 @@ import { DashboardModule } from './dashboard/dashboard.module';
 import { FacturableModule } from './facturable/facturable.module';
 import { InterventionModule } from './intervention/intervention.module';
 import { PublicProfileModule } from './public-profile/public-profile.module';
-import { StripeModule } from './payments/stripe.module'; // ✅ Module Stripe
+import { StripeModule } from './payments/stripe.module';
 import { PicturesModule } from './pictures/pictures.module';
 import { LocalisationModule } from './localisation/localisation.module';
 import { CompanyDetailModule } from './company-detail/company-detail.module';
 import { ContractElementModule } from './contract-element/contract-element.module';
-
+import { MessagesModule } from './message/messages.module';
+import { ChatGateway } from './message/chat.gateway'; // ✅ ajouté ici
 
 @Module({
   imports: [
     ConfigModule.forRoot({
-      isGlobal: true,           // ✅ Rends process.env accessible partout
-      envFilePath: '.env',      // ✅ Charge le fichier .env à la racine
+      isGlobal: true,
+      envFilePath: '.env',
     }),
     TypeOrmModule.forRoot({
       type: 'mariadb',
@@ -46,7 +47,7 @@ import { ContractElementModule } from './contract-element/contract-element.modul
     }),
     JwtModule.register({
       global: true,
-      secret: '5115231248', 
+      secret: '5115231248',
       signOptions: { expiresIn: '1h' },
     }),
     UsersModule,
@@ -70,8 +71,9 @@ import { ContractElementModule } from './contract-element/contract-element.modul
     LocalisationModule,
     CompanyDetailModule,
     ContractElementModule,
+    MessagesModule,
   ],
   controllers: [AppController],
-  providers: [AppService],
+  providers: [AppService, ChatGateway], // ✅ ajouté ici
 })
 export class AppModule {}

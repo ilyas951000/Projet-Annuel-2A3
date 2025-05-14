@@ -14,6 +14,7 @@ interface IPackage {
   recipientAddress: string;
   packageRequirements: string;
   deliveryStatus: string;
+  isPaid?: boolean; // ✅ on ajoute ce champ ici
 }
 
 interface IUser {
@@ -31,11 +32,8 @@ export default function MyDeliveries() {
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
   const [livreurId, setLivreurId] = useState<number | null>(null);
-  // On stocke ici le statut choisi pour chaque colis
   const [statusSelections, setStatusSelections] = useState<{ [key: number]: string }>({});
-  // On stocke l'ID du livreur destinataire pour le transfert
   const [transferSelections, setTransferSelections] = useState<{ [key: number]: string }>({});
-  // Liste des utilisateurs avec userStatus === "livreur"
   const [livreurs, setLivreurs] = useState<IUser[]>([]);
 
   useEffect(() => {
@@ -64,11 +62,10 @@ export default function MyDeliveries() {
     fetchCurrentUser();
   }, []);
 
-  // Récupérer la liste de tous les utilisateurs et ne garder que ceux dont userStatus === "livreur"
   useEffect(() => {
     const fetchLivreurs = async () => {
       try {
-        const res = await axios.get('http://127.0.0.1:3001/users'); // Endpoint qui retourne tous les utilisateurs
+        const res = await axios.get('http://127.0.0.1:3001/users');
         const livreursData = res.data.filter((user: IUser) => user.userStatus === "livreur");
         setLivreurs(livreursData);
       } catch (err) {
@@ -89,9 +86,14 @@ export default function MyDeliveries() {
       const response = await axios.get('http://127.0.0.1:3001/packages/mydeliveries', {
         params: { userId: livreurId },
       });
-      setDeliveries(response.data);
+
+      // ✅ Ne garder que les colis où isPaid est true (ou 1)
+      const paidDeliveries = response.data.filter((pkg: IPackage) => pkg.isPaid === true || pkg.isPaid === 1);
+
+      setDeliveries(paidDeliveries);
+
       const initialSelections: { [key: number]: string } = {};
-      response.data.forEach((pkg: IPackage) => {
+      paidDeliveries.forEach((pkg: IPackage) => {
         initialSelections[pkg.id] = pkg.deliveryStatus;
       });
       setStatusSelections(initialSelections);
@@ -129,7 +131,6 @@ export default function MyDeliveries() {
 
   return (
     <div className="p-4">
-      {/* Bouton vers l'historique */}
       <div className="mb-4">
         <Link
           href="/dashboard/livreur/history"
@@ -173,7 +174,7 @@ export default function MyDeliveries() {
                     </option>
                   ))}
                 </select>
-                {/* Si le nouveau statut est "transféré", on affiche le dropdown pour choisir le livreur destinataire */}
+
                 {statusSelections[pkg.id] === "transféré" && (
                   <div className="mt-2 flex flex-col gap-2">
                     <label htmlFor={`transfer-select-${pkg.id}`} className="font-semibold">
@@ -192,7 +193,7 @@ export default function MyDeliveries() {
                     >
                       <option value="">-- Choisir un livreur --</option>
                       {livreurs
-                        .filter((l) => l.id !== livreurId) // On exclut le livreur actuel
+                        .filter((l) => l.id !== livreurId)
                         .map((livreur) => (
                           <option key={livreur.id} value={livreur.id}>
                             {livreur.userFirstName} {livreur.userLastName}

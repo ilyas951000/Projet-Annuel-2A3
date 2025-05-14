@@ -33,7 +33,7 @@ export default function OtherAnnouncements() {
       try {
         const token = localStorage.getItem('token');
         if (!token) throw new Error("Token manquant");
-        const res = await fetch('http://127.0.0.1:3001/auth/me', {
+        const res = await fetch('http://localhost:3001/auth/me', {
           headers: { Authorization: `Bearer ${token}` },
         });
         if (!res.ok) throw new Error("Erreur récupération utilisateur");
@@ -53,7 +53,7 @@ export default function OtherAnnouncements() {
       setLoading(true);
       try {
         const token = localStorage.getItem('token');
-        const res = await fetch('http://127.0.0.1:3001/advertisements/others', {
+        const res = await fetch('http://localhost:3001/advertisements/others', {
           headers: { Authorization: `Bearer ${token}` },
         });
         if (!res.ok) throw new Error(await res.text());

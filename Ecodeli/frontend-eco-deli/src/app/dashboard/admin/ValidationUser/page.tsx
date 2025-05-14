@@ -20,7 +20,7 @@ export default function AdminDocumentVerification() {
   useEffect(() => {
     const fetchDocuments = async () => {
       try {
-        const res = await fetch("http://127.0.0.1:3001/admin/documents", {
+        const res = await fetch("http://localhost:3001/admin/documents", {
           headers: {
             Authorization: `Bearer ${localStorage.getItem('token') || ''}`,
           },
