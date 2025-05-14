@@ -109,10 +109,12 @@ const AdminConnexion: NextPage = () => {
               <ul className="space-y-3">
                 <NavItem title="Accueil" link="./dashboard/prestataire" />
                 <NavItem title="Mes Avis" link="./prestataire/avis" />
-                <NavItem title="Les Interventions disponibles" link="/dashboard/prestataire/prestations" />
-                <NavItem title="Mes Prestations" link="/dashboard/prestataire/interventions" />
+                <NavItem title="Les Demandes de Prestations" link="/dashboard/prestataire/MesDemandes" />
+                <NavItem title="Modifier Mes Prestations" link="/dashboard/prestataire/modif-prestation" />
                 <NavItem title="Mes disponibilités" link="/dashboard/prestataire/planning" />
                 <NavItem title="Mes Factures" link="/services" />
+                <NavItem title="Wallet" link="/dashboard/prestataire/wallet" />
+                <NavItem title="Les Messages" link="/dashboard/prestataire/prestataireMessagesPage" />
                 <NavItem title="Profil / Compte" link="/compte" />
               </ul>
             </nav>

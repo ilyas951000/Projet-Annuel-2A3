@@ -1,4 +1,4 @@
-"use client";
+'use client';
 
 import { useEffect, useState, useRef } from "react";
 import { useParams, useSearchParams } from "next/navigation";
@@ -31,8 +31,6 @@ export default function ChatPage() {
   const [newMessage, setNewMessage] = useState<string>("");
   const [error, setError] = useState<string | null>(null);
   const [packageInfo, setPackageInfo] = useState<IPackage | null>(null);
-  const [showModal, setShowModal] = useState(false);
-  const [negociationPrice, setNegociationPrice] = useState("");
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   const scrollToBottom = () => {
@@ -128,32 +126,6 @@ export default function ChatPage() {
     }
   };
 
-  const handleNegociationSend = async () => {
-    if (!negociationPrice || isNaN(Number(negociationPrice)) || !livreurId || !clientId) return;
-
-    const msg = {
-      fromUserId: livreurId,
-      toUserId: parseInt(clientId as string),
-      content: `[NEGOCIATION] Le livreur propose : ${negociationPrice} €`,
-      packageId: packageInfo?.id || (packageIdFromQuery ? parseInt(packageIdFromQuery) : undefined),
-    };
-
-    const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/messages`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(msg),
-    });
-
-    const saved = await res.json();
-    if (res.ok) {
-      socket.emit("sendMessage", saved);
-      setMessages((prev) => [...prev, saved]);
-      setShowModal(false);
-      setNegociationPrice("");
-      scrollToBottom();
-    }
-  };
-
   return (
     <div className="relative max-w-2xl mx-auto p-4 h-[80vh] flex flex-col">
       <h1 className="text-2xl font-bold mb-4">Chat avec le client #{clientId}</h1>
@@ -189,12 +161,6 @@ export default function ChatPage() {
       </div>
 
       <div className="mt-4 flex justify-between gap-2">
-        <button
-          onClick={() => setShowModal(true)}
-          className="bg-yellow-500 text-white px-4 py-2 rounded hover:bg-yellow-600"
-        >
-          Négocier un prix
-        </button>
         <div className="flex flex-1 gap-2">
           <input
             type="text"
@@ -211,36 +177,6 @@ export default function ChatPage() {
           </button>
         </div>
       </div>
-
-      {/* 🟡 POPUP Modal de négociation */}
-      {showModal && (
-        <div className="absolute inset-0 bg-black bg-opacity-30 flex items-center justify-center z-50">
-          <div className="bg-white p-6 rounded shadow-lg w-[90%] max-w-md">
-            <h2 className="text-lg font-semibold mb-4">Proposer un nouveau prix</h2>
-            <input
-              type="number"
-              value={negociationPrice}
-              onChange={(e) => setNegociationPrice(e.target.value)}
-              placeholder="Ex : 25"
-              className="w-full border p-2 rounded mb-4"
-            />
-            <div className="flex justify-end gap-2">
-              <button
-                onClick={() => setShowModal(false)}
-                className="border px-4 py-2 rounded"
-              >
-                Annuler
-              </button>
-              <button
-                onClick={handleNegociationSend}
-                className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700"
-              >
-                Envoyer
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
 
       {error && <p className="mt-2 text-red-600 text-center">{error}</p>}
     </div>

@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import { useRouter } from 'next/navigation';
 
 interface Transfer {
   status: 'pending' | 'completed' | 'failed' | 'paid';
@@ -22,8 +23,9 @@ export default function MesDemandes() {
   const [interventions, setInterventions] = useState<Intervention[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-
   const [prestataireId, setPrestataireId] = useState<number | null>(null);
+
+  const router = useRouter();
 
   useEffect(() => {
     const token = localStorage.getItem('token');
@@ -57,7 +59,6 @@ export default function MesDemandes() {
       body: JSON.stringify({ statut }),
     });
 
-    // Refetch la liste à jour
     const updated = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/intervention/prestataire/${prestataireId}`);
     const data = await updated.json();
     setInterventions(data);
@@ -70,9 +71,7 @@ export default function MesDemandes() {
       {loading && <p>Chargement…</p>}
       {error && <p className="text-red-600">{error}</p>}
 
-      {!loading && interventions.length === 0 && (
-        <p>Aucune demande reçue.</p>
-      )}
+      {!loading && interventions.length === 0 && <p>Aucune demande reçue.</p>}
 
       <ul className="space-y-6">
         {interventions.map((d) => (
@@ -86,7 +85,6 @@ export default function MesDemandes() {
               Envoyé le {new Date(d.createdAt).toLocaleString()}
             </p>
 
-            {/* Paiement visible si accepté */}
             {d.statut === 'accepte' && (
               <>
                 {d.transfer?.status === 'completed' ? (
@@ -111,13 +109,17 @@ export default function MesDemandes() {
                 >
                   Refuser
                 </button>
-                <button
-                  onClick={() => updateStatut(d.id, 'negociation')}
-                  className="bg-yellow-500 text-white px-4 py-1 rounded hover:bg-yellow-600"
-                >
-                  Négocier
-                </button>
               </div>
+            )}
+
+            {/* Bouton Contacter le client */}
+            {d.clientId && (
+              <button
+                onClick={() => router.push(`/dashboard/prestataire/chat/${d.clientId}`)}
+                className="mt-3 inline-block bg-blue-600 text-white px-4 py-1 rounded hover:bg-blue-700"
+              >
+                Contacter le client
+              </button>
             )}
           </li>
         ))}

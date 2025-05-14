@@ -1,6 +1,8 @@
 import { Controller, Post, Body, Put, Param, Get, Patch } from '@nestjs/common';
 import { InterventionService } from './intervention.service';
 import { CreateInterventionDto } from './dto/create-intervention.dto';
+import { ParseIntPipe } from '@nestjs/common';
+
 
 @Controller('intervention')
 export class InterventionController {
@@ -36,10 +38,11 @@ export class InterventionController {
     return this.interventionService.markAsPaid(Number(id));
   }
 
-  @Patch(':id/unvalidate')
-  unvalidateTransfer(@Param('id') id: string) {
-    return this.interventionService.unvalidateClientTransfer(Number(id));
+  @Patch(':id/validate')
+  async validateTransfer(@Param('id', ParseIntPipe) id: number) {
+    return this.interventionService.validateClientTransfer(id);
   }
+
 
 
   @Get('client/:id')

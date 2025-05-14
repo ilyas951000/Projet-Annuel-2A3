@@ -243,27 +243,34 @@ export default function ListePrestataires() {
                 </Link>
 
                 {clientId && (
-                  <Link
-                    href={`/dashboard/client/chat/${profile.user.id}?from=${clientId}`}
-                    className="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700"
-                  >
-                    Contacter le prestataire
-                  </Link>
+                  <>
+                    <Link
+                      href={`/dashboard/client/chat/${profile.user.id}?from=${clientId}`}
+                      className="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700"
+                    >
+                      Contacter le prestataire
+                    </Link>
+
+                    <button
+                      onClick={() =>
+                        setSelectedReservation({
+                          providerId: profile.user.id,
+                          prestationType: profile.prestationType,
+                        })
+                      }
+                      className="bg-indigo-600 text-white px-4 py-2 rounded hover:bg-indigo-700"
+                    >
+                      Prendre une réservation
+                    </button>
+
+                    <Link
+                      href={`/dashboard/client/note-prestataire/${profile.user.id}`}
+                      className="bg-yellow-500 text-white px-4 py-2 rounded hover:bg-yellow-600"
+                    >
+                      Donner une note
+                    </Link>
+                  </>
                 )}
-
-
-                <button
-                  onClick={() =>
-                    setSelectedReservation({
-                      providerId: profile.user.id,
-                      prestationType: profile.prestationType,
-                    })
-                  }
-                  className="bg-indigo-600 text-white px-4 py-2 rounded hover:bg-indigo-700"
-                  disabled={!clientId}
-                >
-                  Prendre une réservation
-                </button>
               </div>
             </li>
           ))}
