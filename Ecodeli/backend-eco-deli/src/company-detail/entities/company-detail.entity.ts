@@ -7,10 +7,10 @@ export class CompanyDetail {
     id: number;
 
     @Column()
-    CompanyName: string;
+    companyName: string;
 
     @Column()
-    LegalStructure: string; //AS SAS SARL etc..
+    legalStructure: string; //AS SAS SARL etc..
 
     @Column()
     siren: string;
