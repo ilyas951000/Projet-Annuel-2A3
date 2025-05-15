@@ -48,9 +48,6 @@ export class User {
   @OneToMany(() => Subscription, (subscription) => subscription.users)
   subscription: Subscription[];
 
-  @OneToMany(() => ContractElement, (contractElement) => contractElement.user)
-  contractElement: ContractElement[];
-
   @OneToMany(() => Advertisement, (advertisement) => advertisement.users)
   advertisements: Advertisement[];
 

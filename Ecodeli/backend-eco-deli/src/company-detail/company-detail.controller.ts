@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Body, Patch, Param, Delete } from '@nestjs/common';
+import { Controller, Get, Post, Body, Patch, Param, Delete, NotFoundException, ParseIntPipe } from '@nestjs/common';
 import { CompanyDetailService } from './company-detail.service';
 import { CreateCompanyDetailDto } from './dto/create-company-detail.dto';
 import { UpdateCompanyDetailDto } from './dto/update-company-detail.dto';
@@ -32,4 +32,13 @@ export class CompanyDetailController {
   remove(@Param('id') id: string) {
     return this.companyDetailService.remove(+id);
   }
+
+  // company-detail.service.ts
+  @Get('user/:userId')
+  findByUser(
+    @Param('userId', ParseIntPipe) userId: number
+  ): Promise<CompanyDetail> {
+    return this.companyDetailService.findOneByUser(userId);
+  }
+
 }

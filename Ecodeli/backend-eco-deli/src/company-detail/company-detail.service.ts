@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Get, Injectable, NotFoundException, Param, ParseIntPipe } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { CreateCompanyDetailDto } from './dto/create-company-detail.dto';
@@ -31,5 +31,15 @@ export class CompanyDetailService {
 
   remove(id: number) {
     return this.repo.delete(id);
+  }
+
+  async findOneByUser(userId: number): Promise<CompanyDetail> {
+    const company = await this.repo.findOne({
+      where: { usersId: userId },
+    });
+    if (!company) {
+      throw new NotFoundException(`CompanyDetail pour l'utilisateur #${userId} introuvable`);
+    }
+    return company;
   }
 }
