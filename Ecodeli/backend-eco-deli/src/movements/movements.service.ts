@@ -10,44 +10,53 @@ export class MovementsService {
   constructor(
     @InjectRepository(Movement)
     private readonly repo: Repository<Movement>,
+
     @InjectRepository(User)
     private readonly userRepo: Repository<User>,
   ) {}
 
-  /** active une ville (origine ou destination) */
+  /**
+   * Crée un nouveau mouvement avec adresse de départ et d'arrivée
+   */
   async create(dto: CreateMovementDto): Promise<Movement> {
     const user = await this.userRepo.findOneBy({ id: dto.userId });
     if (!user) throw new NotFoundException(`User #${dto.userId} not found`);
 
-    // Si on crée une nouvelle origine, on désactive l'ancienne
-    if (dto.isOrigin) {
-      const old = await this.repo.findOne({
-        where: { userId: dto.userId, isOrigin: true, active: true },
-      });
-      if (old) await this.repo.update(old.id, { active: false });
-    }
-
-    const m = this.repo.create({
+    const movement = this.repo.create({
       userId: dto.userId,
-      city: dto.city,
-      isOrigin: dto.isOrigin ?? false,
-      active: dto.active ?? true,
-      note: dto.note,
+
+      originStreet: dto.originStreet,
+      originCity: dto.originCity,
+      originPostalCode: dto.originPostalCode,
+
+      destinationStreet: dto.destinationStreet,
+      destinationCity: dto.destinationCity,
+      destinationPostalCode: dto.destinationPostalCode,
+
       availableOn: dto.availableOn ? new Date(dto.availableOn) : undefined,
+      note: dto.note,
+      active: true,
     });
-    return this.repo.save(m);
+
+    return this.repo.save(movement);
   }
 
-  /** récupère tous les mouvements actifs d’un utilisateur */
+  /**
+   * Récupère tous les mouvements actifs d’un utilisateur
+   */
   async findByUser(userId: number): Promise<Movement[]> {
     return this.repo.find({
       where: { userId, active: true },
-      order: { isOrigin: 'DESC', createdAt: 'DESC' },
+      order: { createdAt: 'DESC' },
     });
   }
 
-  /** désactive un mouvement (toggle off) */
+  /**
+   * Désactive un mouvement (soft delete logique)
+   */
   async deactivate(id: number): Promise<void> {
+    const existing = await this.repo.findOneBy({ id });
+    if (!existing) throw new NotFoundException(`Movement #${id} not found`);
     await this.repo.update(id, { active: false });
   }
 }

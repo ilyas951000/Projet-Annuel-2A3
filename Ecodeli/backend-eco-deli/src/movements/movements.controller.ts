@@ -1,4 +1,4 @@
-import { 
+import {
   Controller,
   Post,
   Body,
@@ -15,19 +15,30 @@ import { Movement } from './entities/movement.entity';
 export class MovementsController {
   constructor(private readonly svc: MovementsService) {}
 
-  /** POST /movements */
+  /**
+   * Crée un nouveau mouvement
+   * POST /movements
+   */
   @Post()
   create(@Body() dto: CreateMovementDto): Promise<Movement> {
     return this.svc.create(dto);
   }
 
-  /** GET /movements/user/:userId */
+  /**
+   * Récupère les mouvements actifs d’un utilisateur
+   * GET /movements/user/:userId
+   */
   @Get('user/:userId')
-  findByUser(@Param('userId', ParseIntPipe) userId: number): Promise<Movement[]> {
+  findByUser(
+    @Param('userId', ParseIntPipe) userId: number
+  ): Promise<Movement[]> {
     return this.svc.findByUser(userId);
   }
 
-  /** PATCH /movements/:id/deactivate */
+  /**
+   * Désactive un mouvement
+   * PATCH /movements/:id/deactivate
+   */
   @Patch(':id/deactivate')
   deactivate(@Param('id', ParseIntPipe) id: number): Promise<void> {
     return this.svc.deactivate(id);

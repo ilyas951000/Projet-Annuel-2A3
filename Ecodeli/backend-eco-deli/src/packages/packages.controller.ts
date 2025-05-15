@@ -1,4 +1,13 @@
-import { Controller, Get, Post, Body, Patch, Param, Delete, Query } from '@nestjs/common';
+import {
+  Controller,
+  Get,
+  Post,
+  Body,
+  Patch,
+  Param,
+  Delete,
+  Query,
+} from '@nestjs/common';
 import { PackagesService } from './packages.service';
 import { CreatePackageDto } from './dto/create-package.dto';
 import { UpdatePackageDto } from './dto/update-package.dto';
@@ -15,6 +24,16 @@ export class PackagesController {
   @Get()
   findAll() {
     return this.packagesService.findAll();
+  }
+
+  @Get('/nearby')
+  getNearbyPackages(@Query('userId') userId: string) {
+    return this.packagesService.getNearbyPackages(+userId);
+  }
+
+  @Get('/on-route')
+  getOnRoutePackages(@Query('userId') userId: string) {
+    return this.packagesService.getOnRoutePackages(+userId);
   }
 
   /**
@@ -55,9 +74,10 @@ export class PackagesController {
   }
 
   @Patch(':id/paid')
-  async markAsPaid(@Param('id') id: string) {
+  markAsPaid(@Param('id') id: string) {
     return this.packagesService.markAsPaid(+id);
   }
+
   /**
    * Endpoint pour consulter l’historique des livraisons (statut "livré")
    * pour un livreur donné.
@@ -69,14 +89,13 @@ export class PackagesController {
   }
 
   /**
- * Endpoint pour récupérer les colis d’un client (non encore payés)
- * Ex : GET /packages/client/37
- */
+   * Endpoint pour récupérer les colis d’un client (non encore payés)
+   * Ex : GET /packages/client/37
+   */
   @Get('client/:clientId')
   findUnpaidByClient(@Param('clientId') clientId: string) {
     return this.packagesService.findUnpaidPackagesByClient(+clientId);
   }
-
 
   @Get(':id')
   findOne(@Param('id') id: string) {
