@@ -2,6 +2,7 @@ import { Controller, Get, Post, Body, Patch, Param, Delete } from '@nestjs/commo
 import { CompanyDetailService } from './company-detail.service';
 import { CreateCompanyDetailDto } from './dto/create-company-detail.dto';
 import { UpdateCompanyDetailDto } from './dto/update-company-detail.dto';
+import { CompanyDetail } from './entities/company-detail.entity';
 
 @Controller('company-detail')
 export class CompanyDetailController {
@@ -18,8 +19,8 @@ export class CompanyDetailController {
   }
 
   @Get(':id')
-  findOne(@Param('id') id: string) {
-    return this.companyDetailService.findOne(+id);
+  findOne(@Param('id') id: number): Promise<CompanyDetail | null> {
+    return this.companyDetailService.findOne(id);
   }
 
   @Patch(':id')
