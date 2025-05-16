@@ -1,29 +1,47 @@
-import { Package } from "src/packages/entities/package.entity";
-import { Column, Entity, JoinColumn, ManyToOne, PrimaryGeneratedColumn } from "typeorm";
+import { Package } from 'src/packages/entities/package.entity';
+import { Column, Entity, JoinColumn, ManyToOne, PrimaryGeneratedColumn } from 'typeorm';
 
 @Entity()
 export class Localisation {
-  @PrimaryGeneratedColumn() 
+  @PrimaryGeneratedColumn()
   id: number;
-  @Column() 
+
+  @Column()
   currentStreet: string;
-  @Column() 
-  currentCity:   string;
-  @Column() 
+
+  @Column()
+  currentCity: string;
+
+  @Column()
   currentPostalCode: number;
-  @Column() 
+
+  @Column('float', { nullable: true })
+  currentLatitude: number;
+
+  @Column('float', { nullable: true })
+  currentLongitude: number;
+
+  @Column()
   destinationStreet: string;
-  @Column() 
-  destinationCity:   string;
-  @Column() 
+
+  @Column()
+  destinationCity: string;
+
+  @Column()
   destinationPostalCode: number;
 
+  @Column('float', { nullable: true })
+  destinationLatitude: number;
+
+  @Column('float', { nullable: true })
+  destinationLongitude: number;
 
   @ManyToOne(() => Package, pkg => pkg.localisations, { onDelete: 'CASCADE' })
   @JoinColumn({ name: 'packageId' })
   package: Package;
 
-  @Column() packageId: number;
+  @Column()
+  packageId: number;
 
   toJSON() {
     const { package: pkg, ...rest } = this;

@@ -26,6 +26,12 @@ export class Movement {
   @Column()
   originPostalCode: number;
 
+  @Column('float', { nullable: true })
+  originLatitude: number;
+
+  @Column('float', { nullable: true })
+  originLongitude: number;
+
   // === DESTINATION ===
 
   @Column()
@@ -36,6 +42,12 @@ export class Movement {
 
   @Column()
   destinationPostalCode: number;
+
+  @Column('float', { nullable: true })
+  destinationLatitude: number;
+
+  @Column('float', { nullable: true })
+  destinationLongitude: number;
 
   /** Si le mouvement est actif ou non */
   @Column({ default: true })

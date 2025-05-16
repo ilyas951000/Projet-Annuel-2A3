@@ -1,28 +1,11 @@
-import { IsDateString, IsNotEmpty, IsOptional, IsString } from 'class-validator';
-
 export class CreateLocalisationDto {
-    
-    @IsOptional()
-    @IsString()
-    currentStreet: string;
+  currentStreet: string;
+  currentCity: string;
+  currentPostalCode: number;
 
-    @IsOptional()
-    @IsString()
-    currentCity: string;
+  destinationStreet: string;
+  destinationCity: string;
+  destinationPostalCode: number;
 
-    @IsOptional()
-    @IsString()
-    currentPostalCode: string;
-
-    @IsOptional()
-    @IsString()
-    destinationStreet: string;
-
-    @IsOptional()
-    @IsString()
-    destinationCity: string;
-    
-    @IsOptional()
-    @IsString()
-    destinationPostalCode: string;
+  packageId: number;
 }

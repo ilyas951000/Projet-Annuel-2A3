@@ -6,6 +6,7 @@ import {
   Get,
   Patch,
   ParseIntPipe,
+  Query,
 } from '@nestjs/common';
 import { MovementsService } from './movements.service';
 import { CreateMovementDto } from './dto/create-movement.dto';
@@ -13,7 +14,7 @@ import { Movement } from './entities/movement.entity';
 
 @Controller('movements')
 export class MovementsController {
-  constructor(private readonly svc: MovementsService) {}
+  constructor(private readonly movementService: MovementsService) {}
 
   /**
    * Crée un nouveau mouvement
@@ -21,7 +22,7 @@ export class MovementsController {
    */
   @Post()
   create(@Body() dto: CreateMovementDto): Promise<Movement> {
-    return this.svc.create(dto);
+    return this.movementService.create(dto);
   }
 
   /**
@@ -32,7 +33,16 @@ export class MovementsController {
   findByUser(
     @Param('userId', ParseIntPipe) userId: number
   ): Promise<Movement[]> {
-    return this.svc.findByUser(userId);
+    return this.movementService.findByUser(userId);
+  }
+
+  /**
+   * Récupère le mouvement actif d’un livreur
+   * GET /movements/active?userId=42
+   */
+  @Get('/active')
+  getActiveMovement(@Query('userId', ParseIntPipe) userId: number): Promise<Movement | null> {
+    return this.movementService.findActiveByUserId(userId);
   }
 
   /**
@@ -41,6 +51,6 @@ export class MovementsController {
    */
   @Patch(':id/deactivate')
   deactivate(@Param('id', ParseIntPipe) id: number): Promise<void> {
-    return this.svc.deactivate(id);
+    return this.movementService.deactivate(id);
   }
 }

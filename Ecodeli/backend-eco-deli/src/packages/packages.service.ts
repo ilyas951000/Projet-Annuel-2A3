@@ -6,10 +6,12 @@ import {
 import { CreatePackageDto } from './dto/create-package.dto';
 import { UpdatePackageDto } from './dto/update-package.dto';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository, IsNull } from 'typeorm';
+import { Repository } from 'typeorm';
 import { Package } from './entities/package.entity';
 import { User } from 'src/users/entities/user.entity';
 import { Movement } from 'src/movements/entities/movement.entity';
+import { geocodeAddress } from 'src/common/geocoding.util'; // à créer
+import { Localisation } from 'src/localisation/entities/localisation.entity';
 
 @Injectable()
 export class PackagesService {
@@ -22,8 +24,32 @@ export class PackagesService {
 
     @InjectRepository(Movement)
     private readonly movementRepository: Repository<Movement>,
+
+    @InjectRepository(Localisation)
+    private readonly localisationRepository: Repository<Localisation>
   ) {}
 
+  // 🔍 Utilitaire distance GPS
+  private isWithinRadius(
+    lat1: number,
+    lon1: number,
+    lat2: number,
+    lon2: number,
+    radiusKm: number,
+  ): boolean {
+    const R = 6371; // Rayon Terre km
+    const toRad = (x: number) => (x * Math.PI) / 180;
+    const dLat = toRad(lat2 - lat1);
+    const dLon = toRad(lon2 - lon1);
+    const a =
+      Math.sin(dLat / 2) ** 2 +
+      Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) *
+      Math.sin(dLon / 2) ** 2;
+    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+    return R * c <= radiusKm;
+  }
+
+  // 🔄 Créer un colis (à compléter avec géolocalisation si nécessaire)
   async create(createPackageDto: CreatePackageDto): Promise<Package> {
     const pkg = this.packageRepository.create(createPackageDto);
     return this.packageRepository.save(pkg);
@@ -38,52 +64,62 @@ export class PackagesService {
       .getMany();
   }
 
-  async getNearbyPackages(userId: number) {
-  const origin = await this.movementRepository.findOne({
-    where: { userId, active: true },
-    order: { createdAt: 'DESC' },
-  });
+  // 📍 Colis autour du point de départ (rayon GPS)
+  async getNearbyPackages(userId: number, radiusKm = 10) {
+    const origin = await this.movementRepository.findOne({
+      where: { userId, active: true },
+      order: { createdAt: 'DESC' },
+    });
 
-  if (!origin) throw new NotFoundException("Aucune ville d'origine trouvée");
+    if (!origin || !origin.originLatitude || !origin.originLongitude)
+      throw new NotFoundException('Coordonnées de départ manquantes');
 
-  return this.packageRepository
-    .createQueryBuilder('package')
-    .leftJoinAndSelect('package.localisations', 'loc')
-    .where('loc.currentCity = :city', { city: origin.originCity })
-    .getMany();
-}
+    const packages = await this.packageRepository
+      .createQueryBuilder('package')
+      .leftJoinAndSelect('package.localisations', 'loc')
+      .getMany();
 
+    return packages.filter(pkg =>
+      pkg.localisations?.some(loc =>
+        this.isWithinRadius(
+          origin.originLatitude,
+          origin.originLongitude,
+          loc.currentLatitude,
+          loc.currentLongitude,
+          radiusKm,
+        )
+      )
+    );
+  }
 
-
-  async getOnRoutePackages(userId: number) {
+  // 📍 Colis sur le trajet (départ ou arrivée proches d’un mouvement)
+  async getOnRoutePackages(userId: number, radiusKm = 10) {
     const movements = await this.movementRepository.find({
       where: { userId, active: true },
     });
 
-    const cities = [
-      ...movements.map((m) => m.originCity),
-      ...movements.map((m) => m.destinationCity),
-    ];
+    if (!movements.length) return [];
 
-    if (cities.length === 0) return [];
-
-    return this.packageRepository
+    const packages = await this.packageRepository
       .createQueryBuilder('package')
       .leftJoinAndSelect('package.localisations', 'loc')
-      .where('loc.currentCity IN (:...cities) OR loc.destinationCity IN (:...cities)', { cities })
       .getMany();
-  }
 
+    return packages.filter(pkg =>
+      pkg.localisations?.some(loc =>
+        movements.some(m =>
+          this.isWithinRadius(m.originLatitude, m.originLongitude, loc.currentLatitude, loc.currentLongitude, radiusKm) ||
+          this.isWithinRadius(m.destinationLatitude, m.destinationLongitude, loc.destinationLatitude, loc.destinationLongitude, radiusKm)
+        )
+      )
+    );
+  }
 
   async markAsPaid(id: number) {
     const pkg = await this.packageRepository.findOne({ where: { id } });
-    if (!pkg) {
-      throw new NotFoundException('Colis non trouvé');
-    }
-
+    if (!pkg) throw new NotFoundException('Colis non trouvé');
     pkg.isPaid = true;
     await this.packageRepository.save(pkg);
-
     return { message: 'Colis marqué comme payé.' };
   }
 
@@ -123,14 +159,10 @@ export class PackagesService {
       relations: ['users'],
     });
 
-    if (!pkg) {
-      throw new NotFoundException('Colis non trouvé');
-    }
+    if (!pkg) throw new NotFoundException('Colis non trouvé');
 
     const user = await this.userRepository.findOne({ where: { id: userId } });
-    if (!user) {
-      throw new NotFoundException('Utilisateur non trouvé');
-    }
+    if (!user) throw new NotFoundException('Utilisateur non trouvé');
 
     if (!pkg.users) pkg.users = [];
     if (!pkg.users.some((u) => u.id === user.id)) {
@@ -138,8 +170,8 @@ export class PackagesService {
     }
 
     pkg.isPaid = false;
-
     await this.packageRepository.save(pkg);
+
     return { message: 'Colis pris en charge avec succès.' };
   }
 
@@ -154,9 +186,7 @@ export class PackagesService {
 
   async updateStatus(packageId: number, status: string): Promise<Package> {
     const pkg = await this.packageRepository.findOne({ where: { id: packageId } });
-    if (!pkg) {
-      throw new NotFoundException(`Colis d'id ${packageId} non trouvé`);
-    }
+    if (!pkg) throw new NotFoundException(`Colis d'id ${packageId} non trouvé`);
     pkg.deliveryStatus = status;
     return await this.packageRepository.save(pkg);
   }

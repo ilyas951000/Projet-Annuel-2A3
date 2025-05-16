@@ -17,6 +17,12 @@ export class LocalisationController {
     return this.localisationService.findAll();
   }
 
+  @Get('/package/:id')
+  getLocationByPackageId(@Param('id') id: number) {
+    return this.localisationService.findByPackageId(id);
+  }
+
+
   @Get(':id')
   findOne(@Param('id') id: string) {
     return this.localisationService.findOne(+id);
