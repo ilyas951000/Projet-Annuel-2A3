@@ -3,15 +3,16 @@ import {
   NotFoundException,
   BadRequestException,
 } from '@nestjs/common';
-import { CreatePackageDto } from './dto/create-package.dto';
-import { UpdatePackageDto } from './dto/update-package.dto';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
+
+import { CreatePackageDto } from './dto/create-package.dto';
+import { UpdatePackageDto } from './dto/update-package.dto';
 import { Package } from './entities/package.entity';
 import { User } from 'src/users/entities/user.entity';
 import { Movement } from 'src/movements/entities/movement.entity';
-import { geocodeAddress } from 'src/common/geocoding.util'; // à créer
 import { Localisation } from 'src/localisation/entities/localisation.entity';
+import { TransferHistory } from 'src/transfer-history/entities/transfer-history.entity';
 
 @Injectable()
 export class PackagesService {
@@ -26,45 +27,52 @@ export class PackagesService {
     private readonly movementRepository: Repository<Movement>,
 
     @InjectRepository(Localisation)
-    private readonly localisationRepository: Repository<Localisation>
+    private readonly localisationRepository: Repository<Localisation>,
+
+    @InjectRepository(TransferHistory)
+    private readonly transferRepository: Repository<TransferHistory>,
   ) {}
 
-  // 🔍 Utilitaire distance GPS
-  private isWithinRadius(
-    lat1: number,
-    lon1: number,
-    lat2: number,
-    lon2: number,
-    radiusKm: number,
-  ): boolean {
-    const R = 6371; // Rayon Terre km
+  private isWithinRadius(lat1: number, lon1: number, lat2: number, lon2: number, radiusKm: number): boolean {
+    const R = 6371;
     const toRad = (x: number) => (x * Math.PI) / 180;
     const dLat = toRad(lat2 - lat1);
     const dLon = toRad(lon2 - lon1);
-    const a =
-      Math.sin(dLat / 2) ** 2 +
-      Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) *
-      Math.sin(dLon / 2) ** 2;
+    const a = Math.sin(dLat / 2) ** 2 +
+              Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) *
+              Math.sin(dLon / 2) ** 2;
     const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
     return R * c <= radiusKm;
   }
 
-  // 🔄 Créer un colis (à compléter avec géolocalisation si nécessaire)
   async create(createPackageDto: CreatePackageDto): Promise<Package> {
     const pkg = this.packageRepository.create(createPackageDto);
     return this.packageRepository.save(pkg);
   }
 
   async findUnpaidPackagesByClient(clientId: number): Promise<Package[]> {
-    return this.packageRepository
-      .createQueryBuilder('package')
+    return this.packageRepository.createQueryBuilder('package')
       .leftJoin('package.advertisement', 'ad')
       .where('ad.usersId = :clientId', { clientId })
       .andWhere('package.isPaid = false OR package.isPaid = 0')
       .getMany();
   }
 
-  // 📍 Colis autour du point de départ (rayon GPS)
+  async getPendingTransfersForUser(userId: number | string): Promise<Package[]> {
+    const parsedId = typeof userId === 'string' ? parseInt(userId, 10) : userId;
+    if (isNaN(parsedId)) throw new BadRequestException('ID du livreur invalide');
+
+    const transfers = await this.transferRepository.find({
+      where: {
+        toCourierId: parsedId,
+        isConfirmed: false,
+      },
+      relations: ['package'],
+    });
+
+    return transfers.map(t => t.package);
+  }
+
   async getNearbyPackages(userId: number, radiusKm = 10) {
     const origin = await this.movementRepository.findOne({
       where: { userId, active: true },
@@ -74,34 +82,24 @@ export class PackagesService {
     if (!origin || !origin.originLatitude || !origin.originLongitude)
       throw new NotFoundException('Coordonnées de départ manquantes');
 
-    const packages = await this.packageRepository
-      .createQueryBuilder('package')
+    const packages = await this.packageRepository.createQueryBuilder('package')
       .leftJoinAndSelect('package.localisations', 'loc')
       .getMany();
 
     return packages.filter(pkg =>
       pkg.localisations?.some(loc =>
-        this.isWithinRadius(
-          origin.originLatitude,
-          origin.originLongitude,
-          loc.currentLatitude,
-          loc.currentLongitude,
-          radiusKm,
-        )
+        this.isWithinRadius(origin.originLatitude, origin.originLongitude, loc.currentLatitude, loc.currentLongitude, radiusKm)
       )
     );
   }
 
-  // 📍 Colis sur le trajet (départ ou arrivée proches d’un mouvement)
   async getOnRoutePackages(userId: number, radiusKm = 10) {
     const movements = await this.movementRepository.find({
       where: { userId, active: true },
     });
-
     if (!movements.length) return [];
 
-    const packages = await this.packageRepository
-      .createQueryBuilder('package')
+    const packages = await this.packageRepository.createQueryBuilder('package')
       .leftJoinAndSelect('package.localisations', 'loc')
       .getMany();
 
@@ -140,44 +138,32 @@ export class PackagesService {
   }
 
   async findAvailablePackages(): Promise<any[]> {
-    const packages = await this.packageRepository
-      .createQueryBuilder('package')
+    const packages = await this.packageRepository.createQueryBuilder('package')
       .leftJoinAndSelect('package.advertisement', 'ad')
       .leftJoin('package.users', 'u')
       .where('u.id IS NULL')
       .getMany();
 
-    return packages.map((pkg) => ({
-      ...pkg,
-      clientId: pkg.advertisement?.usersId || null,
-    }));
+    return packages.map(pkg => ({ ...pkg, clientId: pkg.advertisement?.usersId || null }));
   }
 
   async takePackage(packageId: number, userId: number) {
-    const pkg = await this.packageRepository.findOne({
-      where: { id: packageId },
-      relations: ['users'],
-    });
-
+    const pkg = await this.packageRepository.findOne({ where: { id: packageId }, relations: ['users'] });
     if (!pkg) throw new NotFoundException('Colis non trouvé');
 
     const user = await this.userRepository.findOne({ where: { id: userId } });
     if (!user) throw new NotFoundException('Utilisateur non trouvé');
 
     if (!pkg.users) pkg.users = [];
-    if (!pkg.users.some((u) => u.id === user.id)) {
-      pkg.users.push(user);
-    }
+    if (!pkg.users.some(u => u.id === user.id)) pkg.users.push(user);
 
     pkg.isPaid = false;
     await this.packageRepository.save(pkg);
-
     return { message: 'Colis pris en charge avec succès.' };
   }
 
   async findDeliveriesByUser(userId: number): Promise<Package[]> {
-    return this.packageRepository
-      .createQueryBuilder('p')
+    return this.packageRepository.createQueryBuilder('p')
       .leftJoin('p.users', 'u')
       .where('u.id = :userId', { userId })
       .andWhere('p.deliveryStatus != :delivered', { delivered: 'livré' })
@@ -188,12 +174,11 @@ export class PackagesService {
     const pkg = await this.packageRepository.findOne({ where: { id: packageId } });
     if (!pkg) throw new NotFoundException(`Colis d'id ${packageId} non trouvé`);
     pkg.deliveryStatus = status;
-    return await this.packageRepository.save(pkg);
+    return this.packageRepository.save(pkg);
   }
 
   async findDeliveredPackagesByUser(userId: number): Promise<Package[]> {
-    return this.packageRepository
-      .createQueryBuilder('p')
+    return this.packageRepository.createQueryBuilder('p')
       .leftJoin('p.users', 'u')
       .where('u.id = :userId', { userId })
       .andWhere('p.deliveryStatus = :status', { status: 'livré' })
@@ -206,4 +191,78 @@ export class PackagesService {
       order: { id: 'ASC' },
     });
   }
+
+  async createTransfer(data: {
+    packageId: number;
+    fromCourierId: number;
+    toCourierId: number;
+    address: string;
+    postalCode: string;
+    city: string;
+    transferCode: string;
+  }) {
+    const pkg = await this.packageRepository.findOneBy({ id: data.packageId });
+    if (!pkg) throw new NotFoundException('Colis introuvable');
+
+    const fromCourier = await this.userRepository.findOneBy({ id: data.fromCourierId });
+    const toCourier = await this.userRepository.findOneBy({ id: data.toCourierId });
+    if (!fromCourier || !toCourier) throw new NotFoundException('Livreur introuvable');
+
+    const transfer = this.transferRepository.create({
+      packageId: data.packageId,
+      fromCourierId: data.fromCourierId,
+      toCourierId: data.toCourierId,
+      address: data.address,
+      postalCode: data.postalCode,
+      city: data.city,
+      transferCode: data.transferCode,
+    });
+
+    pkg.deliveryStatus = 'transféré';
+    await this.packageRepository.save(pkg);
+    return this.transferRepository.save(transfer);
+  }
+
+  async confirmTransfer(packageId: number, toCourierId: number, code: string) {
+    const transfer = await this.transferRepository.findOne({
+      where: {
+        packageId,
+        toCourierId,
+        transferCode: code,
+        isConfirmed: false,
+      },
+    });
+
+    if (!transfer) {
+      throw new BadRequestException('Code invalide ou transfert introuvable');
+    }
+
+    transfer.isConfirmed = true;
+
+    const pkg = await this.packageRepository.findOne({
+      where: { id: packageId },
+      relations: ['users'],
+    });
+
+    if (!pkg) {
+      throw new NotFoundException('Colis introuvable');
+    }
+
+    pkg.deliveryStatus = 'en transit';
+
+    // 🧹 Retire les anciens livreurs
+    pkg.users = [];
+
+    // ➕ Ajoute le nouveau livreur
+    const toCourier = await this.userRepository.findOne({ where: { id: toCourierId } });
+    if (!toCourier) {
+      throw new NotFoundException('Livreur introuvable');
+    }
+
+    pkg.users.push(toCourier);
+
+    await this.packageRepository.save(pkg);
+    return this.transferRepository.save(transfer);
+  }
+
 }

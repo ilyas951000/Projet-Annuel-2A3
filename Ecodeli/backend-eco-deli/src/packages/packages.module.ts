@@ -6,11 +6,18 @@ import { Package } from './entities/package.entity';
 import { User } from '../users/entities/user.entity';
 import { UsersModule } from '../users/users.module';
 import { Localisation } from 'src/localisation/entities/localisation.entity';
-import { Movement } from 'src/movements/entities/movement.entity'; // <-- ajouter ça
+import { Movement } from 'src/movements/entities/movement.entity';
+import { TransferHistory } from 'src/transfer-history/entities/transfer-history.entity'; // ✅ à importer
 
 @Module({
   imports: [
-    TypeOrmModule.forFeature([Package, User, Localisation, Movement]),
+    TypeOrmModule.forFeature([
+      Package,
+      User,
+      Localisation,
+      Movement,
+      TransferHistory, // ✅ à ajouter ici
+    ]),
     UsersModule,
   ],
   controllers: [PackagesController],
