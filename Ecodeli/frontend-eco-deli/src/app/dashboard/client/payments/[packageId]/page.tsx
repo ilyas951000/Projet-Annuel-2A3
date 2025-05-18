@@ -110,6 +110,7 @@ function CheckoutForm() {
           clientId,
           providerId,
           amount,
+          packageId, // 👈 AJOUT ICI
         }),
       })
 

@@ -30,4 +30,8 @@ export class Transfer {
 
   @CreateDateColumn()
   requestedAt: Date;
+
+   // 👉 Ajout de la relation vers le colis
+  @Column()
+  packageId: number;
 }
