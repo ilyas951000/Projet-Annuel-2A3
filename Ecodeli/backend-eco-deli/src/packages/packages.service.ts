@@ -13,6 +13,9 @@ import { User } from 'src/users/entities/user.entity';
 import { Movement } from 'src/movements/entities/movement.entity';
 import { Localisation } from 'src/localisation/entities/localisation.entity';
 import { TransferHistory } from 'src/transfer-history/entities/transfer-history.entity';
+import { geocodeAddress } from 'src/common/geocoding.util'; // ou le chemin exact selon ton projet
+import { calculateDistance } from 'src/utils/distance.util';
+
 
 @Injectable()
 export class PackagesService {
@@ -31,6 +34,7 @@ export class PackagesService {
 
     @InjectRepository(TransferHistory)
     private readonly transferRepository: Repository<TransferHistory>,
+
   ) {}
 
   private isWithinRadius(lat1: number, lon1: number, lat2: number, lon2: number, radiusKm: number): boolean {
@@ -49,6 +53,79 @@ export class PackagesService {
     const pkg = this.packageRepository.create(createPackageDto);
     return this.packageRepository.save(pkg);
   }
+
+  async transferPackage({
+    packageId,
+    fromCourierId,
+    toCourierId,
+    address,
+    postalCode,
+    city,
+  }: {
+    packageId: number;
+    fromCourierId: number;
+    toCourierId: number;
+    address: string;
+    postalCode: string;
+    city: string;
+  }): Promise<{ transferCode: string }> {
+    const fullAddress = `${address}, ${postalCode} ${city}, France`;
+
+    const { lat, lng } = await geocodeAddress(fullAddress); // 📍 appel à ton utilitaire OpenCage
+
+    const transferCode = Math.random().toString(36).substring(2, 8).toUpperCase();
+
+    const newTransfer = this.transferRepository.create({
+      packageId,
+      fromCourierId,
+      toCourierId,
+      address,
+      postalCode,
+      city,
+      transferCode,
+      isConfirmed: false,
+      latitude: lat,
+      longitude: lng,
+    });
+
+    await this.transferRepository.save(newTransfer);
+
+
+    return { transferCode };
+  }
+
+  async getMyDeliveries(userId: number) {
+    const packages = await this.packageRepository.find({
+      relations: ['users', 'transferHistories'],
+    });
+
+    return packages.filter(pkg => {
+      const isAssigned = pkg.users.some(u => u.id === userId);
+      const lastTransfer = pkg.transferHistories?.at(-1);
+
+      if (pkg.deliveryStatus !== 'transféré') {
+        return isAssigned; // livreur actuel
+      }
+
+      // transfert en attente de confirmation → montrer au toCourier
+      return lastTransfer?.toCourierId === userId && !lastTransfer.isConfirmed;
+    });
+  }
+
+
+
+
+  async getDelivererForPackage(packageId: number) {
+    const pkg = await this.packageRepository.findOne({
+      where: { id: packageId },
+      relations: ['users'],
+    });
+    if (!pkg || !pkg.users || pkg.users.length === 0) {
+      throw new NotFoundException("Aucun livreur trouvé.");
+    }
+    return { userId: pkg.users[0].id };
+  }
+
 
   async findUnpaidPackagesByClient(clientId: number): Promise<Package[]> {
     return this.packageRepository.createQueryBuilder('package')
@@ -201,27 +278,40 @@ export class PackagesService {
     city: string;
     transferCode: string;
   }) {
-    const pkg = await this.packageRepository.findOneBy({ id: data.packageId });
+    const pkg = await this.packageRepository.findOne({
+      where: { id: data.packageId },
+      relations: ['users', 'localisations', 'advertisement'],
+    });
+
     if (!pkg) throw new NotFoundException('Colis introuvable');
 
     const fromCourier = await this.userRepository.findOneBy({ id: data.fromCourierId });
     const toCourier = await this.userRepository.findOneBy({ id: data.toCourierId });
+
     if (!fromCourier || !toCourier) throw new NotFoundException('Livreur introuvable');
 
+    // 💥 Vérification de sécurité
+    const isCurrentCourier = pkg.users.some(u => u.id === data.fromCourierId);
+    if (!isCurrentCourier) {
+      throw new BadRequestException("Vous n'êtes pas le livreur actuel de ce colis");
+    }
+
+    const { lat, lng } = await geocodeAddress(`${data.address}, ${data.postalCode} ${data.city}, France`);
+
     const transfer = this.transferRepository.create({
-      packageId: data.packageId,
-      fromCourierId: data.fromCourierId,
-      toCourierId: data.toCourierId,
-      address: data.address,
-      postalCode: data.postalCode,
-      city: data.city,
-      transferCode: data.transferCode,
+      ...data,
+      latitude: lat,
+      longitude: lng,
+      isConfirmed: false,
     });
 
     pkg.deliveryStatus = 'transféré';
     await this.packageRepository.save(pkg);
     return this.transferRepository.save(transfer);
   }
+
+
+
 
   async confirmTransfer(packageId: number, toCourierId: number, code: string) {
     const transfer = await this.transferRepository.findOne({
@@ -250,19 +340,14 @@ export class PackagesService {
 
     pkg.deliveryStatus = 'en transit';
 
-    // 🧹 Retire les anciens livreurs
-    pkg.users = [];
-
-    // ➕ Ajoute le nouveau livreur
+    // 🔄 Remplacement du livreur
     const toCourier = await this.userRepository.findOne({ where: { id: toCourierId } });
-    if (!toCourier) {
-      throw new NotFoundException('Livreur introuvable');
-    }
+    if (!toCourier) throw new NotFoundException('Livreur introuvable');
 
-    pkg.users.push(toCourier);
-
+    pkg.users = [toCourier]; // overwrite
     await this.packageRepository.save(pkg);
     return this.transferRepository.save(transfer);
   }
+
 
 }

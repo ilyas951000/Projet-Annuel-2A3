@@ -1,12 +1,19 @@
 "use client"
 
-import type React from "react"
-
 import { useEffect, useState } from "react"
 import { useParams, useRouter } from "next/navigation"
 import { loadStripe } from "@stripe/stripe-js"
 import { Elements, CardElement, useStripe, useElements } from "@stripe/react-stripe-js"
-import { CreditCard, CheckCircle, AlertCircle, Package, ArrowLeft, Lock, ShieldCheck, Loader2 } from "lucide-react"
+import {
+  CreditCard,
+  CheckCircle,
+  AlertCircle,
+  Package,
+  ArrowLeft,
+  Lock,
+  ShieldCheck,
+  Loader2,
+} from "lucide-react"
 import Link from "next/link"
 import { motion } from "framer-motion"
 
@@ -27,6 +34,7 @@ function CheckoutForm() {
   const router = useRouter()
 
   const [clientId, setClientId] = useState<number | null>(null)
+  const [providerId, setProviderId] = useState<number | null>(null)
   const [amount, setAmount] = useState<number>(0)
   const [message, setMessage] = useState<string>("")
   const [loading, setLoading] = useState<boolean>(false)
@@ -34,7 +42,6 @@ function CheckoutForm() {
   const [success, setSuccess] = useState<boolean>(false)
   const [error, setError] = useState<string | null>(null)
 
-  // Récupérer client + prix du colis (via l'annonce)
   useEffect(() => {
     const fetchData = async () => {
       const token = localStorage.getItem("token")
@@ -44,34 +51,34 @@ function CheckoutForm() {
       }
 
       try {
-        // 1. Récupérer le client connecté
         const userRes = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/auth/me`, {
           headers: { Authorization: `Bearer ${token}` },
         })
         const userData = await userRes.json()
-        if (!userRes.ok || !userData.userId) {
-          throw new Error("Utilisateur non valide.")
-        }
+        if (!userRes.ok || !userData.userId) throw new Error("Utilisateur non valide.")
         setClientId(userData.userId)
 
-        // 2. Récupérer le colis
         const packageRes = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/packages/${packageId}`, {
           headers: { Authorization: `Bearer ${token}` },
         })
         const packageData = await packageRes.json()
-        if (!packageRes.ok || !packageData.advertisementId) {
-          throw new Error("Colis introuvable.")
-        }
+        if (!packageRes.ok || !packageData.advertisementId) throw new Error("Colis introuvable.")
         setPackageInfo(packageData)
 
-        // 3. Récupérer le prix dans l'annonce
+        // 🔍 Récupérer le livreur affecté à ce colis
+        const delivererRes = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/packages/${packageId}/deliverer`, {
+          headers: { Authorization: `Bearer ${token}` },
+        })
+        const delivererData = await delivererRes.json()
+        if (!delivererRes.ok || !delivererData.userId) {
+          throw new Error("Livreur introuvable.")
+        }
+        setProviderId(delivererData.userId)
+
         const adRes = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/advertisements/${packageData.advertisementId}`)
         const adData = await adRes.json()
-        if (!adRes.ok || adData.advertisementPrice == null) {
-          throw new Error("Prix de l'annonce introuvable.")
-        }
-
-        setAmount(Number.parseFloat(adData.advertisementPrice))
+        if (!adRes.ok || adData.advertisementPrice == null) throw new Error("Prix introuvable.")
+        setAmount(parseFloat(adData.advertisementPrice))
       } catch (err: any) {
         setError(err.message || "Erreur inattendue.")
       }
@@ -89,20 +96,19 @@ function CheckoutForm() {
       setError("Stripe non prêt.")
       return
     }
-    if (!clientId || !packageId || !amount) {
+    if (!clientId || !providerId || !packageId || !amount) {
       setError("Informations incomplètes.")
       return
     }
 
     setLoading(true)
     try {
-      // 1. Créer le paiement Stripe
       const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/payments/intent`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           clientId,
-          packageId,
+          providerId,
           amount,
         }),
       })
@@ -112,7 +118,6 @@ function CheckoutForm() {
         throw new Error(data.message || "Erreur lors de la création du paiement.")
       }
 
-      // 2. Confirmer le paiement avec Stripe
       const card = elements.getElement(CardElement)
       if (!card) throw new Error("Champ carte introuvable.")
 
@@ -126,13 +131,11 @@ function CheckoutForm() {
         setSuccess(true)
         elements.getElement(CardElement)?.clear()
 
-        // 3. ✅ Marquer le colis comme payé dans la base
         await fetch(`${process.env.NEXT_PUBLIC_API_URL}/packages/${packageId}/paid`, {
           method: "PATCH",
           headers: { "Content-Type": "application/json" },
         })
 
-        // Rediriger après 3 secondes
         setTimeout(() => {
           router.push("/dashboard/client")
         }, 3000)
@@ -201,14 +204,12 @@ function CheckoutForm() {
 
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">Montant à payer</label>
-                <div className="relative">
-                  <input
-                    type="text"
-                    value={`${amount.toFixed(2)} €`}
-                    readOnly
-                    className="w-full border border-gray-300 p-3 rounded-lg bg-gray-50 cursor-not-allowed font-medium text-gray-900"
-                  />
-                </div>
+                <input
+                  type="text"
+                  value={`${amount.toFixed(2)} €`}
+                  readOnly
+                  className="w-full border border-gray-300 p-3 rounded-lg bg-gray-50 cursor-not-allowed font-medium text-gray-900"
+                />
               </div>
 
               <div>
@@ -251,7 +252,7 @@ function CheckoutForm() {
                 </div>
                 <button
                   type="submit"
-                  disabled={loading || !stripe || !clientId}
+                  disabled={loading || !stripe || !clientId || !providerId}
                   className="px-6 py-3 bg-green-500 hover:bg-green-600 text-white rounded-lg transition-colors disabled:opacity-70 flex items-center"
                 >
                   {loading ? (

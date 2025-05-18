@@ -54,6 +54,13 @@ export class TransferHistory {
   @Column({ default: false })
   isConfirmed: boolean;
 
+  @Column('float', { nullable: true })
+  latitude: number;
+
+  @Column('float', { nullable: true })
+  longitude: number;
+
   @CreateDateColumn()
   transferDate: Date;
 }
+

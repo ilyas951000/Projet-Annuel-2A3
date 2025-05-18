@@ -24,6 +24,16 @@ interface IUser {
   userStatus: string;
 }
 
+interface ITransferInfo {
+  address: string;
+  city: string;
+  postalCode: string;
+  livreur1Progress: number;
+  livreur2Progress: number;
+  fromCourierId: number;
+  toCourierId: number;
+}
+
 const STATUS_OPTIONS = ["pris en charge", "en transit", "livré", "transféré"];
 
 export default function TransferAndDeliveryPage() {
@@ -34,12 +44,14 @@ export default function TransferAndDeliveryPage() {
   const [transferSelections, setTransferSelections] = useState<{ [key: number]: string }>({});
   const [transferAddresses, setTransferAddresses] = useState<{ [key: number]: { address: string; postalCode: string; city: string } }>({});
   const [transferCodes, setTransferCodes] = useState<{ [key: number]: string }>({});
+  const [transferInfos, setTransferInfos] = useState<{ [key: number]: ITransferInfo }>({});
   const [livreurs, setLivreurs] = useState<IUser[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
+  const token = typeof window !== "undefined" ? localStorage.getItem("token") : null;
+
   useEffect(() => {
-    const token = localStorage.getItem("token");
     if (!token) {
       setError("Utilisateur non connecté. Token manquant.");
       setLoading(false);
@@ -51,13 +63,13 @@ export default function TransferAndDeliveryPage() {
         const res = await axios.get("http://127.0.0.1:3001/auth/me", {
           headers: { Authorization: `Bearer ${token}` },
         });
-        if (res.data && res.data.userId) {
+        if (res.data?.userId) {
           setLivreurId(res.data.userId);
         } else {
           setError("Utilisateur non valide ou ID manquant dans la réponse.");
         }
       } catch (err: any) {
-        setError("Erreur lors de la récupération de l'utilisateur. " + (err.response?.data?.message || err.message));
+        setError("Erreur utilisateur : " + (err.response?.data?.message || err.message));
       } finally {
         setLoading(false);
       }
@@ -72,7 +84,7 @@ export default function TransferAndDeliveryPage() {
         const res = await axios.get("http://127.0.0.1:3001/users");
         setLivreurs(res.data.filter((u: IUser) => u.userStatus === "livreur"));
       } catch (err) {
-        console.error("Erreur lors du chargement des livreurs :", err);
+        console.error("Erreur chargement livreurs :", err);
       }
     };
     fetchLivreurs();
@@ -85,10 +97,22 @@ export default function TransferAndDeliveryPage() {
     }
   }, [livreurId]);
 
+  const fetchTransferInfo = async (packageId: number) => {
+    try {
+      const res = await axios.get(`http://127.0.0.1:3001/transfer-history/progress/${packageId}`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      setTransferInfos((prev) => ({ ...prev, [packageId]: res.data }));
+    } catch (err) {
+      console.warn(`Pas d'info de transfert pour le colis ${packageId}`);
+    }
+  };
+
   const fetchDeliveries = async () => {
     try {
       const res = await axios.get("http://127.0.0.1:3001/packages/mydeliveries", {
         params: { userId: livreurId },
+        headers: { Authorization: `Bearer ${token}` },
       });
       const paid = res.data.filter((p: IPackage) => p.isPaid);
       setPackages((prev) => [...prev, ...paid]);
@@ -98,7 +122,7 @@ export default function TransferAndDeliveryPage() {
       });
       setStatusSelections(initStatuses);
     } catch {
-      setError("Erreur lors du chargement des livraisons.");
+      setError("Erreur chargement des livraisons.");
     }
   };
 
@@ -106,10 +130,12 @@ export default function TransferAndDeliveryPage() {
     try {
       const res = await axios.get("http://127.0.0.1:3001/packages/pending-transfers", {
         params: { userId: livreurId },
+        headers: { Authorization: `Bearer ${token}` },
       });
       setPackages((prev) => [...prev, ...res.data]);
+      res.data.forEach((pkg: IPackage) => fetchTransferInfo(pkg.id));
     } catch {
-      setError("Erreur lors du chargement des colis à valider.");
+      setError("Erreur chargement des colis à valider.");
     }
   };
 
@@ -118,10 +144,11 @@ export default function TransferAndDeliveryPage() {
     if (!code) return alert("Veuillez entrer le code de transfert.");
 
     try {
-      await axios.post(`http://127.0.0.1:3001/packages/${packageId}/confirm-transfer`, {
-        toCourierId: livreurId,
-        code,
-      });
+      await axios.post(
+        `http://127.0.0.1:3001/packages/${packageId}/confirm-transfer`,
+        { toCourierId: livreurId, code },
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
       alert("Colis validé !");
       fetchDeliveries();
     } catch (err: any) {
@@ -132,19 +159,25 @@ export default function TransferAndDeliveryPage() {
   const handleStatusUpdate = async (packageId: number) => {
     const newStatus = statusSelections[packageId];
     const transferData = transferAddresses[packageId] || {};
+    const toCourierId = transferSelections[packageId];
+
     if (newStatus === "transféré") {
-      const toCourierId = transferSelections[packageId];
-      if (!toCourierId || !transferData.address || !transferData.postalCode || !transferData.city)
+      if (!toCourierId || !transferData.address || !transferData.postalCode || !transferData.city) {
         return alert("Champs manquants pour transfert.");
+      }
 
       try {
-        const res = await axios.post(`http://127.0.0.1:3001/packages/${packageId}/transfer`, {
-          fromCourierId: livreurId,
-          toCourierId,
-          address: transferData.address,
-          postalCode: transferData.postalCode,
-          city: transferData.city,
-        });
+        const res = await axios.post(
+          `http://127.0.0.1:3001/packages/${packageId}/transfer`,
+          {
+            fromCourierId: livreurId,
+            toCourierId,
+            address: transferData.address,
+            postalCode: transferData.postalCode,
+            city: transferData.city,
+          },
+          { headers: { Authorization: `Bearer ${token}` } }
+        );
         setTransferCodes({ ...transferCodes, [packageId]: res.data.transferCode });
         alert("Colis transféré !");
       } catch (err: any) {
@@ -152,9 +185,11 @@ export default function TransferAndDeliveryPage() {
       }
     } else {
       try {
-        await axios.patch(`http://127.0.0.1:3001/packages/${packageId}/status`, {
-          status: newStatus,
-        });
+        await axios.patch(
+          `http://127.0.0.1:3001/packages/${packageId}/status`,
+          { status: newStatus },
+          { headers: { Authorization: `Bearer ${token}` } }
+        );
         alert("Statut mis à jour");
       } catch (err: any) {
         alert("Erreur statut : " + (err.response?.data?.message || err.message));
@@ -168,7 +203,6 @@ export default function TransferAndDeliveryPage() {
   return (
     <div className="p-4">
       <h1 className="text-xl font-bold mb-4">📦 Mes Colis (En cours & Transferts)</h1>
-
       {packages.length === 0 ? (
         <p>Aucun colis pour l'instant.</p>
       ) : (
@@ -179,12 +213,24 @@ export default function TransferAndDeliveryPage() {
               <p><strong>Poids :</strong> {pkg.packageWeight} kg</p>
               <p><strong>Dimension :</strong> {pkg.packageDimension}</p>
               <p><strong>Statut :</strong> {pkg.deliveryStatus}</p>
-              {pkg.packageDescription && <p><strong>Description :</strong> {pkg.packageDescription}</p>}
-              {pkg.senderAddress && <p><strong>Adresse d'envoi :</strong> {pkg.senderAddress}</p>}
-              {pkg.recipientAddress && <p><strong>Adresse de réception :</strong> {pkg.recipientAddress}</p>}
-              {pkg.packageRequirements && <p><strong>Exigences :</strong> {pkg.packageRequirements}</p>}
 
-              {/* Validation du transfert */}
+              {transferInfos[pkg.id] && (
+                <div className="bg-gray-100 border rounded p-2 my-2">
+                  <p><strong>Adresse :</strong> {transferInfos[pkg.id].address}</p>
+                  <p><strong>Ville :</strong> {transferInfos[pkg.id].city}</p>
+                  <p><strong>Code postal :</strong> {transferInfos[pkg.id].postalCode}</p>
+                  <p className="text-sm text-blue-600 font-semibold mt-2">
+                    {livreurId === transferInfos[pkg.id].fromCourierId ? (
+                      `🧭 Vous avez réalisé ${transferInfos[pkg.id].livreur1Progress}% du trajet du colis.`
+                    ) : livreurId === transferInfos[pkg.id].toCourierId ? (
+                      `📍 Il reste ${transferInfos[pkg.id].livreur2Progress}% du trajet jusqu'à destination.`
+                    ) : (
+                      `Progression non applicable à ce livreur.`
+                    )}
+                  </p>
+                </div>
+              )}
+
               {pkg.deliveryStatus === "transféré" && (
                 <>
                   <input
@@ -203,7 +249,6 @@ export default function TransferAndDeliveryPage() {
                 </>
               )}
 
-              {/* Modification du statut ou transfert */}
               <select
                 value={statusSelections[pkg.id] || pkg.deliveryStatus}
                 onChange={(e) => setStatusSelections({ ...statusSelections, [pkg.id]: e.target.value })}
@@ -228,7 +273,6 @@ export default function TransferAndDeliveryPage() {
                       </option>
                     ))}
                   </select>
-
                   <input
                     placeholder="Adresse"
                     className="border p-1 w-full mt-1"

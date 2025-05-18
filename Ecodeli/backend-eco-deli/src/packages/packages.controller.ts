@@ -28,12 +28,12 @@ export class PackagesController {
     return this.packagesService.findAll();
   }
 
-  @Get('/nearby')
+  @Get('nearby')
   getNearbyPackages(@Query('userId') userId: string) {
     return this.packagesService.getNearbyPackages(+userId);
   }
 
-  @Get('/on-route')
+  @Get('on-route')
   getOnRoutePackages(@Query('userId') userId: string) {
     return this.packagesService.getOnRoutePackages(+userId);
   }
@@ -79,7 +79,6 @@ export class PackagesController {
     return this.packagesService.findUnpaidPackagesByClient(+clientId);
   }
 
-  
   @Patch(':id')
   update(@Param('id') id: string, @Body() updatePackageDto: UpdatePackageDto) {
     const packageId = parseInt(id, 10);
@@ -99,6 +98,9 @@ export class PackagesController {
     return this.packagesService.findByAdvertisementId(+adId);
   }
 
+  /**
+   * 📦 Transfert d’un colis d’un livreur à un autre
+   */
   @Post(':id/transfer')
   async transferPackage(@Param('id') id: string, @Body() body: any) {
     const packageId = parseInt(id, 10);
@@ -128,20 +130,31 @@ export class PackagesController {
     };
   }
 
-  @Get('/pending-transfers')
+  /**
+   * 🔎 Récupérer le livreur assigné à un colis
+   */
+  @Get(':id/deliverer')
+  getDelivererForPackage(@Param('id') id: string) {
+    const packageId = parseInt(id, 10);
+    if (isNaN(packageId)) throw new BadRequestException('ID du colis invalide');
+    return this.packagesService.getDelivererForPackage(packageId);
+  }
+
+  /**
+   * 🕓 Colis en attente de validation après transfert
+   */
+  @Get('pending-transfers')
   getPendingTransfers(@Query('userId') userId: string | number) {
     const parsedId = typeof userId === 'string' ? parseInt(userId, 10) : userId;
-    console.log('🛂 Requête reçue pour userId =', parsedId);
-
     if (isNaN(parsedId)) {
       throw new BadRequestException('ID du livreur invalide');
     }
-
     return this.packagesService.getPendingTransfersForUser(parsedId);
   }
 
-
-
+  /**
+   * ✅ Validation d’un transfert par code
+   */
   @Post(':id/confirm-transfer')
   async confirmTransfer(
     @Param('id') id: string,
@@ -151,6 +164,7 @@ export class PackagesController {
     if (isNaN(packageId)) {
       throw new BadRequestException("L'ID du colis est invalide");
     }
+
     return this.packagesService.confirmTransfer(packageId, body.toCourierId, body.code);
   }
 
@@ -160,5 +174,4 @@ export class PackagesController {
     if (isNaN(packageId)) throw new BadRequestException('ID du colis invalide');
     return this.packagesService.findOne(packageId);
   }
-
 }
