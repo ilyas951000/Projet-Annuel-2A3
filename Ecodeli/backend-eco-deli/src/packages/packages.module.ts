@@ -7,7 +7,8 @@ import { User } from '../users/entities/user.entity';
 import { UsersModule } from '../users/users.module';
 import { Localisation } from 'src/localisation/entities/localisation.entity';
 import { Movement } from 'src/movements/entities/movement.entity';
-import { TransferHistory } from 'src/transfer-history/entities/transfer-history.entity'; // ✅ à importer
+import { TransferHistory } from 'src/transfer-history/entities/transfer-history.entity';
+import { TransferModule } from 'src/payments/transfer.module'; // ✅ Module à importer
 
 @Module({
   imports: [
@@ -16,9 +17,10 @@ import { TransferHistory } from 'src/transfer-history/entities/transfer-history.
       User,
       Localisation,
       Movement,
-      TransferHistory, // ✅ à ajouter ici
+      TransferHistory,
     ]),
     UsersModule,
+    TransferModule, // ✅ placé correctement ici
   ],
   controllers: [PackagesController],
   providers: [PackagesService],

@@ -15,6 +15,8 @@ import { Localisation } from 'src/localisation/entities/localisation.entity';
 import { TransferHistory } from 'src/transfer-history/entities/transfer-history.entity';
 import { geocodeAddress } from 'src/common/geocoding.util'; // ou le chemin exact selon ton projet
 import { calculateDistance } from 'src/utils/distance.util';
+import { TransferService } from 'src/payments/transfer.service';
+
 
 
 @Injectable()
@@ -34,6 +36,8 @@ export class PackagesService {
 
     @InjectRepository(TransferHistory)
     private readonly transferRepository: Repository<TransferHistory>,
+
+    private readonly transferService: TransferService,
 
   ) {}
 
@@ -301,12 +305,11 @@ export class PackagesService {
     const lng = data.longitude;
 
     const localisation = pkg.localisations?.[0];
-    if (
-      !localisation ||
-      !localisation.currentLatitude ||
-      !localisation.destinationLatitude ||
-      !localisation.currentLongitude ||
-      !localisation.destinationLongitude
+    if (!localisation ||
+        !localisation.currentLatitude ||
+        !localisation.destinationLatitude ||
+        !localisation.currentLongitude ||
+        !localisation.destinationLongitude
     ) {
       throw new NotFoundException('Coordonnées de localisation incomplètes');
     }
@@ -318,10 +321,9 @@ export class PackagesService {
       localisation.destinationLongitude
     );
 
-    // 🔍 Chercher tous les anciens transferts du colis pour cumuler la progression
     const previousTransfers = await this.transferRepository.find({
       where: { packageId: data.packageId },
-      order: { transferDate: 'ASC' }, // important : ordre croissant
+      order: { transferDate: 'ASC' },
     });
 
     let startLat = localisation.currentLatitude;
@@ -332,17 +334,14 @@ export class PackagesService {
       const lastTransfer = previousTransfers[previousTransfers.length - 1];
       startLat = lastTransfer.latitude;
       startLng = lastTransfer.longitude;
-
-      // cumul des livreur1Progress passés
       cumulativeProgress = previousTransfers.reduce((sum, t) => sum + (t.livreur1Progress || 0), 0);
     }
 
     const segmentDistance = calculateDistance(startLat, startLng, lat, lng);
     const segmentProgress = Math.round((segmentDistance / totalDistance) * 100);
 
-    // 🔢 Résultat final
     const livreur1Progress = segmentProgress;
-    const livreur2Progress = Math.max(0, 100 - (cumulativeProgress + segmentProgress)); // reste réel
+    const livreur2Progress = Math.max(0, 100 - (cumulativeProgress + segmentProgress));
 
     const transfer = this.transferRepository.create({
       ...data,
@@ -355,8 +354,17 @@ export class PackagesService {
 
     pkg.deliveryStatus = 'transféré';
     await this.packageRepository.save(pkg);
+    await this.transferRepository.save(transfer);
 
-    return this.transferRepository.save(transfer);
+    // 🎯 Appel de la répartition des paiements si tout est prêt
+    const clientId = pkg.advertisement?.usersId;
+    const totalAmount = pkg.advertisement?.advertisementPrice;
+
+    if (clientId && totalAmount) {
+      await this.transferService.distributePayment(pkg.id, totalAmount, clientId);
+    }
+
+    return transfer;
   }
 
 
