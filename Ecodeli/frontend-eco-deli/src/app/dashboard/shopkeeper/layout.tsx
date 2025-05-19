@@ -46,7 +46,7 @@ export default function ClientLayout({ children }: { children: React.ReactNode }
                 <NavItem title="Mon contrat" link="/dashboard/shopkeeper/contrat" />
                 <NavItem title="Mes facturations" link="/dashboard/shopkeeper/facturation" />
                 <NavItem title="Mes paiement" link="/dashboard/shopkeeper/paiement" />
-                <NavItem title="Annonce gestion" link="/dashboard/shopkeeper/gestionAnnonce" />
+                <NavItem title="Annonce des autres" link="/dashboard/shopkeeper/otherAnnouncements" />
               </ul>
 
               <div className="mt-10 space-y-3">

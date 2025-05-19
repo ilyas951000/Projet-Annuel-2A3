@@ -1,18 +1,29 @@
 import { User } from "src/users/entities/user.entity";
-import { Column, Entity, JoinColumn, ManyToOne, OneToOne, PrimaryGeneratedColumn } from "typeorm";
+import { Column, Entity, JoinColumn, JoinTable, ManyToMany, ManyToOne, OneToOne, PrimaryGeneratedColumn } from "typeorm";
 
 @Entity()
 export class ContractElement {    
     @PrimaryGeneratedColumn()
     id: number;
 
-    @Column()
-    Object: string;
-
     @Column({ nullable: true })
-    contractId: number;
+    titre: string;
 
-    @ManyToOne(() => User, (user) => user.companyDetail, { onDelete: 'SET NULL' })
-    @JoinColumn({ name: 'usersId' }) 
-    user: User; 
+    @Column("text", { nullable: true })
+    contenu: string;
+
+    @ManyToMany(() => User, (user) => user.companyDetail)
+    @JoinTable({
+    name: 'contractMerchant',
+    joinColumn: {
+      name: 'contractElementId',
+      referencedColumnName: 'id',
+    },
+    inverseJoinColumn: {
+      name: 'usersId',
+      referencedColumnName: 'id',
+        },
+    })
+    users: User[];
+
 }

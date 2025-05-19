@@ -90,48 +90,6 @@ const AdminConnexion: NextPage = () => {
             onClick={() => setSidebarOpen(false)}
           ></div>
         )}
-
-        <aside
-          className={`fixed z-40 top-0 left-0 h-full w-64 bg-white dark:bg-gray-800 p-5 flex-col justify-between transform transition-transform duration-300 ease-in-out
-          ${sidebarOpen ? "translate-x-0" : "-translate-x-full"} md:translate-x-0 md:static md:flex`}
-        >
-          <div>
-            <div className="flex justify-between items-center md:hidden mb-6">
-              <h1 className="text-xl font-bold text-gray-900 dark:text-white">EcoDeli</h1>
-              <button onClick={() => setSidebarOpen(false)}><X className="text-gray-700 dark:text-white" /></button>
-            </div>
-
-            <Link href="/connexion" className="bg-green-600 px-4 py-2 rounded-lg text-black font-semibold inline-block mb-4">
-              <Image src="/logo1.png" alt="EcoDeli Logo" width={120} height={20} className="h-10 w-auto" />
-            </Link>
-
-            <nav className="mt-5">
-              <ul className="space-y-3">
-                <NavItem title="Accueil" link="./dashboard/prestataire" />
-                <NavItem title="Mes Avis" link="./prestataire/avis" />
-                <NavItem title="Les Demandes de Prestations" link="/dashboard/prestataire/MesDemandes" />
-                <NavItem title="Modifier Mes Prestations" link="/dashboard/prestataire/modif-prestation" />
-                <NavItem title="Mes disponibilités" link="/dashboard/prestataire/planning" />
-                <NavItem title="Mes Factures" link="/services" />
-                <NavItem title="Wallet" link="/dashboard/prestataire/wallet" />
-                <NavItem title="Les Messages" link="/dashboard/prestataire/prestataireMessagesPage" />
-                <NavItem title="Profil / Compte" link="/compte" />
-              </ul>
-            </nav>
-
-            <div className="mt-10 space-y-3">
-              <NavItem title="À propos" link="/a-propos" />
-              <NavItem title="Nous contacter" link="/contact" />
-            </div>
-          </div>
-
-          <div className="flex items-center space-x-3 mt-10">
-            <User className="w-5 h-5 text-gray-500 dark:text-gray-300" />
-            <span className="text-gray-700 dark:text-gray-300">Mon compte</span>
-            <Settings className="w-5 h-5 text-gray-500 dark:text-gray-300 cursor-pointer" />
-          </div>
-        </aside>
-
         <main className="flex-1 p-5 md:p-10 overflow-auto w-full">
           <div className="flex justify-between items-center md:hidden mb-5">
             <button onClick={() => setSidebarOpen(true)}>

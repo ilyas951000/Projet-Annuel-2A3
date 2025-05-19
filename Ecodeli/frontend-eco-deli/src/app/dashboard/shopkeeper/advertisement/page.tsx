@@ -31,7 +31,6 @@ export default function Dashboard() {
   }]);
   
   
-  // États pour le formulaire
   const [advertisementQuantity, setAdvertisementQuantity] = useState(0)
   const [advertisementPrice, setAdvertisementPrice] = useState(0)
   const [advertisementWeight, setAdvertisementWeight] = useState(0)
