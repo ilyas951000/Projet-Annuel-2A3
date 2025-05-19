@@ -44,7 +44,6 @@ export default function EvaluationsPage() {
       });
   }, []);
 
-  // 2. quand on a le providerId, on va chercher ses évaluations
   useEffect(() => {
     if (providerId === null) return;
 

@@ -33,12 +33,12 @@ export class CompanyDetailController {
     return this.companyDetailService.remove(+id);
   }
 
-  // company-detail.service.ts
+
   @Get('user/:userId')
-  findByUser(
+  findAllByUser(
     @Param('userId', ParseIntPipe) userId: number
-  ): Promise<CompanyDetail> {
-    return this.companyDetailService.findOneByUser(userId);
+  ): Promise<CompanyDetail[]> {
+    return this.companyDetailService.findAllByUser(userId);
   }
 
 }
