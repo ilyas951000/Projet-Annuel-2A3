@@ -24,14 +24,13 @@ export class Transfer {
   @Column({ default: 'pending' })
   status: 'pending' | 'completed' | 'failed' | 'paid';
 
-
   @Column({ default: false })
   isValidatedByClient: boolean;
 
   @CreateDateColumn()
   requestedAt: Date;
 
-   // 👉 Ajout de la relation vers le colis
   @Column()
   packageId: number;
+
 }

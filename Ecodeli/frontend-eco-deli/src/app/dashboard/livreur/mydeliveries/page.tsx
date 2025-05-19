@@ -220,9 +220,9 @@ export default function TransferAndDeliveryPage() {
                   <p><strong>Ville :</strong> {transferInfos[pkg.id].city}</p>
                   <p><strong>Code postal :</strong> {transferInfos[pkg.id].postalCode}</p>
                   <p className="text-sm text-blue-600 font-semibold mt-2">
-                    {livreurId === transferInfos[pkg.id].fromCourierId ? (
+                   {Number(livreurId) === Number(transferInfos[pkg.id].fromCourierId) ? (
                       `🧭 Vous avez réalisé ${transferInfos[pkg.id].livreur1Progress}% du trajet du colis.`
-                    ) : livreurId === transferInfos[pkg.id].toCourierId ? (
+                    ) : Number(livreurId) === Number(transferInfos[pkg.id].toCourierId) ? (
                       `📍 Il reste ${transferInfos[pkg.id].livreur2Progress}% du trajet jusqu'à destination.`
                     ) : (
                       `Progression non applicable à ce livreur.`

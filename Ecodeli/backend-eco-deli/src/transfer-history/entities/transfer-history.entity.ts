@@ -62,5 +62,12 @@ export class TransferHistory {
 
   @CreateDateColumn()
   transferDate: Date;
+
+  @Column('float', { nullable: true })
+  livreur1Progress: number; // pourcentage effectué par le livreur 1 (fromCourier)
+
+  @Column('float', { nullable: true })
+  livreur2Progress: number; // pourcentage restant pour le livreur 2 (toCourier)
+
 }
 

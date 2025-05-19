@@ -277,6 +277,8 @@ export class PackagesService {
     postalCode: string;
     city: string;
     transferCode: string;
+    latitude: number;
+    longitude: number;
   }) {
     const pkg = await this.packageRepository.findOne({
       where: { id: data.packageId },
@@ -290,25 +292,75 @@ export class PackagesService {
 
     if (!fromCourier || !toCourier) throw new NotFoundException('Livreur introuvable');
 
-    // 💥 Vérification de sécurité
     const isCurrentCourier = pkg.users.some(u => u.id === data.fromCourierId);
     if (!isCurrentCourier) {
       throw new BadRequestException("Vous n'êtes pas le livreur actuel de ce colis");
     }
 
-    const { lat, lng } = await geocodeAddress(`${data.address}, ${data.postalCode} ${data.city}, France`);
+    const lat = data.latitude;
+    const lng = data.longitude;
+
+    const localisation = pkg.localisations?.[0];
+    if (
+      !localisation ||
+      !localisation.currentLatitude ||
+      !localisation.destinationLatitude ||
+      !localisation.currentLongitude ||
+      !localisation.destinationLongitude
+    ) {
+      throw new NotFoundException('Coordonnées de localisation incomplètes');
+    }
+
+    const totalDistance = calculateDistance(
+      localisation.currentLatitude,
+      localisation.currentLongitude,
+      localisation.destinationLatitude,
+      localisation.destinationLongitude
+    );
+
+    // 🔍 Chercher tous les anciens transferts du colis pour cumuler la progression
+    const previousTransfers = await this.transferRepository.find({
+      where: { packageId: data.packageId },
+      order: { transferDate: 'ASC' }, // important : ordre croissant
+    });
+
+    let startLat = localisation.currentLatitude;
+    let startLng = localisation.currentLongitude;
+    let cumulativeProgress = 0;
+
+    if (previousTransfers.length > 0) {
+      const lastTransfer = previousTransfers[previousTransfers.length - 1];
+      startLat = lastTransfer.latitude;
+      startLng = lastTransfer.longitude;
+
+      // cumul des livreur1Progress passés
+      cumulativeProgress = previousTransfers.reduce((sum, t) => sum + (t.livreur1Progress || 0), 0);
+    }
+
+    const segmentDistance = calculateDistance(startLat, startLng, lat, lng);
+    const segmentProgress = Math.round((segmentDistance / totalDistance) * 100);
+
+    // 🔢 Résultat final
+    const livreur1Progress = segmentProgress;
+    const livreur2Progress = Math.max(0, 100 - (cumulativeProgress + segmentProgress)); // reste réel
 
     const transfer = this.transferRepository.create({
       ...data,
       latitude: lat,
       longitude: lng,
       isConfirmed: false,
+      livreur1Progress,
+      livreur2Progress,
     });
 
     pkg.deliveryStatus = 'transféré';
     await this.packageRepository.save(pkg);
+
     return this.transferRepository.save(transfer);
   }
+
+
+
 
 
 

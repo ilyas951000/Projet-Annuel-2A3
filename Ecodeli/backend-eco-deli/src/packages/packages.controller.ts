@@ -13,6 +13,7 @@ import { PackagesService } from './packages.service';
 import { CreatePackageDto } from './dto/create-package.dto';
 import { UpdatePackageDto } from './dto/update-package.dto';
 import { v4 as uuidv4 } from 'uuid';
+import { geocodeAddress } from 'src/common/geocoding.util'; // ou là où ta fonction est définie
 
 @Controller('packages')
 export class PackagesController {
@@ -114,6 +115,9 @@ export class PackagesController {
 
     const transferCode = uuidv4().split('-')[0];
 
+    // 👉 Géocodage ici
+    const { lat, lng } = await geocodeAddress(`${address}, ${postalCode} ${city}, France`);
+
     await this.packagesService.createTransfer({
       packageId,
       fromCourierId,
@@ -122,6 +126,8 @@ export class PackagesController {
       postalCode,
       city,
       transferCode,
+      latitude: lat,
+      longitude: lng,
     });
 
     return {
