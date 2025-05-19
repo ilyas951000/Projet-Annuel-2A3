@@ -1,7 +1,19 @@
-import { Controller, Get, Post, Body, Patch, Param, Delete, Query } from '@nestjs/common';
+import {
+  Controller,
+  Get,
+  Post,
+  Body,
+  Patch,
+  Param,
+  Delete,
+  Query,
+  BadRequestException,
+} from '@nestjs/common';
 import { PackagesService } from './packages.service';
 import { CreatePackageDto } from './dto/create-package.dto';
 import { UpdatePackageDto } from './dto/update-package.dto';
+import { v4 as uuidv4 } from 'uuid';
+import { geocodeAddress } from 'src/common/geocoding.util'; // ou là où ta fonction est définie
 
 @Controller('packages')
 export class PackagesController {
@@ -17,84 +29,155 @@ export class PackagesController {
     return this.packagesService.findAll();
   }
 
-  /**
-   * Endpoint pour récupérer les colis disponibles (pas encore pris)
-   */
+  @Get('nearby')
+  getNearbyPackages(@Query('userId') userId: string) {
+    return this.packagesService.getNearbyPackages(+userId);
+  }
+
+  @Get('on-route')
+  getOnRoutePackages(@Query('userId') userId: string) {
+    return this.packagesService.getOnRoutePackages(+userId);
+  }
+
   @Get('available')
   findAvailablePackages() {
     return this.packagesService.findAvailablePackages();
   }
 
-  /**
-   * Endpoint pour prendre un colis.
-   * Ex : POST /packages/5/take
-   * Body attendu : { userId: 1 }
-   */
   @Post(':id/take')
   takePackage(@Param('id') id: string, @Body('userId') userId: number) {
-    return this.packagesService.takePackage(+id, userId);
+    const packageId = parseInt(id, 10);
+    if (isNaN(packageId)) throw new BadRequestException('ID du colis invalide');
+    return this.packagesService.takePackage(packageId, userId);
   }
 
-  /**
-   * Endpoint pour récupérer les livraisons en cours pour un livreur donné.
-   * Ex : GET /packages/mydeliveries?userId=1
-   */
   @Get('mydeliveries')
   findDeliveriesByUser(@Query('userId') userId: string) {
     return this.packagesService.findDeliveriesByUser(+userId);
   }
 
-  /**
-   * Endpoint pour mettre à jour le statut d'un colis.
-   * Ex : PATCH /packages/5/status
-   * Body attendu : { status: "en transit" }
-   */
   @Patch(':id/status')
   updateStatus(@Param('id') id: string, @Body('status') status: string) {
-    return this.packagesService.updateStatus(+id, status);
+    const packageId = parseInt(id, 10);
+    if (isNaN(packageId)) throw new BadRequestException('ID du colis invalide');
+    return this.packagesService.updateStatus(packageId, status);
   }
 
   @Patch(':id/paid')
-  async markAsPaid(@Param('id') id: string) {
-    return this.packagesService.markAsPaid(+id);
+  markAsPaid(@Param('id') id: string) {
+    const packageId = parseInt(id, 10);
+    if (isNaN(packageId)) throw new BadRequestException('ID du colis invalide');
+    return this.packagesService.markAsPaid(packageId);
   }
-  /**
-   * Endpoint pour consulter l’historique des livraisons (statut "livré")
-   * pour un livreur donné.
-   * Ex : GET /packages/history?userId=1
-   */
+
   @Get('history')
   findDeliveredPackagesByUser(@Query('userId') userId: string) {
     return this.packagesService.findDeliveredPackagesByUser(+userId);
   }
 
-  /**
- * Endpoint pour récupérer les colis d’un client (non encore payés)
- * Ex : GET /packages/client/37
- */
   @Get('client/:clientId')
   findUnpaidByClient(@Param('clientId') clientId: string) {
     return this.packagesService.findUnpaidPackagesByClient(+clientId);
   }
 
-
-  @Get(':id')
-  findOne(@Param('id') id: string) {
-    return this.packagesService.findOne(+id);
-  }
-
   @Patch(':id')
   update(@Param('id') id: string, @Body() updatePackageDto: UpdatePackageDto) {
-    return this.packagesService.update(+id, updatePackageDto);
+    const packageId = parseInt(id, 10);
+    if (isNaN(packageId)) throw new BadRequestException('ID du colis invalide');
+    return this.packagesService.update(packageId, updatePackageDto);
   }
 
   @Delete(':id')
   remove(@Param('id') id: string) {
-    return this.packagesService.remove(+id);
+    const packageId = parseInt(id, 10);
+    if (isNaN(packageId)) throw new BadRequestException('ID du colis invalide');
+    return this.packagesService.remove(packageId);
   }
 
   @Get('advertisement/:adId')
   findByAdvertisement(@Param('adId') adId: string) {
     return this.packagesService.findByAdvertisementId(+adId);
+  }
+
+  /**
+   * 📦 Transfert d’un colis d’un livreur à un autre
+   */
+  @Post(':id/transfer')
+  async transferPackage(@Param('id') id: string, @Body() body: any) {
+    const packageId = parseInt(id, 10);
+    if (isNaN(packageId)) throw new BadRequestException('ID du colis invalide');
+
+    const { fromCourierId, toCourierId, address, postalCode, city } = body;
+
+    if (!fromCourierId || !toCourierId || !address || !postalCode || !city) {
+      throw new BadRequestException('Champs manquants pour le transfert');
+    }
+
+    const transferCode = uuidv4().split('-')[0];
+
+    // 👉 Géocodage ici
+    const { lat, lng } = await geocodeAddress(`${address}, ${postalCode} ${city}, France`);
+
+    await this.packagesService.createTransfer({
+      packageId,
+      fromCourierId,
+      toCourierId,
+      address,
+      postalCode,
+      city,
+      transferCode,
+      latitude: lat,
+      longitude: lng,
+    });
+
+    return {
+      message: 'Transfert enregistré',
+      transferCode,
+    };
+  }
+
+  /**
+   * 🔎 Récupérer le livreur assigné à un colis
+   */
+  @Get(':id/deliverer')
+  getDelivererForPackage(@Param('id') id: string) {
+    const packageId = parseInt(id, 10);
+    if (isNaN(packageId)) throw new BadRequestException('ID du colis invalide');
+    return this.packagesService.getDelivererForPackage(packageId);
+  }
+
+  /**
+   * 🕓 Colis en attente de validation après transfert
+   */
+  @Get('pending-transfers')
+  getPendingTransfers(@Query('userId') userId: string | number) {
+    const parsedId = typeof userId === 'string' ? parseInt(userId, 10) : userId;
+    if (isNaN(parsedId)) {
+      throw new BadRequestException('ID du livreur invalide');
+    }
+    return this.packagesService.getPendingTransfersForUser(parsedId);
+  }
+
+  /**
+   * ✅ Validation d’un transfert par code
+   */
+  @Post(':id/confirm-transfer')
+  async confirmTransfer(
+    @Param('id') id: string,
+    @Body() body: { toCourierId: number; code: string }
+  ) {
+    const packageId = parseInt(id, 10);
+    if (isNaN(packageId)) {
+      throw new BadRequestException("L'ID du colis est invalide");
+    }
+
+    return this.packagesService.confirmTransfer(packageId, body.toCourierId, body.code);
+  }
+
+  @Get(':id')
+  findOne(@Param('id') id: string) {
+    const packageId = parseInt(id, 10);
+    if (isNaN(packageId)) throw new BadRequestException('ID du colis invalide');
+    return this.packagesService.findOne(packageId);
   }
 }

@@ -27,6 +27,7 @@ import { CompanyDetailModule } from './company-detail/company-detail.module';
 import { ContractElementModule } from './contract-element/contract-element.module';
 import { MessagesModule } from './message/messages.module';
 import { ChatGateway } from './message/chat.gateway'; // ✅ ajouté ici
+import { TransferHistoryModule } from './transfer-history/transfer-history.module';
 
 @Module({
   imports: [
@@ -72,6 +73,7 @@ import { ChatGateway } from './message/chat.gateway'; // ✅ ajouté ici
     CompanyDetailModule,
     ContractElementModule,
     MessagesModule,
+    TransferHistoryModule,
   ],
   controllers: [AppController],
   providers: [AppService, ChatGateway], // ✅ ajouté ici

@@ -11,27 +11,53 @@ export class Movement {
   @PrimaryGeneratedColumn()
   id: number;
 
-  /** référence utilisateur */
+  /** Référence à l'utilisateur (livreur) */
   @Column()
   userId: number;
 
-  /** ville choisie */
+  // === ORIGINE ===
+
   @Column()
-  city: string;
+  originStreet: string;
 
-  /** indique la ville d'origine (exactement une active à la fois) */
-  @Column({ default: false })
-  isOrigin: boolean;
+  @Column()
+  originCity: string;
 
-  /** actif/inactif (toggle) */
+  @Column()
+  originPostalCode: number;
+
+  @Column('float', { nullable: true })
+  originLatitude: number;
+
+  @Column('float', { nullable: true })
+  originLongitude: number;
+
+  // === DESTINATION ===
+
+  @Column()
+  destinationStreet: string;
+
+  @Column()
+  destinationCity: string;
+
+  @Column()
+  destinationPostalCode: number;
+
+  @Column('float', { nullable: true })
+  destinationLatitude: number;
+
+  @Column('float', { nullable: true })
+  destinationLongitude: number;
+
+  /** Si le mouvement est actif ou non */
   @Column({ default: true })
   active: boolean;
 
-  /** note libre */
+  /** Note optionnelle */
   @Column({ type: 'text', nullable: true })
   note?: string;
 
-  /** prévue pour une date précise */
+  /** Date prévue du trajet */
   @Column({ type: 'date', nullable: true })
   availableOn?: Date;
 

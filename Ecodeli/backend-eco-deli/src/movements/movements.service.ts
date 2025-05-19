@@ -4,50 +4,83 @@ import { Repository } from 'typeorm';
 import { Movement } from './entities/movement.entity';
 import { User } from 'src/users/entities/user.entity';
 import { CreateMovementDto } from './dto/create-movement.dto';
+import { geocodeAddress } from 'src/common/geocoding.util'; // Ce util doit exister ou être créé
 
 @Injectable()
 export class MovementsService {
   constructor(
     @InjectRepository(Movement)
-    private readonly repo: Repository<Movement>,
+    private readonly movementRepo: Repository<Movement>, // ✅ nom cohérent
+
     @InjectRepository(User)
     private readonly userRepo: Repository<User>,
   ) {}
 
-  /** active une ville (origine ou destination) */
+  /**
+   * Crée un nouveau mouvement avec adresses et coordonnées GPS
+   */
   async create(dto: CreateMovementDto): Promise<Movement> {
     const user = await this.userRepo.findOneBy({ id: dto.userId });
-    if (!user) throw new NotFoundException(`User #${dto.userId} not found`);
-
-    // Si on crée une nouvelle origine, on désactive l'ancienne
-    if (dto.isOrigin) {
-      const old = await this.repo.findOne({
-        where: { userId: dto.userId, isOrigin: true, active: true },
-      });
-      if (old) await this.repo.update(old.id, { active: false });
+    if (!user) {
+      throw new NotFoundException(`Utilisateur #${dto.userId} introuvable`);
     }
 
-    const m = this.repo.create({
+    const originFull = `${dto.originStreet}, ${dto.originPostalCode} ${dto.originCity}`;
+    const destFull = `${dto.destinationStreet}, ${dto.destinationPostalCode} ${dto.destinationCity}`;
+
+    const originCoords = await geocodeAddress(originFull);
+    const destCoords = await geocodeAddress(destFull);
+
+    const movement = this.movementRepo.create({
       userId: dto.userId,
-      city: dto.city,
-      isOrigin: dto.isOrigin ?? false,
-      active: dto.active ?? true,
-      note: dto.note,
+
+      originStreet: dto.originStreet,
+      originCity: dto.originCity,
+      originPostalCode: dto.originPostalCode,
+      originLatitude: originCoords.lat,
+      originLongitude: originCoords.lng,
+
+      destinationStreet: dto.destinationStreet,
+      destinationCity: dto.destinationCity,
+      destinationPostalCode: dto.destinationPostalCode,
+      destinationLatitude: destCoords.lat,
+      destinationLongitude: destCoords.lng,
+
       availableOn: dto.availableOn ? new Date(dto.availableOn) : undefined,
+      note: dto.note,
+      active: true,
     });
-    return this.repo.save(m);
+
+    return this.movementRepo.save(movement);
   }
 
-  /** récupère tous les mouvements actifs d’un utilisateur */
+  /**
+   * Récupère tous les mouvements actifs d’un utilisateur
+   */
   async findByUser(userId: number): Promise<Movement[]> {
-    return this.repo.find({
+    return this.movementRepo.find({
       where: { userId, active: true },
-      order: { isOrigin: 'DESC', createdAt: 'DESC' },
+      order: { createdAt: 'DESC' },
     });
   }
 
-  /** désactive un mouvement (toggle off) */
+  /**
+   * Récupère un mouvement actif pour un livreur
+   */
+  async findActiveByUserId(userId: number): Promise<Movement | null> {
+    return this.movementRepo.findOne({
+      where: { userId, active: true },
+    });
+  }
+
+  /**
+   * Désactive un mouvement (soft delete)
+   */
   async deactivate(id: number): Promise<void> {
-    await this.repo.update(id, { active: false });
+    const existing = await this.movementRepo.findOneBy({ id });
+    if (!existing) {
+      throw new NotFoundException(`Mouvement #${id} introuvable`);
+    }
+    await this.movementRepo.update(id, { active: false });
   }
 }

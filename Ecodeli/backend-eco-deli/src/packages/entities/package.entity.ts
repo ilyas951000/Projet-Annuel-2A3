@@ -1,7 +1,17 @@
+import {
+  Column,
+  Entity,
+  PrimaryGeneratedColumn,
+  ManyToMany,
+  JoinTable,
+  OneToMany,
+  ManyToOne,
+  JoinColumn,
+} from 'typeorm';
 import { Advertisement } from 'src/advertisements/entities/advertisement.entity';
 import { Localisation } from 'src/localisation/entities/localisation.entity';
 import { User } from 'src/users/entities/user.entity';
-import { Column, Entity, PrimaryGeneratedColumn, ManyToMany, JoinTable, OneToMany, ManyToOne, JoinColumn } from 'typeorm';
+import { TransferHistory } from 'src/transfer-history/entities/transfer-history.entity';
 
 @Entity()
 export class Package {
@@ -29,28 +39,27 @@ export class Package {
   @ManyToMany(() => User)
   @JoinTable({
     name: 'deliverPackage',
-    joinColumn: {
-      name: 'packageId',
-      referencedColumnName: 'id',
-    },
-    inverseJoinColumn: {
-      name: 'userId',
-      referencedColumnName: 'id',
-    },
+    joinColumn: { name: 'packageId', referencedColumnName: 'id' },
+    inverseJoinColumn: { name: 'userId', referencedColumnName: 'id' },
   })
-  users: User[]; 
+  users: User[];
 
-  
-
-  @ManyToOne(() => Advertisement, ad => ad.packages, { onDelete: 'CASCADE', nullable: true })
+  @ManyToOne(() => Advertisement, ad => ad.packages, {
+    onDelete: 'CASCADE',
+    nullable: true,
+  })
   @JoinColumn({ name: 'advertisementId' })
   advertisement?: Advertisement;
+
+  @Column({ nullable: true })
+  advertisementId?: number;
 
   @OneToMany(() => Localisation, loc => loc.package, { cascade: true })
   localisations: Localisation[];
 
-  @Column({ nullable: true })
-  advertisementId?: number;
+  @OneToMany(() => TransferHistory, (transfer) => transfer.package)
+  transferHistories: TransferHistory[];
+
   toJSON() {
     const { advertisement, ...rest } = this;
     return rest;

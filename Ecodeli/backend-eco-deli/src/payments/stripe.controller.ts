@@ -26,9 +26,17 @@ export class StripeController {
 
 
   @Post('intent')
-  createIntent(@Body() body: { clientId: number; providerId: number; amount: number }) {
-    return this.stripeService.createPaymentIntent(body.clientId, body.providerId, body.amount);
+  createIntent(
+    @Body() body: { clientId: number; providerId: number; amount: number; packageId?: number }
+  ) {
+    return this.stripeService.createPaymentIntent(
+      body.clientId,
+      body.providerId,
+      body.amount,
+      body.packageId // 👈 ici
+    );
   }
+
 
   @Get('provider/:id/balance')
   getProviderBalance(@Param('id') id: number) {

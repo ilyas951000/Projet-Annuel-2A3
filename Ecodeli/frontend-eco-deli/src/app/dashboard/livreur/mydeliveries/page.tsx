@@ -1,20 +1,19 @@
 "use client";
 
-import React, { useState, useEffect } from 'react';
-import axios from 'axios';
-import Link from 'next/link';
+import React, { useEffect, useState } from "react";
+import axios from "axios";
 
 interface IPackage {
   id: number;
   packageName: string;
   packageWeight: number;
   packageDimension: string;
-  packageDescription: string;
-  senderAddress: string;
-  recipientAddress: string;
-  packageRequirements: string;
   deliveryStatus: string;
-  isPaid?: boolean; // ✅ on ajoute ce champ ici
+  packageDescription?: string;
+  senderAddress?: string;
+  recipientAddress?: string;
+  packageRequirements?: string;
+  isPaid?: boolean;
 }
 
 interface IUser {
@@ -25,51 +24,67 @@ interface IUser {
   userStatus: string;
 }
 
+interface ITransferInfo {
+  address: string;
+  city: string;
+  postalCode: string;
+  livreur1Progress: number;
+  livreur2Progress: number;
+  fromCourierId: number;
+  toCourierId: number;
+}
+
 const STATUS_OPTIONS = ["pris en charge", "en transit", "livré", "transféré"];
 
-export default function MyDeliveries() {
-  const [deliveries, setDeliveries] = useState<IPackage[]>([]);
-  const [loading, setLoading] = useState<boolean>(true);
-  const [error, setError] = useState<string | null>(null);
+export default function TransferAndDeliveryPage() {
+  const [packages, setPackages] = useState<IPackage[]>([]);
   const [livreurId, setLivreurId] = useState<number | null>(null);
+  const [codes, setCodes] = useState<{ [key: number]: string }>({});
   const [statusSelections, setStatusSelections] = useState<{ [key: number]: string }>({});
   const [transferSelections, setTransferSelections] = useState<{ [key: number]: string }>({});
+  const [transferAddresses, setTransferAddresses] = useState<{ [key: number]: { address: string; postalCode: string; city: string } }>({});
+  const [transferCodes, setTransferCodes] = useState<{ [key: number]: string }>({});
+  const [transferInfos, setTransferInfos] = useState<{ [key: number]: ITransferInfo }>({});
   const [livreurs, setLivreurs] = useState<IUser[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  const token = typeof window !== "undefined" ? localStorage.getItem("token") : null;
 
   useEffect(() => {
-    const token = localStorage.getItem('token');
     if (!token) {
-      setError('Utilisateur non connecté. Token manquant.');
+      setError("Utilisateur non connecté. Token manquant.");
       setLoading(false);
       return;
     }
+
     const fetchCurrentUser = async () => {
       try {
-        const res = await axios.get('http://127.0.0.1:3001/auth/me', {
+        const res = await axios.get("http://127.0.0.1:3001/auth/me", {
           headers: { Authorization: `Bearer ${token}` },
         });
-        if (res.data && res.data.userId) {
+        if (res.data?.userId) {
           setLivreurId(res.data.userId);
         } else {
-          setError('Utilisateur non valide ou ID manquant dans la réponse.');
+          setError("Utilisateur non valide ou ID manquant dans la réponse.");
         }
       } catch (err: any) {
-        setError('Erreur lors de la récupération de l’utilisateur. ' + (err.response?.data?.message || err.message));
+        setError("Erreur utilisateur : " + (err.response?.data?.message || err.message));
       } finally {
         setLoading(false);
       }
     };
+
     fetchCurrentUser();
   }, []);
 
   useEffect(() => {
     const fetchLivreurs = async () => {
       try {
-        const res = await axios.get('http://127.0.0.1:3001/users');
-        const livreursData = res.data.filter((user: IUser) => user.userStatus === "livreur");
-        setLivreurs(livreursData);
+        const res = await axios.get("http://127.0.0.1:3001/users");
+        setLivreurs(res.data.filter((u: IUser) => u.userStatus === "livreur"));
       } catch (err) {
-        console.error("Erreur lors du chargement des livreurs :", err);
+        console.error("Erreur chargement livreurs :", err);
       }
     };
     fetchLivreurs();
@@ -78,138 +93,233 @@ export default function MyDeliveries() {
   useEffect(() => {
     if (livreurId !== null) {
       fetchDeliveries();
+      fetchPendingTransfers();
     }
   }, [livreurId]);
 
+  const fetchTransferInfo = async (packageId: number) => {
+    try {
+      const res = await axios.get(`http://127.0.0.1:3001/transfer-history/progress/${packageId}`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      setTransferInfos((prev) => ({ ...prev, [packageId]: res.data }));
+    } catch (err) {
+      console.warn(`Pas d'info de transfert pour le colis ${packageId}`);
+    }
+  };
+
   const fetchDeliveries = async () => {
     try {
-      const response = await axios.get('http://127.0.0.1:3001/packages/mydeliveries', {
+      const res = await axios.get("http://127.0.0.1:3001/packages/mydeliveries", {
         params: { userId: livreurId },
+        headers: { Authorization: `Bearer ${token}` },
       });
-
-      // ✅ Ne garder que les colis où isPaid est true (ou 1)
-      const paidDeliveries = response.data.filter((pkg: IPackage) => pkg.isPaid === true || pkg.isPaid === 1);
-
-      setDeliveries(paidDeliveries);
-
-      const initialSelections: { [key: number]: string } = {};
-      paidDeliveries.forEach((pkg: IPackage) => {
-        initialSelections[pkg.id] = pkg.deliveryStatus;
+      const paid = res.data.filter((p: IPackage) => p.isPaid);
+      setPackages((prev) => [...prev, ...paid]);
+      const initStatuses: { [key: number]: string } = {};
+      paid.forEach((pkg: IPackage) => {
+        initStatuses[pkg.id] = pkg.deliveryStatus;
       });
-      setStatusSelections(initialSelections);
+      setStatusSelections(initStatuses);
+    } catch {
+      setError("Erreur chargement des livraisons.");
+    }
+  };
+
+  const fetchPendingTransfers = async () => {
+    try {
+      const res = await axios.get("http://127.0.0.1:3001/packages/pending-transfers", {
+        params: { userId: livreurId },
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      setPackages((prev) => [...prev, ...res.data]);
+      res.data.forEach((pkg: IPackage) => fetchTransferInfo(pkg.id));
+    } catch {
+      setError("Erreur chargement des colis à valider.");
+    }
+  };
+
+  const handleConfirmTransfer = async (packageId: number) => {
+    const code = codes[packageId];
+    if (!code) return alert("Veuillez entrer le code de transfert.");
+
+    try {
+      await axios.post(
+        `http://127.0.0.1:3001/packages/${packageId}/confirm-transfer`,
+        { toCourierId: livreurId, code },
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+      alert("Colis validé !");
+      fetchDeliveries();
     } catch (err: any) {
-      console.error('Erreur lors de la récupération des livraisons :', err);
-      setError('Impossible de charger les livraisons.');
+      alert("Erreur : " + (err.response?.data?.message || err.message));
     }
   };
 
   const handleStatusUpdate = async (packageId: number) => {
     const newStatus = statusSelections[packageId];
-    if (!newStatus) {
-      alert('Veuillez sélectionner un statut.');
-      return;
-    }
-    if (newStatus === "transféré" && !transferSelections[packageId]) {
-      alert("Veuillez sélectionner un livreur pour le transfert.");
-      return;
-    }
-    try {
-      await axios.patch(`http://127.0.0.1:3001/packages/${packageId}/status`, {
-        status: newStatus,
-        fromCourierId: livreurId,
-        toCourierId: newStatus === "transféré" ? transferSelections[packageId] : null,
-      });
-      alert('Statut mis à jour !');
-      fetchDeliveries();
-    } catch (err: any) {
-      alert('Erreur lors de la mise à jour du statut : ' + (err.response?.data?.message || err.message));
+    const transferData = transferAddresses[packageId] || {};
+    const toCourierId = transferSelections[packageId];
+
+    if (newStatus === "transféré") {
+      if (!toCourierId || !transferData.address || !transferData.postalCode || !transferData.city) {
+        return alert("Champs manquants pour transfert.");
+      }
+
+      try {
+        const res = await axios.post(
+          `http://127.0.0.1:3001/packages/${packageId}/transfer`,
+          {
+            fromCourierId: livreurId,
+            toCourierId,
+            address: transferData.address,
+            postalCode: transferData.postalCode,
+            city: transferData.city,
+          },
+          { headers: { Authorization: `Bearer ${token}` } }
+        );
+        setTransferCodes({ ...transferCodes, [packageId]: res.data.transferCode });
+        alert("Colis transféré !");
+      } catch (err: any) {
+        alert("Erreur transfert : " + (err.response?.data?.message || err.message));
+      }
+    } else {
+      try {
+        await axios.patch(
+          `http://127.0.0.1:3001/packages/${packageId}/status`,
+          { status: newStatus },
+          { headers: { Authorization: `Bearer ${token}` } }
+        );
+        alert("Statut mis à jour");
+      } catch (err: any) {
+        alert("Erreur statut : " + (err.response?.data?.message || err.message));
+      }
     }
   };
 
-  if (loading) return <p>Chargement en cours...</p>;
+  if (loading) return <p>Chargement...</p>;
   if (error) return <p className="text-red-600">{error}</p>;
 
   return (
     <div className="p-4">
-      <div className="mb-4">
-        <Link
-          href="/dashboard/livreur/history"
-          className="inline-block px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
-        >
-          Consulter l'historique
-        </Link>
-      </div>
-
-      <h1 className="text-xl font-bold mb-4">Mes Livraisons en Cours</h1>
-      {deliveries.length === 0 ? (
-        <p>Aucune livraison en cours.</p>
+      <h1 className="text-xl font-bold mb-4">📦 Mes Colis (En cours & Transferts)</h1>
+      {packages.length === 0 ? (
+        <p>Aucun colis pour l'instant.</p>
       ) : (
         <ul>
-          {deliveries.map((pkg) => (
+          {packages.map((pkg) => (
             <li key={pkg.id} className="border p-4 mb-4 rounded shadow">
-              <h2 className="text-lg font-semibold">{pkg.packageName}</h2>
-              <p><strong>Poids :</strong> {pkg.packageWeight}</p>
+              <h2 className="text-lg font-semibold mb-2">{pkg.packageName}</h2>
+              <p><strong>Poids :</strong> {pkg.packageWeight} kg</p>
               <p><strong>Dimension :</strong> {pkg.packageDimension}</p>
-              <p><strong>Description :</strong> {pkg.packageDescription}</p>
-              <p><strong>Adresse d'envoi :</strong> {pkg.senderAddress}</p>
-              <p><strong>Adresse de réception :</strong> {pkg.recipientAddress}</p>
-              <p><strong>Exigences :</strong> {pkg.packageRequirements}</p>
-              <p><strong>Statut actuel :</strong> {pkg.deliveryStatus}</p>
+              <p><strong>Statut :</strong> {pkg.deliveryStatus}</p>
 
-              <div className="mt-2 flex flex-col gap-2">
-                <label htmlFor={`status-select-${pkg.id}`} className="font-semibold">
-                  Nouveau statut :
-                </label>
-                <select
-                  id={`status-select-${pkg.id}`}
-                  value={statusSelections[pkg.id] || pkg.deliveryStatus}
-                  onChange={(e) =>
-                    setStatusSelections({ ...statusSelections, [pkg.id]: e.target.value })
-                  }
-                  className="border p-1 rounded"
-                >
-                  {STATUS_OPTIONS.map((option) => (
-                    <option key={option} value={option}>
-                      {option}
-                    </option>
-                  ))}
-                </select>
+              {transferInfos[pkg.id] && (
+                <div className="bg-gray-100 border rounded p-2 my-2">
+                  <p><strong>Adresse :</strong> {transferInfos[pkg.id].address}</p>
+                  <p><strong>Ville :</strong> {transferInfos[pkg.id].city}</p>
+                  <p><strong>Code postal :</strong> {transferInfos[pkg.id].postalCode}</p>
+                  <p className="text-sm text-blue-600 font-semibold mt-2">
+                   {Number(livreurId) === Number(transferInfos[pkg.id].fromCourierId) ? (
+                      `🧭 Vous avez réalisé ${transferInfos[pkg.id].livreur1Progress}% du trajet du colis.`
+                    ) : Number(livreurId) === Number(transferInfos[pkg.id].toCourierId) ? (
+                      `📍 Il reste ${transferInfos[pkg.id].livreur2Progress}% du trajet jusqu'à destination.`
+                    ) : (
+                      `Progression non applicable à ce livreur.`
+                    )}
+                  </p>
+                </div>
+              )}
 
-                {statusSelections[pkg.id] === "transféré" && (
-                  <div className="mt-2 flex flex-col gap-2">
-                    <label htmlFor={`transfer-select-${pkg.id}`} className="font-semibold">
-                      Transférer à :
-                    </label>
-                    <select
-                      id={`transfer-select-${pkg.id}`}
-                      value={transferSelections[pkg.id] || ""}
-                      onChange={(e) =>
-                        setTransferSelections({
-                          ...transferSelections,
-                          [pkg.id]: e.target.value,
-                        })
-                      }
-                      className="border p-1 rounded"
-                    >
-                      <option value="">-- Choisir un livreur --</option>
-                      {livreurs
-                        .filter((l) => l.id !== livreurId)
-                        .map((livreur) => (
-                          <option key={livreur.id} value={livreur.id}>
-                            {livreur.userFirstName} {livreur.userLastName}
-                          </option>
-                        ))}
-                    </select>
-                  </div>
-                )}
+              {pkg.deliveryStatus === "transféré" && (
+                <>
+                  <input
+                    type="text"
+                    placeholder="Code de transfert"
+                    className="border p-1 mt-2 w-full"
+                    value={codes[pkg.id] || ""}
+                    onChange={(e) => setCodes({ ...codes, [pkg.id]: e.target.value })}
+                  />
+                  <button
+                    className="mt-2 px-4 py-2 bg-blue-600 text-white rounded"
+                    onClick={() => handleConfirmTransfer(pkg.id)}
+                  >
+                    Valider ce colis
+                  </button>
+                </>
+              )}
 
-                <button
-                  onClick={() => handleStatusUpdate(pkg.id)}
-                  className="px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700"
-                >
-                  Mettre à jour le statut
-                </button>
-              </div>
+              <select
+                value={statusSelections[pkg.id] || pkg.deliveryStatus}
+                onChange={(e) => setStatusSelections({ ...statusSelections, [pkg.id]: e.target.value })}
+                className="border p-1 rounded mt-2"
+              >
+                {STATUS_OPTIONS.map((option) => (
+                  <option key={option} value={option}>{option}</option>
+                ))}
+              </select>
+
+              {statusSelections[pkg.id] === "transféré" && (
+                <div className="mt-2">
+                  <select
+                    value={transferSelections[pkg.id] || ""}
+                    onChange={(e) => setTransferSelections({ ...transferSelections, [pkg.id]: e.target.value })}
+                    className="border p-1 rounded w-full"
+                  >
+                    <option value="">-- Choisir un livreur --</option>
+                    {livreurs.filter((l) => l.id !== livreurId).map((livreur) => (
+                      <option key={livreur.id} value={livreur.id}>
+                        {livreur.userFirstName} {livreur.userLastName}
+                      </option>
+                    ))}
+                  </select>
+                  <input
+                    placeholder="Adresse"
+                    className="border p-1 w-full mt-1"
+                    value={transferAddresses[pkg.id]?.address || ""}
+                    onChange={(e) =>
+                      setTransferAddresses({
+                        ...transferAddresses,
+                        [pkg.id]: { ...transferAddresses[pkg.id], address: e.target.value },
+                      })
+                    }
+                  />
+                  <input
+                    placeholder="Code postal"
+                    className="border p-1 w-full mt-1"
+                    value={transferAddresses[pkg.id]?.postalCode || ""}
+                    onChange={(e) =>
+                      setTransferAddresses({
+                        ...transferAddresses,
+                        [pkg.id]: { ...transferAddresses[pkg.id], postalCode: e.target.value },
+                      })
+                    }
+                  />
+                  <input
+                    placeholder="Ville"
+                    className="border p-1 w-full mt-1"
+                    value={transferAddresses[pkg.id]?.city || ""}
+                    onChange={(e) =>
+                      setTransferAddresses({
+                        ...transferAddresses,
+                        [pkg.id]: { ...transferAddresses[pkg.id], city: e.target.value },
+                      })
+                    }
+                  />
+                  {transferCodes[pkg.id] && (
+                    <p className="text-green-600 font-semibold mt-2">
+                      Code de transfert : {transferCodes[pkg.id]}
+                    </p>
+                  )}
+                </div>
+              )}
+
+              <button
+                onClick={() => handleStatusUpdate(pkg.id)}
+                className="mt-4 px-4 py-2 bg-green-600 text-white rounded"
+              >
+                Mettre à jour le statut
+              </button>
             </li>
           ))}
         </ul>

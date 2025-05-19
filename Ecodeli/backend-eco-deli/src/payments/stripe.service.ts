@@ -116,7 +116,12 @@ export class StripeService {
 
 
 
-  async createPaymentIntent(clientId: number, providerId: number, amount: number) {
+  async createPaymentIntent(
+    clientId: number,
+    providerId: number,
+    amount: number,
+    packageId?: number // 👈 facultatif, mais utilisé pour les colis
+  ) {
     const client = await this.userRepo.findOneBy({ id: clientId });
     const provider = await this.userRepo.findOneBy({ id: providerId });
 
@@ -128,6 +133,11 @@ export class StripeService {
       amount: amount * 100,
       currency: 'eur',
       payment_method_types: ['card'],
+      metadata: {
+        clientId: String(clientId),
+        providerId: String(providerId),
+        ...(packageId && { packageId: String(packageId) }), // 👈 facultatif
+      },
     });
 
     await this.transferRepo.save({
@@ -136,10 +146,12 @@ export class StripeService {
       amount,
       status: 'pending',
       isValidatedByClient: false,
+      ...(packageId && { packageId }), // 👈 ajout ici aussi
     });
 
     return { clientSecret: paymentIntent.client_secret };
   }
+
 
   async validateClientTransfer(transferId: number) {
     const transfer = await this.transferRepo.findOne({

@@ -1,31 +1,46 @@
 import {
-  IsInt,
+  IsNotEmpty,
   IsString,
-  IsBoolean,
+  IsInt,
+  Min,
   IsOptional,
   IsDateString,
 } from 'class-validator';
 
 export class CreateMovementDto {
   @IsInt()
+  @Min(1)
   userId: number;
 
+  // Origine
   @IsString()
-  city: string;
+  @IsNotEmpty()
+  originStreet: string;
+
+  @IsString()
+  @IsNotEmpty()
+  originCity: string;
+
+  @IsInt()
+  originPostalCode: number;
+
+  // Destination
+  @IsString()
+  @IsNotEmpty()
+  destinationStreet: string;
+
+  @IsString()
+  @IsNotEmpty()
+  destinationCity: string;
+
+  @IsInt()
+  destinationPostalCode: number;
 
   @IsOptional()
-  @IsBoolean()
-  isOrigin?: boolean;
-
-  @IsOptional()
-  @IsBoolean()
-  active?: boolean;
+  @IsDateString()
+  availableOn?: Date;
 
   @IsOptional()
   @IsString()
   note?: string;
-
-  @IsOptional()
-  @IsDateString()
-  availableOn?: string;
 }
