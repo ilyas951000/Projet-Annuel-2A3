@@ -1,31 +1,29 @@
-import { User } from "src/users/entities/user.entity";
-import { Column, Entity, ManyToOne, OneToMany, PrimaryGeneratedColumn } from "typeorm";
-
+import { User } from 'src/users/entities/user.entity';
+import { Column, Entity, ManyToOne, PrimaryGeneratedColumn } from 'typeorm';
 
 @Entity()
 export class Subscription {
-    @PrimaryGeneratedColumn()
-    id: number;
-    
-    @Column()
-    subscriptionTitle: string;
-    
-    @Column()
-    packageInsurance: boolean;
+  @PrimaryGeneratedColumn()
+  id: number;
 
-    @Column()
-    shippingDiscount: number;
+  @Column()
+  subscriptionTitle: string;
 
-    @Column()
-    priorityShipping: number;
+  @Column()
+  packageInsurance: boolean;
 
-    @Column()
-    permanentDiscount: number;
+  @Column()
+  shippingDiscount: number;
 
-    @Column()
-    supplement3000: boolean;
+  @Column()
+  priorityShipping: number;
 
-    @ManyToOne(() => User, (user) => user.subscription)
-    users: User;
+  @Column()
+  permanentDiscount: number;
 
+  @Column()
+  supplement3000: boolean;
+
+  @ManyToOne(() => User, (user) => user.subscription, { nullable: false, eager: true })
+  users: User;
 }

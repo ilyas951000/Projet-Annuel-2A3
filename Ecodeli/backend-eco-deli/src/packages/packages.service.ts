@@ -368,6 +368,13 @@ export class PackagesService {
   }
 
 
+  async findByUser(userId: number): Promise<Package[]> {
+  return this.packageRepository.find({
+  where: { advertisement: { usersId: userId } },
+  select: ['id', 'packageName'],
+  relations: ['advertisement'],
+});
+}
 
 
 

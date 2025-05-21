@@ -3,22 +3,12 @@ import "../globals.css"
 import type React from "react"
 
 import { useEffect, useState } from "react"
-import {
-  PlusCircle,
-  Menu,
-  X,
-  MapPin,
-  Calendar,
-  Package,
-  Truck,
-  Info,
-  Clock,
-  ChevronRight,
-  Edit,
-  Trash2,
-} from "lucide-react"
+import { PlusCircle, Menu, X, MapPin, Calendar, Package, Truck, Info, Clock, ChevronRight, Edit, Trash2, Box } from 'lucide-react'
 import Image from "next/image"
 import { motion, AnimatePresence } from "framer-motion"
+import { useRouter } from 'next/navigation'; // ✅ correct
+
+
 
 interface Localisation {
   currentStreet: string
@@ -54,6 +44,13 @@ interface Ad {
 }
 
 export default function Dashboard() {
+  const router = useRouter();
+
+  const handleRedirect = () => {
+    // Par exemple, rediriger vers "/box-reservation"
+    router.push('/dashboard/client/boxes');
+  };
+
   const [sidebarOpen, setSidebarOpen] = useState(false)
   const [showAddModal, setShowAddModal] = useState(false)
   const [showModal, setShowModal] = useState(false)
@@ -105,6 +102,10 @@ export default function Dashboard() {
 
   const [selectedAd, setSelectedAd] = useState<Ad | null>(null)
   const [expandedAdId, setExpandedAdId] = useState<number | null>(null)
+
+  const [showBoxReservationModal, setShowBoxReservationModal] = useState(false)
+  const [boxReservationType, setBoxReservationType] = useState<"departure" | "arrival">("departure")
+  const [boxReservationCity, setBoxReservationCity] = useState("")
 
   const handleAddObject = () => {
     setObjects([...objects, { quantity: 1, item: "", dimension: "", weight: 0 }])
@@ -169,6 +170,32 @@ export default function Dashboard() {
       setSelectedAd(null)
     } catch (err: any) {
       alert("Erreur lors de la suppression : " + err.message)
+    }
+  }
+
+  const handleOpenBoxReservation = (type: "departure" | "arrival", city: string) => {
+    setBoxReservationType(type)
+    setBoxReservationCity(city)
+    setShowBoxReservationModal(true)
+  }
+
+  const handleBoxReservationComplete = (data: {
+    localId: number
+    boxId: number
+    city: string
+    address: string
+    postalCode: string
+    date: string
+  }) => {
+    // Mettre à jour les champs en fonction du type de réservation
+    if (boxReservationType === "departure") {
+      setcurrentCity(data.city)
+      setcurrentStreet(data.address)
+      setcurrentPostalCode(data.postalCode)
+    } else {
+      setdestinationCity(data.city)
+      setdestinationStreet(data.address)
+      setdestinationPostalCode(data.postalCode)
     }
   }
 
@@ -632,7 +659,7 @@ export default function Dashboard() {
                 />
               </div>
               <h1>Ville de départ:</h1>
-              <div className="flex gap-1">
+              <div className="flex gap-1 mb-2">
                 <div className="flex-2">
                   <label className="block text-sm text-gray-700 mb-1">Rue et numéro</label>
                   <input
@@ -666,9 +693,18 @@ export default function Dashboard() {
                   />
                 </div>
               </div>
+              <button
+                type="button"
+                onClick={handleRedirect}
+                className="mb-4 text-sm bg-green-500 hover:bg-green-600 text-white px-3 py-1 rounded-lg inline-flex items-center"
+              >
+                <Box className="w-4 h-4 mr-1" />
+                Réserver une box pour déposer votre colis ou bien chercher votre colis en toute sécurité (Noubliez pas de renseigner l'adresse de la box)
+              </button>
+
 
               <h1 className="mt-4">Ville d'arrivée :</h1>
-              <div className="flex gap-1">
+              <div className="flex gap-1 mb-2">
                 <div className="flex-2">
                   <label className="block text-sm text-gray-700 mb-1">Rue et numéro</label>
                   <input
@@ -752,6 +788,14 @@ export default function Dashboard() {
           onClose={() => setSelectedAd(null)}
           onSave={(updated) => setAds((ads) => ads.map((a) => (a.id === updated.id ? updated : a)))}
           onDelete={handleDeleteAd}
+        />
+      )}
+      {showBoxReservationModal && (
+        <BoxReservationModal
+          type={boxReservationType}
+          initialCity={boxReservationCity}
+          onClose={() => setShowBoxReservationModal(false)}
+          onComplete={handleBoxReservationComplete}
         />
       )}
     </div>
