@@ -66,8 +66,33 @@ export class StripeController {
     return this.stripeService.transferFunds(providerId, amount);
   }
 
-  @Post('webhook')
-  handleWebhook(@Req() req) {
-    return this.stripeService.handleWebhook(req.body);
+
+  @Post('subscription-checkout')
+  createSubscription(@Body() body: { userId: number; priceId: string; plan: string }) {
+    return this.stripeService.createSubscriptionCheckoutSession(
+      body.userId,
+      body.priceId,
+      body.plan // 👈 rajoute ce 3e argument
+    );
   }
+
+
+  @Post('webhook')
+  handleUnifiedStripeWebhook(@Req() req: Request) {
+    return this.stripeService.handleUnifiedWebhook({
+      headers: req.headers,
+      body: req.body,
+    });
+  }
+
+
+
+
+  @Post('cancel-subscription')
+  cancelSubscription(@Body() body: { email: string }) {
+    return this.stripeService.cancelUserSubscription(body.email);
+  }
+
+  
+
 }

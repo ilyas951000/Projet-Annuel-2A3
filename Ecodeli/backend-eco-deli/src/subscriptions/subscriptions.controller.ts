@@ -20,4 +20,6 @@ export class SubscriptionsController {
   findOne(@Param('id') id: string) {
     return this.subscriptionsService.findOne(+id);
   }
+
+  
 }

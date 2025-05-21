@@ -5,6 +5,7 @@ import { Repository } from 'typeorm';
 import { User } from '../users/entities/user.entity';
 import { Transfer } from '../payments/entities/transfer.entity';
 import { Intervention } from '../intervention/entities/intervention.entity';
+import { Subscription as SubscriptionEntity } from 'src/subscriptions/entities/subscription.entity'; // ⚠️ évite conflit avec Stripe.Subscription
 
 
 // ✅ Typage local étendu pour éviter l'erreur TS2339
@@ -23,6 +24,8 @@ export class StripeService {
     private transferRepo: Repository<Transfer>,
     @InjectRepository(Intervention)
     private interventionRepo: Repository<Intervention>, // ✅ ajouter ceci
+    @InjectRepository(SubscriptionEntity)
+    private readonly subscriptionRepo: Repository<SubscriptionEntity>
   ) {
     const stripeKey = process.env.STRIPE_SECRET_KEY;
 
@@ -226,7 +229,217 @@ export class StripeService {
     return { success: true, message: 'Virement enregistré.' };
   }
 
-  async handleWebhook(event: any) {
+  async createSubscriptionCheckoutSession(userId: number, priceId: string, subscriptionPlan: string) {
+    const user = await this.userRepo.findOneBy({ id: userId });
+    if (!user) throw new Error('Utilisateur introuvable');
+
+    const session = await this.stripe.checkout.sessions.create({
+      mode: 'subscription',
+      payment_method_types: ['card'],
+      customer_email: user.email,
+      line_items: [
+        {
+          price: priceId, // Le prix configuré sur Stripe, pas le productId
+          quantity: 1,
+        },
+      ],
+      success_url: `http://localhost:3000/dashboard/client/subscription/success?session_id={CHECKOUT_SESSION_ID}`,
+      cancel_url: `http://localhost:3000/subscription/cancel`,
+      metadata: {
+        userId: user.id.toString(),
+        subscriptionPlan, // 👈 starter_plan / premium_plan
+      },
+    });
+
+    return { url: session.url };
+  }
+
+
+
+  async cancelActiveSubscription(stripeCustomerEmail: string) {
+    const customers = await this.stripe.customers.list({ email: stripeCustomerEmail });
+    const customer = customers.data[0];
+    if (!customer) throw new Error('Aucun client Stripe trouvé');
+
+    const subscriptions = await this.stripe.subscriptions.list({
+      customer: customer.id,
+      status: 'active',
+    });
+
+    for (const sub of subscriptions.data) {
+      await this.stripe.subscriptions.cancel(sub.id);
+    }
+
+    return { message: 'Abonnement annulé' };
+  }
+
+  async cancelUserSubscription(email: string) {
+    const customers = await this.stripe.customers.list({ email });
+    const customer = customers.data[0];
+    if (!customer) throw new Error('Client Stripe introuvable.');
+
+    const subscriptions = await this.stripe.subscriptions.list({
+      customer: customer.id,
+      status: 'active',
+    });
+
+    for (const sub of subscriptions.data) {
+      await this.stripe.subscriptions.cancel(sub.id);
+    }
+
+    const user = await this.userRepo.findOne({
+      where: { email },
+      relations: ['subscription'],
+    });
+
+    if (user) {
+      user.userSubscription = 0;
+
+      // ✅ Supprime l’entrée de la table `subscription`
+      if (user.subscription) {
+        await this.subscriptionRepo.remove(user.subscription);
+      }
+
+      await this.userRepo.save(user);
+    }
+
+    return { message: 'Abonnement annulé.' };
+  }
+
+
+  async handleUnifiedWebhook(raw: { headers: any; body: any }) {
+    const sig = raw.headers['stripe-signature'];
+    const endpointSecret = process.env.STRIPE_WEBHOOK_SECRET;
+
+    if (!endpointSecret) {
+      throw new Error('❌ STRIPE_WEBHOOK_SECRET non défini dans .env');
+    }
+
+    let event: Stripe.Event;
+    try {
+      event = this.stripe.webhooks.constructEvent(raw.body, sig, endpointSecret);
+    } catch (err: any) {
+      console.error('⚠️ Signature Stripe invalide :', err.message);
+      throw new Error(`Webhook Error: ${err.message}`);
+    }
+
+    const eventType = event.type;
+    console.log(`📦 Webhook Stripe reçu : ${eventType}`);
+
+    // ✅ Cas 1 : abonnement réussi
+    if (eventType === 'checkout.session.completed') {
+      const session = event.data.object as Stripe.Checkout.Session;
+      const email = session.customer_email;
+      const plan = session.metadata?.subscriptionPlan;
+
+      if (!email || !plan) return { received: true };
+
+      const user = await this.userRepo.findOne({ where: { email }, relations: ['subscription'] });
+      if (!user) return { received: true };
+
+      switch (plan) {
+        case 'starter_plan':
+          user.userSubscription = 1;
+          break;
+        case 'premium_plan':
+          user.userSubscription = 2;
+          break;
+        default:
+          user.userSubscription = 0;
+          break;
+      }
+
+      await this.userRepo.save(user);
+
+      const newSub = this.subscriptionRepo.create({
+        subscriptionTitle: plan === 'starter_plan' ? 'Starter' : 'Premium',
+        packageInsurance: true,
+        shippingDiscount: plan === 'premium_plan' ? 20 : 10,
+        priorityShipping: plan === 'premium_plan' ? 1 : 0,
+        permanentDiscount: plan === 'premium_plan' ? 10 : 5,
+        supplement3000: plan === 'premium_plan',
+        users: user,
+      });
+
+      await this.subscriptionRepo.save(newSub);
+      console.log(`✅ Subscription enregistrée pour ${email}`);
+    }
+
+    // ✅ Cas 2 : paiement normal (non abonnement)
+    else if (eventType === 'payment_intent.succeeded') {
+      const paymentIntent = event.data.object as Stripe.PaymentIntent;
+      console.log(`✅ Paiement simple réussi : ${paymentIntent.id}`);
+      // tu peux ajouter une logique si nécessaire ici
+    }
+
+    return { received: true };
+  }
+
+
+
+  async processStripeWebhookEvent(raw: { headers: any; body: any }) {
+    const sig = raw.headers['stripe-signature'];
+    const endpointSecret = process.env.STRIPE_WEBHOOK_SECRET;
+
+    if (!endpointSecret) {
+      throw new Error('❌ STRIPE_WEBHOOK_SECRET non défini dans .env');
+    }
+
+    let event: Stripe.Event;
+    try {
+      event = this.stripe.webhooks.constructEvent(raw.body, sig, endpointSecret);
+    } catch (err: any) {
+      console.error('⚠️ Signature Stripe invalide :', err.message);
+      throw new Error(`Webhook Error: ${err.message}`);
+    }
+
+    if (event.type === 'checkout.session.completed') {
+      const session = event.data.object as Stripe.Checkout.Session;
+      const email = session.customer_email;
+      const plan = session.metadata?.subscriptionPlan;
+
+      if (!email || !plan) return { received: true };
+
+      const user = await this.userRepo.findOne({ where: { email }, relations: ['subscription'] });
+      if (!user) return { received: true };
+
+      switch (plan) {
+        case 'starter_plan':
+          user.userSubscription = 1;
+          break;
+        case 'premium_plan':
+          user.userSubscription = 2;
+          break;
+        default:
+          user.userSubscription = 0;
+          break;
+      }
+
+      await this.userRepo.save(user);
+
+      const newSub = this.subscriptionRepo.create({
+        subscriptionTitle: plan === 'starter_plan' ? 'Starter' : 'Premium',
+        packageInsurance: true,
+        shippingDiscount: plan === 'premium_plan' ? 20 : 10,
+        priorityShipping: plan === 'premium_plan' ? 1 : 0,
+        permanentDiscount: plan === 'premium_plan' ? 10 : 5,
+        supplement3000: plan === 'premium_plan',
+        users: user,
+      });
+
+      await this.subscriptionRepo.save(newSub);
+      console.log(`✅ Subscription enregistrée pour ${email}`);
+    }
+
+    return { received: true }; // ✅ N'oublie pas le return
+  }
+
+
+
+
+
+
+    async handleWebhook(event: any) {
     if (event.type === 'payment_intent.succeeded') {
       // Traitement webhook éventuel
     }
