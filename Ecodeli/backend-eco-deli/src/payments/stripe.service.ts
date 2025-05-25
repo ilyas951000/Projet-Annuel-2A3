@@ -6,7 +6,9 @@ import { User } from '../users/entities/user.entity';
 import { Transfer } from '../payments/entities/transfer.entity';
 import { Intervention } from '../intervention/entities/intervention.entity';
 import { Subscription as SubscriptionEntity } from 'src/subscriptions/entities/subscription.entity'; // ⚠️ évite conflit avec Stripe.Subscription
-
+import { PlatformFee } from './entities/platform-fee.entity' // adapte chemin
+import { Package } from 'src/packages/entities/package.entity';
+import { Advertisement } from 'src/advertisements/entities/advertisement.entity';
 
 // ✅ Typage local étendu pour éviter l'erreur TS2339
 interface UserWithStripe extends User {
@@ -25,7 +27,13 @@ export class StripeService {
     @InjectRepository(Intervention)
     private interventionRepo: Repository<Intervention>, // ✅ ajouter ceci
     @InjectRepository(SubscriptionEntity)
-    private readonly subscriptionRepo: Repository<SubscriptionEntity>
+    private readonly subscriptionRepo: Repository<SubscriptionEntity>,
+    @InjectRepository(PlatformFee)
+    private readonly platformFeeRepo: Repository<PlatformFee>, // 👈 AJOUT
+    @InjectRepository(Package)
+    private readonly packageRepo: Repository<Package>,
+    @InjectRepository(Advertisement)
+    private readonly advertisementRepo: Repository<Advertisement>,
   ) {
     const stripeKey = process.env.STRIPE_SECRET_KEY;
 
@@ -119,41 +127,98 @@ export class StripeService {
 
 
 
-  async createPaymentIntent(
+async createPaymentIntent(
     clientId: number,
     providerId: number,
     amount: number,
-    packageId?: number // 👈 facultatif, mais utilisé pour les colis
+    packageId?: number,
+    fee?: number
   ) {
-    const client = await this.userRepo.findOneBy({ id: clientId });
+    const client = await this.userRepo.findOne({ where: { id: clientId }, relations: ['subscription'] });
     const provider = await this.userRepo.findOneBy({ id: providerId });
 
     if (!client || !provider) {
       throw new Error('Client ou prestataire introuvable');
     }
 
+    const subscription = client.subscription?.[0];
+    if (!subscription) throw new Error("Aucun abonnement trouvé pour ce client.");
+
+
+    const packageEntity = await this.packageRepo.findOneBy({ id: packageId });
+    if (!packageEntity) throw new Error('Colis introuvable');
+
+    const advertisement = await this.advertisementRepo.findOneBy({ id: packageEntity.advertisementId });
+    if (!advertisement || advertisement.advertisementPrice == null) {
+      throw new Error('Prix de la publicité introuvable');
+    }
+
+    const basePrice = parseFloat(advertisement.advertisementPrice.toString());
+
+    // Frais de base à 20%
+    let serviceFee = basePrice * 0.2;
+
+    // Réductions selon abonnement
+    if (subscription?.subscriptionTitle === 'Starter') {
+      serviceFee *= 0.95; // -5% obligatoire sur les frais
+      if (
+        packageEntity.packageDimension &&
+        ['xs', 's'].includes(packageEntity.packageDimension)
+      ) {
+        serviceFee *= 0.95; // -5% supplémentaire
+      }
+
+    }
+
+    if (subscription?.subscriptionTitle === 'Premium') {
+      const totalDiscount = (subscription.shippingDiscount + subscription.permanentDiscount) / 100;
+      serviceFee = serviceFee * (1 - totalDiscount); // Frais réduits de 14%
+
+      // Premier envoi gratuit si < 150 €
+      if (!subscription.hasUsedFreeShipping && basePrice < 150) {
+        serviceFee = 0;
+        subscription.hasUsedFreeShipping = true;
+        await this.subscriptionRepo.save(subscription);
+      }
+    }
+
+    const finalTotal = parseFloat((basePrice + serviceFee).toFixed(2));
+
     const paymentIntent = await this.stripe.paymentIntents.create({
-      amount: amount * 100,
+      amount: Math.round(finalTotal * 100),
       currency: 'eur',
       payment_method_types: ['card'],
       metadata: {
         clientId: String(clientId),
         providerId: String(providerId),
-        ...(packageId && { packageId: String(packageId) }), // 👈 facultatif
+        ...(packageId && { packageId: String(packageId) }),
+        ...(fee && { platformFee: serviceFee.toFixed(2) }),
       },
     });
+
+    const amountToTransfer = serviceFee ? finalTotal - serviceFee : finalTotal;
 
     await this.transferRepo.save({
       provider,
       client,
-      amount,
+      amount: amountToTransfer,
       status: 'pending',
       isValidatedByClient: false,
-      ...(packageId && { packageId }), // 👈 ajout ici aussi
+      ...(packageId && { packageId }),
     });
+
+    if (serviceFee && packageId) {
+      await this.platformFeeRepo.save({
+        packageId,
+        amount: serviceFee,
+      });
+    }
 
     return { clientSecret: paymentIntent.client_secret };
   }
+
+
+
 
 
   async validateClientTransfer(transferId: number) {
@@ -354,10 +419,11 @@ export class StripeService {
       const newSub = this.subscriptionRepo.create({
         subscriptionTitle: plan === 'starter_plan' ? 'Starter' : 'Premium',
         packageInsurance: true,
-        shippingDiscount: plan === 'premium_plan' ? 20 : 10,
+        shippingDiscount: plan === 'premium_plan' ? 9 : 5,
         priorityShipping: plan === 'premium_plan' ? 1 : 0,
-        permanentDiscount: plan === 'premium_plan' ? 10 : 5,
+        permanentDiscount: plan === 'premium_plan' ? 5 : 5,
         supplement3000: plan === 'premium_plan',
+        hasUsedFreeShipping: false,
         users: user,
       });
 
@@ -420,10 +486,11 @@ export class StripeService {
       const newSub = this.subscriptionRepo.create({
         subscriptionTitle: plan === 'starter_plan' ? 'Starter' : 'Premium',
         packageInsurance: true,
-        shippingDiscount: plan === 'premium_plan' ? 20 : 10,
+        shippingDiscount: plan === 'premium_plan' ? 9 : 5,
         priorityShipping: plan === 'premium_plan' ? 1 : 0,
-        permanentDiscount: plan === 'premium_plan' ? 10 : 5,
+        permanentDiscount: plan === 'premium_plan' ? 5 : 5,
         supplement3000: plan === 'premium_plan',
+        hasUsedFreeShipping: false,
         users: user,
       });
 

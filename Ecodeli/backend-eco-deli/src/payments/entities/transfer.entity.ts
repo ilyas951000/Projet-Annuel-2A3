@@ -30,7 +30,8 @@ export class Transfer {
   @CreateDateColumn()
   requestedAt: Date;
 
-  @Column()
-  packageId: number;
+  @Column({ type: 'int', nullable: true })
+  packageId: number | null;
+
 
 }

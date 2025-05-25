@@ -24,6 +24,10 @@ export class Subscription {
   @Column()
   supplement3000: boolean;
 
+  @Column({ default: false })
+  hasUsedFreeShipping: boolean;
+
+
   @ManyToOne(() => User, (user) => user.subscription, { nullable: false, eager: true })
   users: User;
 }

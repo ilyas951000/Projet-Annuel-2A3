@@ -38,6 +38,20 @@ export class SubscriptionsService {
     return await this.subscriptionRepo.find({ relations: ['users'] });
   }
 
+  async findByUserId(userId: number): Promise<Subscription> {
+    const subscription = await this.subscriptionRepo.findOne({
+      where: { users: { id: userId } },
+      relations: ['users'],
+    });
+
+    if (!subscription) {
+      throw new NotFoundException(`Aucun abonnement trouvé pour l'utilisateur ${userId}`);
+    }
+
+    return subscription;
+  }
+
+
   async findOne(id: number): Promise<Subscription> {
     const subscription = await this.subscriptionRepo.findOne({ where: { id }, relations: ['users'] });
 

@@ -27,15 +27,17 @@ export class StripeController {
 
   @Post('intent')
   createIntent(
-    @Body() body: { clientId: number; providerId: number; amount: number; packageId?: number }
+    @Body() body: { clientId: number; providerId: number; amount: number; packageId?: number; fee: number }
   ) {
     return this.stripeService.createPaymentIntent(
       body.clientId,
       body.providerId,
       body.amount,
-      body.packageId // 👈 ici
+      body.packageId,
+      body.fee // 👈 ajoute ceci
     );
   }
+
 
 
   @Get('provider/:id/balance')

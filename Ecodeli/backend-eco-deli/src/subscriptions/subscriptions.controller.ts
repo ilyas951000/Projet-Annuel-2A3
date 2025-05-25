@@ -21,5 +21,10 @@ export class SubscriptionsController {
     return this.subscriptionsService.findOne(+id);
   }
 
+  @Get('user/:id')
+  getUserSubscription(@Param('id') id: number) {
+    return this.subscriptionsService.findByUserId(id);
+  }
+
   
 }
