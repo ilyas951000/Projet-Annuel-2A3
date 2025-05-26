@@ -3,6 +3,8 @@ import { useEffect, useState } from "react"
 import { MapPin, Calendar, Package, Truck, Clock, ChevronRight, Menu } from "lucide-react"
 import Image from "next/image"
 import { motion, AnimatePresence } from "framer-motion"
+import { useRouter } from "next/navigation"
+import { AlertTriangle, X } from "lucide-react"
 
 interface Localisation {
   currentStreet: string
@@ -14,6 +16,7 @@ interface Localisation {
 }
 
 interface PackageType {
+    id: number
   packageName: string
   packageWeight: number
   packageQuantity: number
@@ -39,6 +42,7 @@ interface Ad {
 }
 
 export default function DeliveryTracking() {
+  const router = useRouter()
   const [sidebarOpen, setSidebarOpen] = useState(false)
   const [userId, setUserId] = useState<number | null>(null)
   const [userLoading, setUserLoading] = useState(true)
@@ -47,6 +51,11 @@ export default function DeliveryTracking() {
   const [loadingAds, setLoadingAds] = useState(true)
   const [errorAds, setErrorAds] = useState<string | null>(null)
   const [expandedAdId, setExpandedAdId] = useState<number | null>(null)
+  const [showReportModal, setShowReportModal] = useState(false)
+  const [selectedAdForReport, setSelectedAdForReport] = useState<Ad | null>(null)
+  const [reportReason, setReportReason] = useState("")
+  const [reportLoading, setReportLoading] = useState(false)
+  const [reportError, setReportError] = useState<string | null>(null)
 
   useEffect(() => {
     const fetchUser = async () => {
@@ -110,12 +119,90 @@ export default function DeliveryTracking() {
     }
   }
 
-  const handleReportIssue = (adId: number) => {
-    // Pour l'instant, on peut afficher une alerte ou ouvrir un modal
-    alert(`Signalement pour le colis #${adId} - Fonctionnalité à implémenter`)
-    // Ici vous pourrez ajouter la logique pour ouvrir un modal de signalement
-    // ou rediriger vers une page de contact
+  const handleReportIssue = (ad: Ad) => {
+    setSelectedAdForReport(ad)
+    setShowReportModal(true)
+    setReportReason("")
+    setReportError(null)
   }
+
+  const handleSubmitReport = async () => {
+    if (!reportReason.trim() || !selectedAdForReport) {
+        setReportError("Veuillez saisir une raison pour le signalement.")
+        return
+    }
+
+    setReportLoading(true)
+    setReportError(null)
+
+    try {
+        const token = localStorage.getItem("token")
+        if (!token) throw new Error("Token manquant")
+
+        // 1. Créer le signalement
+        const reportData = {
+        packageId: selectedAdForReport.packages?.[0]?.id || selectedAdForReport.id,
+        advertisementId: selectedAdForReport.id,
+        reason: reportReason.trim(),
+        status: "en_attente",
+        }
+
+        const reportRes = await fetch("http://localhost:3001/reports", {
+        method: "POST",
+        headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify(reportData),
+        })
+
+        if (!reportRes.ok) {
+        throw new Error("Erreur lors de la création du signalement")
+        }
+
+        // 2. Récupérer tous les admins
+        const adminRes = await fetch("http://localhost:3001/users/admins", {
+        headers: { Authorization: `Bearer ${token}` },
+        })
+
+        if (!adminRes.ok) throw new Error("Erreur récupération des administrateurs")
+        const admins = await adminRes.json()
+        if (!admins.length) throw new Error("Aucun administrateur trouvé")
+
+        // 3. Construire le message
+        const packageId = selectedAdForReport.packages?.[0]?.id || selectedAdForReport.id
+        const content = `🚨 SIGNALEMENT COLIS #${selectedAdForReport.id}\n\nRaison: ${reportReason.trim()}\n\nColis: ${selectedAdForReport.packages?.[0]?.packageName || selectedAdForReport.advertisementItem}\nDe: ${selectedAdForReport.packages?.[0]?.localisations?.[0]?.currentCity} → ${selectedAdForReport.packages?.[0]?.localisations?.[0]?.destinationCity}`
+
+        // 4. Envoyer le message à chaque admin
+        for (const admin of admins) {
+        await fetch("http://localhost:3001/messages", {
+            method: "POST",
+            headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+            },
+            body: JSON.stringify({
+            fromUserId: userId,
+            toUserId: admin.id,
+            content,
+            packageId,
+            }),
+        })
+        }
+
+        // 5. Fermer le modal
+        setShowReportModal(false)
+        setSelectedAdForReport(null)
+
+        // 6. Rediriger vers le chat avec le premier admin
+        router.push(`/dashboard/client/chat/${admins[0].id}?packageId=${packageId}`)
+    } catch (err: any) {
+        setReportError(err.message || "Une erreur est survenue")
+    } finally {
+        setReportLoading(false)
+    }
+    }
+
 
   return (
     <div className="flex h-screen bg-gray-50 relative">
@@ -184,17 +271,24 @@ export default function DeliveryTracking() {
                       <div className="flex-1 min-w-0">
                         <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-2">
                           <div>
-                            <div className="flex items-center gap-2">
-                              <h3 className="text-lg font-bold text-gray-900 truncate">
-                                {ad.packages?.[0]?.packageName || ad.advertisementItem || "Colis"}
-                                {ad.packages?.[0]?.packageQuantity > 1 ? ` (x${ad.packages[0].packageQuantity})` : ""}
-                              </h3>
-                              {ad.isPriority && (
-                                <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-orange-100 text-orange-800">
-                                  ⭐ Prioritaire
-                                </span>
-                              )}
-                            </div>
+                            <div>
+                                <div className="flex items-center gap-2">
+                                    <h3 className="text-lg font-bold text-gray-900 truncate">
+                                    {(() => {
+                                        const firstPackage = ad.packages?.[0];
+                                        const name = firstPackage?.packageName || ad.advertisementItem || "Colis";
+                                        const quantity = firstPackage?.packageQuantity;
+                                        return quantity && quantity > 1 ? `${name} (x${quantity})` : name;
+                                    })()}
+                                    </h3>
+
+                                    {ad.isPriority && (
+                                    <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-orange-100 text-orange-800">
+                                        ⭐ Prioritaire
+                                    </span>
+                                    )}
+                                </div>
+                                </div>
                             <p className="text-sm text-gray-500">
                               Colis #{ad.id} • Publié le {formatDate(ad.publicationDate)}
                             </p>
@@ -352,7 +446,7 @@ export default function DeliveryTracking() {
                       {/* Nouveau bouton signaler */}
                       <div className="mt-6 flex justify-end">
                         <button
-                          onClick={() => handleReportIssue(ad.id)}
+                          onClick={() => handleReportIssue(ad)}
                           className="inline-flex items-center px-4 py-2 bg-red-500 hover:bg-red-600 text-white rounded-lg transition-colors shadow-sm"
                         >
                           <span className="mr-2">⚠️</span>
@@ -364,6 +458,83 @@ export default function DeliveryTracking() {
                 </motion.div>
               </AnimatePresence>
             ))}
+          </div>
+        )}
+        {/* Modal de signalement */}
+        {showReportModal && selectedAdForReport && (
+          <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
+            <div className="bg-white rounded-lg shadow-lg w-full max-w-md p-6 overflow-y-auto max-h-[90vh]">
+              <div className="flex justify-between items-center mb-4">
+                <h3 className="text-xl font-semibold flex items-center">
+                  <AlertTriangle className="w-5 h-5 mr-2 text-red-500" />
+                  Signaler un problème
+                </h3>
+                <button onClick={() => setShowReportModal(false)} className="text-gray-500 hover:text-gray-700">
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+
+              <div className="mb-4 p-3 bg-gray-50 rounded-lg">
+                <p className="text-sm text-gray-600">
+                  <strong>Colis:</strong>{" "}
+                  {selectedAdForReport.packages?.[0]?.packageName || selectedAdForReport.advertisementItem}
+                </p>
+                <p className="text-sm text-gray-600">
+                  <strong>ID:</strong> #{selectedAdForReport.id}
+                </p>
+                <p className="text-sm text-gray-600">
+                  <strong>Statut:</strong> {selectedAdForReport.advertisementStatus || "en attente"}
+                </p>
+              </div>
+
+              <form
+                onSubmit={(e) => {
+                  e.preventDefault()
+                  handleSubmitReport()
+                }}
+                className="space-y-4"
+              >
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Raison du signalement *</label>
+                  <textarea
+                    value={reportReason}
+                    onChange={(e) => setReportReason(e.target.value)}
+                    className="w-full border border-gray-300 rounded-lg p-3 focus:ring-2 focus:ring-red-500 focus:border-red-500 outline-none min-h-[120px]"
+                    placeholder="Décrivez le problème rencontré avec ce colis..."
+                    required
+                  />
+                </div>
+
+                {reportError && (
+                  <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg">{reportError}</div>
+                )}
+
+                <div className="flex justify-between pt-2">
+                  <button
+                    type="button"
+                    onClick={() => setShowReportModal(false)}
+                    className="px-4 py-2 rounded-lg border border-gray-300 text-gray-700 hover:bg-gray-50 transition-colors"
+                  >
+                    Annuler
+                  </button>
+
+                  <button
+                    type="submit"
+                    disabled={reportLoading || !reportReason.trim()}
+                    className="px-4 py-2 rounded-lg bg-red-500 text-white hover:bg-red-600 transition-colors disabled:opacity-70 disabled:cursor-not-allowed"
+                  >
+                    {reportLoading ? "Signalement..." : "Signaler et contacter l'admin"}
+                  </button>
+                </div>
+              </form>
+
+              <div className="mt-4 p-3 bg-blue-50 rounded-lg">
+                <p className="text-xs text-blue-700">
+                  💡 Après avoir soumis ce signalement, vous serez redirigé vers un chat avec l'administrateur pour
+                  résoudre le problème.
+                </p>
+              </div>
+            </div>
           </div>
         )}
       </main>

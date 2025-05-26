@@ -31,6 +31,7 @@ import { TransferHistoryModule } from './transfer-history/transfer-history.modul
 import { LocalModule } from './local/local.module'; // adapte le chemin selon ta structure
 import { BoxModule } from './box/box.module';
 import { ReservationModule } from './reservation/reservation.module';
+import { ReportsModule } from './reports/reports.module';
 
 @Module({
   imports: [
@@ -80,6 +81,7 @@ import { ReservationModule } from './reservation/reservation.module';
     LocalModule,
     BoxModule, // ✅ ajouté ici
     ReservationModule,
+    ReportsModule,
   ],
   controllers: [AppController],
   providers: [AppService, ChatGateway], // ✅ ajouté ici

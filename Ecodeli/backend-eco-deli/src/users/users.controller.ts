@@ -18,6 +18,11 @@ export class UsersController {
     return this.usersService.findAll();  
   }
 
+  @Get('admins')
+  async getAdmins() {
+    return this.usersService.findAllAdmins();
+  }
+
   @Get('pending')
   findPendingUsers(): Promise<User[]> {
     return this.usersService.getPendingUsers();
