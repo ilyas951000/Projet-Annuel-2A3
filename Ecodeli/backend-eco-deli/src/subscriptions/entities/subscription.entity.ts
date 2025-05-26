@@ -21,6 +21,12 @@ export class Subscription {
   @Column()
   permanentDiscount: number;
 
+  @Column({ default: 0 })
+  priorityShippingUsed: number;
+
+  @Column({ type: 'timestamp', nullable: true })
+  lastPriorityReset: Date | null;
+
   @Column()
   supplement3000: boolean;
 

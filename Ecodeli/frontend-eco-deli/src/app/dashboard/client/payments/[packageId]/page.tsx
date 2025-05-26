@@ -47,6 +47,9 @@ function CheckoutForm() {
   const [error, setError] = useState<string | null>(null)
   const [freeShippingActivated, setFreeShippingActivated] = useState(false)
   const [discount, setDiscount] = useState<number>(0)
+  const [hasPriorityFee, setHasPriorityFee] = useState(false)
+  const [remainingFreePriority, setRemainingFreePriority] = useState<number | null>(null)
+
 
 
   useEffect(() => {
@@ -133,6 +136,38 @@ function CheckoutForm() {
             amountToPay = base + feeToUse
           }
         }
+
+        // Vérifie si le colis est prioritaire
+        if (packageData?.prioritaire) {
+          let surchargeApplied = false;
+
+          if (!subData?.subscriptionTitle) {
+            // Aucun abonnement → +15%
+            const surcharge = amountToPay * 0.15;
+            amountToPay += surcharge;
+            surchargeApplied = true;
+          } else if (subData.subscriptionTitle === "Starter") {
+            const surcharge = amountToPay * 0.05;
+            amountToPay += surcharge;
+            surchargeApplied = true;
+          } else if (subData.subscriptionTitle === "Premium") {
+            const used = subData.priorityShippingUsed ?? 0;
+            const remaining = 3 - used;
+
+            setRemainingFreePriority(remaining > 0 ? remaining : 0);
+
+            if (remaining <= 0) {
+              const surcharge = amountToPay * 0.05;
+              amountToPay += surcharge;
+              surchargeApplied = true;
+            }
+          }
+
+          if (surchargeApplied) {
+            setHasPriorityFee(true);
+          }
+        }
+
 
         setBaseAmount(base)
         setFee(baseFee)
@@ -320,6 +355,29 @@ function CheckoutForm() {
                                 </>
                               )}
                             </>
+                          )}
+                        </ul>
+                      </div>
+                    )}
+                    {packageInfo?.prioritaire && (
+                      <div className="mt-4">
+                        <h4 className="text-sm font-semibold text-gray-700 mb-1">Frais prioritaire</h4>
+                        <ul className="text-sm text-gray-600 space-y-1">
+                          {hasPriorityFee ? (
+                            <li className="flex items-center">
+                              <CheckCircle className="w-4 h-4 mr-2 text-yellow-500" />
+                              Des frais ont été ajoutés pour livraison prioritaire
+                            </li>
+                          ) : (
+                            <li className="flex items-center">
+                              <CheckCircle className="w-4 h-4 mr-2 text-green-500" />
+                              Livraison prioritaire offerte
+                            </li>
+                          )}
+                          {subscription?.subscriptionTitle === "Premium" && remainingFreePriority !== null && (
+                            <li className="text-xs text-gray-500 ml-6">
+                              {remainingFreePriority} livraison{remainingFreePriority > 1 ? "s" : ""} prioritaire{remainingFreePriority > 1 ? "s" : ""} gratuite{remainingFreePriority > 1 ? "s" : ""} restante{remainingFreePriority > 1 ? "s" : ""}
+                            </li>
                           )}
                         </ul>
                       </div>

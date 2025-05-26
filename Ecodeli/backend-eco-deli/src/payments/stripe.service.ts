@@ -134,7 +134,10 @@ async createPaymentIntent(
     packageId?: number,
     fee?: number
   ) {
-    const client = await this.userRepo.findOne({ where: { id: clientId }, relations: ['subscription'] });
+    const client = await this.userRepo.findOne({
+      where: { id: clientId },
+      relations: ['subscription'],
+    });
     const provider = await this.userRepo.findOneBy({ id: providerId });
 
     if (!client || !provider) {
@@ -142,8 +145,6 @@ async createPaymentIntent(
     }
 
     const subscription = client.subscription?.[0];
-    if (!subscription) throw new Error("Aucun abonnement trouvé pour ce client.");
-
 
     const packageEntity = await this.packageRepo.findOneBy({ id: packageId });
     if (!packageEntity) throw new Error('Colis introuvable');
@@ -160,25 +161,61 @@ async createPaymentIntent(
 
     // Réductions selon abonnement
     if (subscription?.subscriptionTitle === 'Starter') {
-      serviceFee *= 0.95; // -5% obligatoire sur les frais
+      serviceFee *= 0.95; // -5%
       if (
         packageEntity.packageDimension &&
         ['xs', 's'].includes(packageEntity.packageDimension)
       ) {
         serviceFee *= 0.95; // -5% supplémentaire
       }
-
     }
 
     if (subscription?.subscriptionTitle === 'Premium') {
       const totalDiscount = (subscription.shippingDiscount + subscription.permanentDiscount) / 100;
-      serviceFee = serviceFee * (1 - totalDiscount); // Frais réduits de 14%
+      serviceFee *= 1 - totalDiscount;
 
       // Premier envoi gratuit si < 150 €
       if (!subscription.hasUsedFreeShipping && basePrice < 150) {
         serviceFee = 0;
         subscription.hasUsedFreeShipping = true;
         await this.subscriptionRepo.save(subscription);
+      }
+    }
+
+    // 👉 Frais supplémentaires si le colis est prioritaire
+    if (packageEntity.prioritaire) {
+      if (!subscription || !subscription.subscriptionTitle) {
+        // Aucun abonnement → +15%
+        const priorityFee = (basePrice + serviceFee) * 0.15;
+        serviceFee += priorityFee;
+      } else if (subscription.subscriptionTitle === 'Starter') {
+        // Starter → +5%
+        const priorityFee = (basePrice + serviceFee) * 0.05;
+        serviceFee += priorityFee;
+      } else if (subscription.subscriptionTitle === 'Premium') {
+        // Premium → 3 gratuits par mois puis +5%
+        const now = new Date();
+        const lastReset = subscription.lastPriorityReset;
+        const shouldReset =
+          !lastReset ||
+          now.getMonth() !== new Date(lastReset).getMonth() ||
+          now.getFullYear() !== new Date(lastReset).getFullYear();
+
+        if (shouldReset) {
+          subscription.priorityShippingUsed = 0;
+          subscription.lastPriorityReset = now;
+          await this.subscriptionRepo.save(subscription);
+        }
+
+        const used = subscription.priorityShippingUsed ?? 0;
+        if (used < 3) {
+          subscription.priorityShippingUsed = used + 1;
+          await this.subscriptionRepo.save(subscription);
+          // Pas de surtaxe
+        } else {
+          const priorityFee = (basePrice + serviceFee) * 0.05;
+          serviceFee += priorityFee;
+        }
       }
     }
 
@@ -216,6 +253,8 @@ async createPaymentIntent(
 
     return { clientSecret: paymentIntent.client_secret };
   }
+
+
 
 
 

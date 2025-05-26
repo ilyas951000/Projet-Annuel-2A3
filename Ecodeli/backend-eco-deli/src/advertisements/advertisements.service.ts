@@ -52,6 +52,8 @@ export class AdvertisementsService {
           pkg.packageDimension = pkgDto.dimension ?? '';
           pkg.packageWeight = pkgDto.weight ?? 0;
           pkg.deliveryStatus = 'en attente';
+          pkg.prioritaire = pkgDto.prioritaire === true;
+
 
           const rawLocs = Array.isArray(pkgDto.localisations) ? pkgDto.localisations : [];
 
