@@ -45,6 +45,18 @@ const getSubscriptionLabel = (code?: number) => {
   }
 }
 
+const getMaxRefundAmount = (subscriptionLevel?: number): number => {
+  switch (subscriptionLevel) {
+    case 1: // Starter
+      return 115
+    case 2: // Premium
+      return 3000
+    default: // Free
+      return 0
+  }
+}
+
+
 
 export default function ChatPage() {
   const { clientId } = useParams()
@@ -61,6 +73,10 @@ export default function ChatPage() {
   const [isTyping, setIsTyping] = useState(false)
   const messagesEndRef = useRef<HTMLDivElement>(null)
   const inputRef = useRef<HTMLInputElement>(null)
+  const [showRefundModal, setShowRefundModal] = useState(false)
+  const [refundAmount, setRefundAmount] = useState("")
+  const [refundError, setRefundError] = useState<string | null>(null)
+
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" })
@@ -194,6 +210,15 @@ export default function ChatPage() {
     }
   }
 
+
+  const handleRefund = () => {
+    setRefundAmount("")
+    setRefundError(null)
+    setShowRefundModal(true)
+  }
+
+
+
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === "Enter" && !e.shiftKey) {
       e.preventDefault()
@@ -208,6 +233,25 @@ export default function ChatPage() {
       })
     }
   }
+
+  const confirmRefund = () => {
+    const max = getMaxRefundAmount(otherUser?.userSubscription)
+    const amountNum = Number(refundAmount)
+
+    if (isNaN(amountNum) || amountNum <= 0) {
+      setRefundError("Veuillez entrer un montant valide.")
+      return
+    }
+
+    if (amountNum > max) {
+      setRefundError(`Le montant dépasse le plafond autorisé (${max}€).`)
+      return
+    }
+
+    alert(`✅ Remboursement validé de ${amountNum}€.`)
+    setShowRefundModal(false)
+  }
+
 
   const handleNegotiationResponse = async (accept: boolean, msg: IMessage, amount: number) => {
     if (!userId || !packageInfo?.advertisementId) return
@@ -313,8 +357,19 @@ export default function ChatPage() {
             <ExternalLink className="w-4 h-4 mr-1" />
             Voir l'annonce
           </Link>
+          
         )}
       </div>
+
+      {otherUser?.userSubscription !== undefined && getMaxRefundAmount(otherUser.userSubscription) > 0 && (
+        <button
+          onClick={() => handleRefund()}
+          className="ml-3 px-3 py-1 text-sm bg-blue-100 text-blue-800 rounded hover:bg-blue-200 transition-colors"
+        >
+          Rembourser (max {getMaxRefundAmount(otherUser.userSubscription)}€)
+        </button>
+      )}
+
 
       {/* Package info if available */}
       {packageInfo && (
@@ -337,6 +392,50 @@ export default function ChatPage() {
                   : formatDate(groupedMessages[date][0].timestamp)}
               </span>
             </div>
+
+            {showRefundModal && (
+              <div className="fixed inset-0 bg-black bg-opacity-40 flex items-center justify-center z-50">
+                <div className="bg-white rounded-lg p-6 shadow-lg w-full max-w-sm">
+                  <h2 className="text-lg font-semibold mb-4">Remboursement</h2>
+
+                  <p className="text-sm text-gray-600 mb-2">
+                    Abonnement : <strong>{getSubscriptionLabel(otherUser?.userSubscription)}</strong>
+                  </p>
+                  <p className="text-sm text-gray-600 mb-4">
+                    Montant maximum : <strong>{getMaxRefundAmount(otherUser?.userSubscription)} €</strong>
+                  </p>
+
+                  <input
+                    type="number"
+                    min="0"
+                    max={getMaxRefundAmount(otherUser?.userSubscription)}
+                    placeholder="Montant à rembourser (€)"
+                    value={refundAmount}
+                    onChange={(e) => setRefundAmount(e.target.value)}
+                    className="w-full border border-gray-300 rounded p-2 mb-2 focus:ring focus:ring-blue-200"
+                  />
+
+                  {refundError && (
+                    <p className="text-sm text-red-600 mb-2">{refundError}</p>
+                  )}
+
+                  <div className="flex justify-end gap-2 mt-4">
+                    <button
+                      onClick={() => setShowRefundModal(false)}
+                      className="px-4 py-2 rounded bg-gray-200 hover:bg-gray-300 text-sm"
+                    >
+                      Annuler
+                    </button>
+                    <button
+                      onClick={confirmRefund}
+                      className="px-4 py-2 rounded bg-blue-600 text-white hover:bg-blue-700 text-sm"
+                    >
+                      Valider
+                    </button>
+                  </div>
+                </div>
+              </div>
+            )}
 
             <div className="space-y-3">
               {groupedMessages[date].map((msg) => {
