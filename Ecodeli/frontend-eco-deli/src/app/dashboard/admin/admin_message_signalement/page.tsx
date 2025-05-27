@@ -35,6 +35,45 @@ export default function LivreurConversationsPage() {
   const [livreurId, setLivreurId] = useState<number | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [searchTerm, setSearchTerm] = useState("")
+  const [handledReportPackageIds, setHandledReportPackageIds] = useState<number[]>([])
+
+
+  useEffect(() => {
+    const fetchHandledReports = async () => {
+      const token = localStorage.getItem("token")
+      if (!token) return
+
+      try {
+        // 🔑 On récupère l'admin connecté
+        const resMe = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/auth/me`, {
+          headers: { Authorization: `Bearer ${token}` },
+        })
+        const me = await resMe.json()
+        const currentAdminId = me.userId
+
+        const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/reports/open`, {
+          headers: { Authorization: `Bearer ${token}` },
+        })
+        if (!res.ok) throw new Error("Erreur récupération signalements")
+
+        const data = await res.json()
+
+        // 🎯 Filtrage : uniquement les signalements non pris en charge OU pris en charge par cet admin
+        const pkgIds = data
+          .filter((r: any) => !r.handledBy || r.handledBy.id === currentAdminId)
+          .map((r: any) => r.package?.id)
+          .filter(Boolean)
+
+        setHandledReportPackageIds(pkgIds)
+      } catch (err) {
+        console.error("Erreur signalements:", err)
+      }
+    }
+
+    fetchHandledReports()
+  }, [])
+
+
 
   useEffect(() => {
     const fetchConversations = async () => {
@@ -150,6 +189,14 @@ export default function LivreurConversationsPage() {
     )
   })
 
+  // 👇 Ajoute ceci juste après
+  const visibleConversations = filteredConversations.filter((conv) => {
+    // Si pas de colis lié => afficher
+    // Si colis lié => afficher seulement s’il est encore ouvert (non pris en charge)
+    return !conv.packageId || handledReportPackageIds.includes(conv.packageId)
+  })
+
+
   if (error) {
     return (
       <div className="max-w-2xl mx-auto p-6 text-center">
@@ -199,7 +246,7 @@ export default function LivreurConversationsPage() {
       ) : (
         <AnimatePresence>
           <div className="space-y-4">
-            {filteredConversations.map((conv) => {
+            {visibleConversations.map((conv) => {
               const user = usersMap[conv.userId]
               const chatUrl = `/dashboard/admin/chat/${conv.userId}${
                 conv.packageId ? `?packageId=${conv.packageId}` : ""

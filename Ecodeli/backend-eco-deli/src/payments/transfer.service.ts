@@ -1,4 +1,8 @@
-import { Injectable, BadRequestException, NotFoundException } from '@nestjs/common';
+import {
+  Injectable,
+  BadRequestException,
+  NotFoundException,
+} from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Transaction } from './entities/transaction.entity';
@@ -19,8 +23,20 @@ export class TransferService {
     private userRepo: Repository<User>,
 
     @InjectRepository(TransferHistory)
-    private readonly transferHistoryRepo: Repository<TransferHistory>
+    private readonly transferHistoryRepo: Repository<TransferHistory>,
   ) {}
+
+  // ✅ Fonction manquante ajoutée ici
+  private getMaxRefundAmount(subscription?: number): number {
+    switch (subscription) {
+      case 1:
+        return 115; // Starter
+      case 2:
+        return 3000; // Premium
+      default:
+        return 0; // Free
+    }
+  }
 
   async getBalance(providerId: number): Promise<{ balance: number }> {
     const transfers = await this.transferRepo.find({
@@ -38,7 +54,58 @@ export class TransferService {
     return { balance: earned - withdrawn };
   }
 
-  async requestTransfer(providerId: number, amount: number): Promise<Transfer> {
+async refundClient(
+    adminId: number,
+    providerId: number,
+    amount: number,
+  ): Promise<Transfer> {
+    if (amount <= 0) {
+      throw new BadRequestException('Montant invalide');
+    }
+
+    // 🔍 On récupère l'admin (utilisateur connecté) et le livreur (destinataire du remboursement)
+    const admin = await this.userRepo.findOneBy({ id: adminId });
+    const provider = await this.userRepo.findOneBy({ id: providerId });
+
+    if (!admin) {
+      console.error(`❌ Admin avec l'ID ${adminId} introuvable`);
+      throw new NotFoundException('Admin introuvable');
+    }
+
+    if (!provider) {
+      console.error(`❌ Livreur avec l'ID ${providerId} introuvable`);
+      throw new NotFoundException('Livreur introuvable');
+    }
+
+    // ✅ Plafond basé sur l'abonnement du livreur
+    const max = this.getMaxRefundAmount(provider.userSubscription);
+    if (amount > max) {
+      throw new BadRequestException(`Le montant dépasse le plafond autorisé (${max} €)`);
+    }
+
+    // ✅ On crée un transfert direct du client (admin) vers le livreur (prestataire)
+    const transfer = this.transferRepo.create({
+      provider,            // → Livreur = bénéficiaire
+      client: admin,       // → Admin = initiateur du remboursement
+      amount,
+      status: 'completed',
+      isValidatedByClient: true,
+      requestedAt: new Date(),
+      packageId: null,     // 💡 optionnel ici, sauf si tu veux associer un colis
+    });
+
+    console.log(`💸 Remboursement de ${amount}€ de l'admin #${admin.id} vers le livreur #${provider.id}`);
+
+    return this.transferRepo.save(transfer);
+  }
+
+
+
+
+  async requestTransfer(
+    providerId: number,
+    amount: number,
+  ): Promise<Transfer> {
     if (amount <= 0) throw new BadRequestException('Montant invalide');
     const { balance } = await this.getBalance(providerId);
     if (amount > balance) throw new BadRequestException('Solde insuffisant');
@@ -46,11 +113,20 @@ export class TransferService {
     const provider = await this.userRepo.findOneBy({ id: providerId });
     if (!provider) throw new NotFoundException('Prestataire introuvable');
 
-    const transfer = this.transferRepo.create({ provider, amount, status: 'pending' });
+    const transfer = this.transferRepo.create({
+      provider,
+      amount,
+      status: 'pending',
+    });
+
     return this.transferRepo.save(transfer);
   }
 
-  async distributePayment(packageId: number, totalAmount: number, clientUserId: number) {
+  async distributePayment(
+    packageId: number,
+    totalAmount: number,
+    clientUserId: number,
+  ) {
     const segments = await this.transferHistoryRepo.find({
       where: { packageId },
       order: { transferDate: 'ASC' },
@@ -68,7 +144,6 @@ export class TransferService {
     console.log('TotalAmount:', totalAmount);
     console.log('Segments:', segments);
 
-    // Supprimer tous les transferts existants pour ce colis
     await this.transferRepo.delete({ packageId });
 
     const transfersToInsert: Transfer[] = [];
@@ -76,11 +151,14 @@ export class TransferService {
     for (let i = 0; i < segments.length; i++) {
       const seg = segments[i];
 
-      // 1. fromCourier
       if (seg.fromCourierId && seg.livreur1Progress) {
-        const provider = await this.userRepo.findOneBy({ id: seg.fromCourierId });
+        const provider = await this.userRepo.findOneBy({
+          id: seg.fromCourierId,
+        });
         if (provider) {
-          const amount = Math.round((seg.livreur1Progress / 100) * totalAmount);
+          const amount = Math.round(
+            (seg.livreur1Progress / 100) * totalAmount,
+          );
 
           transfersToInsert.push(
             this.transferRepo.create({
@@ -91,19 +169,24 @@ export class TransferService {
               isValidatedByClient: true,
               requestedAt: new Date(),
               packageId,
-            })
+            }),
           );
 
-          console.log(`→ Livreur ${seg.fromCourierId} reçoit ${amount}€ (progress: ${seg.livreur1Progress}%)`);
+          console.log(
+            `→ Livreur ${seg.fromCourierId} reçoit ${amount}€ (progress: ${seg.livreur1Progress}%)`,
+          );
         }
       }
 
-      // 2. toCourier (uniquement pour le dernier segment)
       const isLast = i === segments.length - 1;
       if (isLast && seg.toCourierId && seg.livreur2Progress) {
-        const lastProvider = await this.userRepo.findOneBy({ id: seg.toCourierId });
+        const lastProvider = await this.userRepo.findOneBy({
+          id: seg.toCourierId,
+        });
         if (lastProvider) {
-          const amount = Math.round((seg.livreur2Progress / 100) * totalAmount);
+          const amount = Math.round(
+            (seg.livreur2Progress / 100) * totalAmount,
+          );
 
           transfersToInsert.push(
             this.transferRepo.create({
@@ -114,10 +197,12 @@ export class TransferService {
               isValidatedByClient: false,
               requestedAt: new Date(),
               packageId,
-            })
+            }),
           );
 
-          console.log(`→ Livreur final ${seg.toCourierId} reçoit ${amount}€ (progress: ${seg.livreur2Progress}%)`);
+          console.log(
+            `→ Livreur final ${seg.toCourierId} reçoit ${amount}€ (progress: ${seg.livreur2Progress}%)`,
+          );
         }
       }
     }

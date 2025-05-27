@@ -145,6 +145,7 @@ export default function DeliveryTracking() {
         advertisementId: selectedAdForReport.id,
         reason: reportReason.trim(),
         status: "en_attente",
+        clientId: userId, // ✅ AJOUTE CECI
         }
 
         const reportRes = await fetch("http://localhost:3001/reports", {

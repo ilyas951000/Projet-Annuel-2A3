@@ -39,7 +39,7 @@ export default function Dashboard() {
                     { title: "Modification et mise à jour du profil", link: "/dashboard/admin/userManagement" },
                     { title: "Gestion des rôles et permissions", link: "/dashboard/admin/roles-permissions" },
                     { title: "Bannissement et suspension", link: "/dashboard/admin/bannissement" },
-                    { title: "Historique et logs", link: "/dashboard/admin/historique-logs" }
+                    { title: "Signalement des clients", link: "/dashboard/admin/admin_message_signalement" }
                   ]} 
                 />
 

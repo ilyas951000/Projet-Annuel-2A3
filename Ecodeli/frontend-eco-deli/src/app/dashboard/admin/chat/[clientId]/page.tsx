@@ -17,6 +17,7 @@ interface IMessage {
   content: string
   timestamp: string
   packageId?: number
+  reportId?: number // 👈 ajoute cette ligne
 }
 
 interface IPackage {
@@ -77,6 +78,52 @@ export default function ChatPage() {
   const [refundAmount, setRefundAmount] = useState("")
   const [refundError, setRefundError] = useState<string | null>(null)
 
+  const [reportId, setReportId] = useState<number | null>(null)
+
+  useEffect(() => {
+    const fetchReport = async () => {
+      const token = localStorage.getItem("token")
+      if (!token || !packageIdFromQuery) return
+
+      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/reports/open`, {
+        headers: { Authorization: `Bearer ${token}` },
+      })
+
+      if (!res.ok) return
+
+      const reports = await res.json()
+      const found = reports.find((r: any) => r.package?.id === Number(packageIdFromQuery))
+
+      if (found) {
+        setReportId(found.id)
+      }
+    }
+
+    fetchReport()
+  }, [packageIdFromQuery])
+
+
+  const [openReports, setOpenReports] = useState<number[]>([])
+
+  useEffect(() => {
+    const fetchOpenReports = async () => {
+      const token = localStorage.getItem("token")
+      if (!token) return
+
+      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/reports/open`, {
+        headers: { Authorization: `Bearer ${token}` },
+      })
+
+      if (res.ok) {
+        const data = await res.json()
+        setOpenReports(data.map((r: any) => r.id)) // adapt based on structure
+      }
+    }
+
+    fetchOpenReports()
+  }, [])
+
+
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" })
@@ -95,9 +142,10 @@ export default function ChatPage() {
           headers: { Authorization: `Bearer ${token}` },
         })
         const data = await res.json()
-        if (res.ok && data.userId) {
-          setUserId(data.userId)
-        } else {
+        if (res.ok && (data.userId || data.sub)) {
+          setUserId(data.userId ?? data.sub)
+        }
+        else {
           throw new Error("Erreur d'authentification.")
         }
       } catch (err: any) {
@@ -183,22 +231,44 @@ export default function ChatPage() {
   const handleSend = async () => {
     if (!newMessage.trim() || !userId || !clientId) return
 
-    const msgToSend = {
-      fromUserId: userId,
-      toUserId: Number.parseInt(clientId as string),
-      content: newMessage.trim(),
-      packageId: packageInfo?.id || (packageIdFromQuery ? Number.parseInt(packageIdFromQuery, 10) : undefined),
-    }
+    const token = localStorage.getItem("token")
+    if (!token) return
 
     try {
-      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/messages`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(msgToSend),
-      })
+      let savedMessage
 
-      const savedMessage = await res.json()
-      if (!res.ok) throw new Error(savedMessage.message || "Erreur d'envoi.")
+      if (reportId) {
+        const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/reports/respond`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+          },
+          body: JSON.stringify({
+            reportId,
+            content: newMessage.trim(),
+          }),
+        })
+
+        savedMessage = await res.json()
+        if (!res.ok) throw new Error(savedMessage.message || "Erreur lors de la réponse au signalement.")
+      } else {
+        const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/messages`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            fromUserId: userId,
+            toUserId: Number(clientId),
+            content: newMessage.trim(),
+            packageId: packageInfo?.id || (packageIdFromQuery ? Number(packageIdFromQuery) : undefined),
+          }),
+        })
+
+        savedMessage = await res.json()
+        if (!res.ok) throw new Error(savedMessage.message || "Erreur d'envoi.")
+      }
 
       socket.emit("sendMessage", savedMessage)
       setMessages((prev) => [...prev, savedMessage])
@@ -209,6 +279,7 @@ export default function ChatPage() {
       setError(err.message || "Erreur inattendue.")
     }
   }
+
 
 
   const handleRefund = () => {
@@ -234,7 +305,7 @@ export default function ChatPage() {
     }
   }
 
-  const confirmRefund = () => {
+  const confirmRefund = async () => {
     const max = getMaxRefundAmount(otherUser?.userSubscription)
     const amountNum = Number(refundAmount)
 
@@ -248,9 +319,35 @@ export default function ChatPage() {
       return
     }
 
-    alert(`✅ Remboursement validé de ${amountNum}€.`)
-    setShowRefundModal(false)
+    // FRONTEND — à l'intérieur de confirmRefund()
+
+    try {
+      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/payments/provider/refund`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${localStorage.getItem("token")}`,
+        },
+        body: JSON.stringify({
+          providerId: Number(clientId), // le livreur affiché dans la conversation
+          amount: amountNum,
+        }),
+      });
+
+
+      const result = await res.json();
+      console.log(result); // 👈 ajoute ça
+
+      if (!res.ok) throw new Error(result.message || "Erreur lors du remboursement.");
+
+
+      setShowRefundModal(false)
+      alert(`✅ Remboursement effectué de ${amountNum}€.`)
+    } catch (err: any) {
+      setRefundError(err.message || "Erreur serveur.")
+    }
   }
+
 
 
   const handleNegotiationResponse = async (accept: boolean, msg: IMessage, amount: number) => {
@@ -351,7 +448,7 @@ export default function ChatPage() {
 
         {packageInfo?.advertisementId && (
           <Link
-            href={`/annonces/${packageInfo.advertisementId}`}
+            href={`/dashboard/admin//annonces/${packageInfo.advertisementId}`}
             className="inline-flex items-center text-sm font-medium text-green-600 hover:text-green-700"
           >
             <ExternalLink className="w-4 h-4 mr-1" />
@@ -438,58 +535,67 @@ export default function ChatPage() {
             )}
 
             <div className="space-y-3">
-              {groupedMessages[date].map((msg) => {
-                const isFromMe = msg.fromUserId === userId
-                const isNegotiation = msg.content.includes("propose") && !isFromMe
-                const alreadyResponded = respondedMessageIds.includes(msg.id)
-                const amountMatch = msg.content.match(/(\d+)(?:\s?€)?/)
-                const amount = amountMatch ? Number.parseInt(amountMatch[1], 10) : null
+              {groupedMessages[date]
+                .filter((msg) => {
+                  return !("reportId" in msg) || msg.reportId == null || openReports.includes(msg.reportId)
+                })
+                .map((msg) => {
+                  const isFromMe = msg.fromUserId === userId
+                  const isNegotiation = msg.content.includes("propose") && !isFromMe
+                  const alreadyResponded = respondedMessageIds.includes(msg.id)
+                  const amountMatch = msg.content.match(/(\d+)(?:\s?€)?/)
+                  const amount = amountMatch ? Number.parseInt(amountMatch[1], 10) : null
 
-                return (
-                  <div key={msg.id} className={`flex ${isFromMe ? "justify-end" : "justify-start"}`}>
-                    <AnimatePresence>
-                      <motion.div
-                        initial={{ opacity: 0, y: 10 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        transition={{ duration: 0.2 }}
-                        className={`max-w-[75%] rounded-lg p-3 ${
-                          isFromMe
-                            ? "bg-green-500 text-white rounded-tr-none"
-                            : "bg-white border border-gray-200 rounded-tl-none"
-                        }`}
-                      >
-                        <p className="text-sm whitespace-pre-wrap">{msg.content}</p>
-
-                        {isNegotiation && !alreadyResponded && amount !== null && (
-                          <div className="mt-3 pt-2 border-t border-gray-200 flex justify-between gap-2">
-                            <button
-                              onClick={() => handleNegotiationResponse(false, msg, amount)}
-                              className="flex items-center justify-center px-3 py-1 bg-white text-red-600 rounded text-sm font-medium hover:bg-red-50 transition-colors"
-                            >
-                              <X className="w-3 h-3 mr-1" />
-                              Refuser
-                            </button>
-                            <button
-                              onClick={() => handleNegotiationResponse(true, msg, amount)}
-                              className="flex items-center justify-center px-3 py-1 bg-white text-green-600 rounded text-sm font-medium hover:bg-green-50 transition-colors"
-                            >
-                              <Check className="w-3 h-3 mr-1" />
-                              Accepter
-                            </button>
-                          </div>
-                        )}
-
-                        <div
-                          className={`flex items-center mt-1 text-xs ${isFromMe ? "text-green-100" : "text-gray-400"}`}
+                  return (
+                    <div key={msg.id} className={`flex ${isFromMe ? "justify-end" : "justify-start"}`}>
+                      <AnimatePresence>
+                        <motion.div
+                          initial={{ opacity: 0, y: 10 }}
+                          animate={{ opacity: 1, y: 0 }}
+                          transition={{ duration: 0.2 }}
+                          className={`max-w-[75%] rounded-lg p-3 ${
+                            isFromMe
+                              ? "bg-green-500 text-white rounded-tr-none"
+                              : "bg-white border border-gray-200 rounded-tl-none"
+                          }`}
                         >
-                          <Clock className="w-3 h-3 mr-1" />
-                          {formatTime(msg.timestamp)}
-                        </div>
-                      </motion.div>
-                    </AnimatePresence>
-                  </div>
-                )
-              })}
+                          {msg.reportId && (
+                            <p className="text-xs text-red-500 font-semibold mb-1">🚨 Signalement en cours</p>
+                          )}
+                          <p className="text-sm whitespace-pre-wrap">{msg.content}</p>
+
+                          {isNegotiation && !alreadyResponded && amount !== null && (
+                            <div className="mt-3 pt-2 border-t border-gray-200 flex justify-between gap-2">
+                              <button
+                                onClick={() => handleNegotiationResponse(false, msg, amount)}
+                                className="flex items-center justify-center px-3 py-1 bg-white text-red-600 rounded text-sm font-medium hover:bg-red-50 transition-colors"
+                              >
+                                <X className="w-3 h-3 mr-1" />
+                                Refuser
+                              </button>
+                              <button
+                                onClick={() => handleNegotiationResponse(true, msg, amount)}
+                                className="flex items-center justify-center px-3 py-1 bg-white text-green-600 rounded text-sm font-medium hover:bg-green-50 transition-colors"
+                              >
+                                <Check className="w-3 h-3 mr-1" />
+                                Accepter
+                              </button>
+                            </div>
+                          )}
+
+                          <div
+                            className={`flex items-center mt-1 text-xs ${
+                              isFromMe ? "text-green-100" : "text-gray-400"
+                            }`}
+                          >
+                            <Clock className="w-3 h-3 mr-1" />
+                            {formatTime(msg.timestamp)}
+                          </div>
+                        </motion.div>
+                      </AnimatePresence>
+                    </div>
+                  )
+                })}
             </div>
           </div>
         ))}

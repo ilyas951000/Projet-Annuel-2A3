@@ -40,6 +40,12 @@ export class AdvertisementsController {
     return this.advertisementsService.findByUser(userId);
   }
 
+  @Delete(':id')
+  async delete(@Param('id', ParseIntPipe) id: number) {
+    return this.advertisementsService.delete(id);
+  }
+
+
   // ✅ Obtenir les annonces des autres utilisateurs (authentifié)
   @Get('others')
   @UseGuards(JwtAuthGuard)

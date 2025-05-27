@@ -11,12 +11,19 @@ import { Advertisement } from './entities/advertisement.entity';
 import { Package } from 'src/packages/entities/package.entity';
 import { Localisation } from 'src/localisation/entities/localisation.entity';
 import fetch from 'node-fetch'; // N'oublie pas d'installer node-fetch si ce n'est pas déjà fait
+import { Report } from 'src/reports/entities/report.entity';
 
 @Injectable()
 export class AdvertisementsService {
   constructor(
     @InjectRepository(Advertisement)
-    private readonly advertisementRepository: Repository<Advertisement>,
+    private readonly adRepo: Repository<Advertisement>,
+
+    @InjectRepository(Report)
+    private readonly reportRepo: Repository<Report>,
+
+    @InjectRepository(Package)
+    private readonly packageRepo: Repository<Package>,
   ) {}
 
   private validateId(id: number) {
@@ -41,7 +48,7 @@ export class AdvertisementsService {
 
   async create(dto: CreateAdvertisementDto): Promise<Advertisement> {
     const { packages: pkgDtos, ...adProps } = dto;
-    const ad = this.advertisementRepository.create(adProps);
+    const ad = this.adRepo.create(adProps);
 
     if (Array.isArray(pkgDtos)) {
       ad.packages = await Promise.all(
@@ -94,17 +101,17 @@ export class AdvertisementsService {
       );
     }
 
-    return this.advertisementRepository.save(ad);
+    return this.adRepo.save(ad);
   }
 
   async findAll(): Promise<Advertisement[]> {
-    const ads = await this.advertisementRepository.find({ relations: ['packages'] });
+    const ads = await this.adRepo.find({ relations: ['packages'] });
     return this.addComputedStatus(ads);
   }
 
   async findOne(id: number): Promise<Advertisement> {
     this.validateId(id);
-    const ad = await this.advertisementRepository.findOne({
+    const ad = await this.adRepo.findOne({
       where: { id },
       relations: ['packages', 'packages.localisations'],
     });
@@ -116,36 +123,36 @@ export class AdvertisementsService {
     this.validateId(id);
     const ad = await this.findOne(id);
     Object.assign(ad, updateDto);
-    return this.advertisementRepository.save(ad);
+    return this.adRepo.save(ad);
   }
 
   async updatePrice(id: number, newPrice: number): Promise<Advertisement> {
     this.validateId(id);
-    const ad = await this.advertisementRepository.findOne({ where: { id } });
+    const ad = await this.adRepo.findOne({ where: { id } });
     if (!ad) throw new NotFoundException('Annonce introuvable');
     ad.advertisementPrice = newPrice;
-    return this.advertisementRepository.save(ad);
+    return this.adRepo.save(ad);
   }
 
   async remove(id: number): Promise<void> {
     this.validateId(id);
-    const ad = await this.advertisementRepository.findOne({
+    const ad = await this.adRepo.findOne({
       where: { id },
       relations: ['packages'],
     });
     if (!ad) throw new NotFoundException(`L'annonce avec l'id ${id} n'existe pas.`);
-    await this.advertisementRepository.remove(ad);
+    await this.adRepo.remove(ad);
   }
 
   async validate(id: number): Promise<Advertisement> {
     this.validateId(id);
     const ad = await this.findOne(id);
     ad.isValidated = true;
-    return this.advertisementRepository.save(ad);
+    return this.adRepo.save(ad);
   }
 
   async findByUser(usersId: number): Promise<Advertisement[]> {
-    const ads = await this.advertisementRepository.find({
+    const ads = await this.adRepo.find({
       where: { usersId },
       relations: ['packages', 'packages.localisations'],
       order: { publicationDate: 'DESC' },
@@ -153,8 +160,22 @@ export class AdvertisementsService {
     return this.addComputedStatus(ads);
   }
 
+  async delete(adId: number) {
+      // 1. Supprimer les signalements liés à cette annonce
+      await this.reportRepo.delete({ advertisement: { id: adId } });
+
+      // 2. Supprimer les colis liés à cette annonce (en cascade possible selon ta config)
+      await this.packageRepo.delete({ advertisement: { id: adId } });
+
+      // 3. Supprimer l'annonce
+      const result = await this.adRepo.delete({ id: adId });
+
+      if (result.affected === 0) throw new NotFoundException('Annonce non trouvée ou déjà supprimée');
+      return { message: 'Annonce supprimée avec succès' };
+    }
+
   async findOthers(userId: number): Promise<Advertisement[]> {
-    const ads = await this.advertisementRepository.find({
+    const ads = await this.adRepo.find({
       where: { usersId: Not(userId) },
       relations: ['packages', 'packages.localisations'],
       order: { publicationDate: 'DESC' },
@@ -163,7 +184,7 @@ export class AdvertisementsService {
   }
 
   async findValidated(): Promise<Advertisement[]> {
-    const ads = await this.advertisementRepository.find({
+    const ads = await this.adRepo.find({
       where: { isValidated: true },
       relations: ['packages', 'packages.localisations'],
     });

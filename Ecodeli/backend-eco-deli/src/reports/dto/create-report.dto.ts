@@ -1,6 +1,16 @@
+import { IsOptional, IsNumber } from 'class-validator'
+
 export class CreateReportDto {
-  advertisementId?: number
-  packageId?: number
+  @IsNumber()
+  packageId: number
+
+  @IsNumber()
+  advertisementId: number
+
+  @IsOptional()
+  @IsNumber()
+  clientId?: number
+
   reason: string
-  status: string
+  status?: string
 }
