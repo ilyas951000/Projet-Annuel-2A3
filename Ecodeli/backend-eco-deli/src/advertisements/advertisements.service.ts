@@ -13,6 +13,7 @@ import { Localisation } from 'src/localisation/entities/localisation.entity';
 import fetch from 'node-fetch'; // N'oublie pas d'installer node-fetch si ce n'est pas déjà fait
 import { Report } from 'src/reports/entities/report.entity';
 
+
 @Injectable()
 export class AdvertisementsService {
   constructor(
@@ -45,6 +46,16 @@ export class AdvertisementsService {
     const { lat, lng } = data.results[0].geometry;
     return { lat, lon: lng };
   }
+
+  async findAllAdmin() {
+    return this.adRepo.find({
+      relations: ['users'],
+      order: { publicationDate: 'DESC' },
+    });
+  }
+
+
+
 
   async create(dto: CreateAdvertisementDto): Promise<Advertisement> {
     const { packages: pkgDtos, ...adProps } = dto;
@@ -113,7 +124,7 @@ export class AdvertisementsService {
     this.validateId(id);
     const ad = await this.adRepo.findOne({
       where: { id },
-      relations: ['packages', 'packages.localisations'],
+      relations: ['packages', 'packages.localisations','users'],
     });
     if (!ad) throw new NotFoundException('Annonce non trouvée');
     return this.addComputedStatus(ad);

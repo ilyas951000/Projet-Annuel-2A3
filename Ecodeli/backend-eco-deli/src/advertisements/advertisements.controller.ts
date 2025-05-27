@@ -40,6 +40,13 @@ export class AdvertisementsController {
     return this.advertisementsService.findByUser(userId);
   }
 
+  // ✅ Récupérer toutes les annonces (admin uniquement)
+  @Get('admin')
+  @UseGuards(JwtAuthGuard) // tu peux ajouter un guard de rôle ici
+  async findAllAdmin() {
+    return this.advertisementsService.findAllAdmin();
+  }
+
   @Delete(':id')
   async delete(@Param('id', ParseIntPipe) id: number) {
     return this.advertisementsService.delete(id);
