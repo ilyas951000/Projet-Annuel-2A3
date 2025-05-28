@@ -4,6 +4,8 @@ import { useEffect, useState } from "react";
 import { PlusCircle, Menu, X, Moon, Sun, User, Settings } from "lucide-react";
 import Link from "next/link";
 import Image from "next/image";
+import { useLang } from '../../../context/LanguageContext'
+
 
 interface Ad {
   id: number;
@@ -26,6 +28,8 @@ export default function OtherAnnouncements() {
   const [ads, setAds] = useState<Ad[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const { t, setLang, lang } = useLang();
+
 
   // 1. Récupérer l’ID du user
   useEffect(() => {
@@ -80,52 +84,60 @@ export default function OtherAnnouncements() {
         
 
         <main className="flex-1 p-5 md:p-10 overflow-auto w-full">
-          <div className="flex justify-between items-center md:hidden mb-5">
-            <button onClick={() => setSidebarOpen(true)}>
-              <Menu className="w-6 h-6 text-gray-900 dark:text-white" />
-            </button>
-            <button
-              className="p-2 bg-gray-200 dark:bg-gray-700 rounded-full"
-              onClick={() => setDarkMode(!darkMode)}
-            >
-              {darkMode ? <Sun className="w-5 h-5 text-yellow-500" /> : <Moon className="w-5 h-5 text-gray-900" />}
-            </button>
+          
+          <div>
+            <p>{t('computer')}</p>
+
+
+            <div className="flex justify-between items-center md:hidden mb-5">
+              <button onClick={() => setSidebarOpen(true)}>
+                <Menu className="w-6 h-6 text-gray-900 dark:text-white" />
+              </button>
+              <button
+                className="p-2 bg-gray-200 dark:bg-gray-700 rounded-full"
+                onClick={() => setDarkMode(!darkMode)}
+              >
+                {darkMode ? <Sun className="w-5 h-5 text-yellow-500" /> : <Moon className="w-5 h-5 text-gray-900" />}
+              </button>
+            </div>
+
+            <h2 className="text-3xl font-semibold text-gray-900 dark:text-white mb-6">
+              Les annonces des autres utilisateurs
+            </h2>
+
+            {loading ? (
+              <p>Chargement des annonces…</p>
+            ) : error ? (
+              <p className="text-red-500">{error}</p>
+            ) : (
+              <table className="min-w-full bg-white dark:bg-gray-800 rounded-lg shadow overflow-hidden">
+                <thead className="bg-gray-50 dark:bg-gray-700">
+                  <tr>
+                    <th className="px-4 py-2">Objet</th>
+                    <th className="px-4 py-2">Prix (€)</th>
+                    <th className="px-4 py-2">Date</th>
+                    <th className="px-4 py-2">Actions</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {ads.map(ad => (
+                    <tr key={ad.id} className="border-t border-gray-200 dark:border-gray-600">
+                      <td className="px-4 py-2 text-gray-900 dark:text-gray-100">{ad.advertisementItem}</td>
+                      <td className="px-4 py-2 text-gray-900 dark:text-gray-100">{ad.advertisementPrice.toFixed(2)}</td>
+                      <td className="px-4 py-2 text-gray-900 dark:text-gray-100">{new Date(ad.publicationDate).toLocaleDateString('fr-FR')}</td>
+                      <td className="px-4 py-2">
+                        <Link href={`/announcements/${ad.id}`} className="text-blue-600 dark:text-blue-400 hover:underline">
+                          Voir plus
+                        </Link>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            )}
           </div>
 
-          <h2 className="text-3xl font-semibold text-gray-900 dark:text-white mb-6">
-            Les annonces des autres utilisateurs
-          </h2>
-
-          {loading ? (
-            <p>Chargement des annonces…</p>
-          ) : error ? (
-            <p className="text-red-500">{error}</p>
-          ) : (
-            <table className="min-w-full bg-white dark:bg-gray-800 rounded-lg shadow overflow-hidden">
-              <thead className="bg-gray-50 dark:bg-gray-700">
-                <tr>
-                  <th className="px-4 py-2">Objet</th>
-                  <th className="px-4 py-2">Prix (€)</th>
-                  <th className="px-4 py-2">Date</th>
-                  <th className="px-4 py-2">Actions</th>
-                </tr>
-              </thead>
-              <tbody>
-                {ads.map(ad => (
-                  <tr key={ad.id} className="border-t border-gray-200 dark:border-gray-600">
-                    <td className="px-4 py-2 text-gray-900 dark:text-gray-100">{ad.advertisementItem}</td>
-                    <td className="px-4 py-2 text-gray-900 dark:text-gray-100">{ad.advertisementPrice.toFixed(2)}</td>
-                    <td className="px-4 py-2 text-gray-900 dark:text-gray-100">{new Date(ad.publicationDate).toLocaleDateString('fr-FR')}</td>
-                    <td className="px-4 py-2">
-                      <Link href={`/announcements/${ad.id}`} className="text-blue-600 dark:text-blue-400 hover:underline">
-                        Voir plus
-                      </Link>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          )}
+          
         </main>
 
         

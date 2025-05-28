@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react"
 import { PDFDocument, rgb, StandardFonts } from "pdf-lib"
+import { useLang } from '../../../context/LanguageContext'
 
 interface CompanyDetail {
   id: number
@@ -24,6 +25,8 @@ export default function PDFDownloader() {
   const [savingId, setSavingId] = useState<number | null>(null)
   const currentYear = new Date().getFullYear().toString()
   const [companies, setCompanies] = useState<CompanyDetail[]>([])
+  const { t, setLang, lang } = useLang();
+  
 
   useEffect(() => {
     const fetchUser = async () => {
@@ -233,6 +236,7 @@ export default function PDFDownloader() {
 
   return (
     <div className="container mx-auto py-12 px-4">
+      <p>{t('computer')}</p>
       <div className="max-w-4xl mx-auto">
         <div className="flex items-center gap-3 mb-8">
           <svg
