@@ -6,13 +6,15 @@ import { Advertisement } from './entities/advertisement.entity';
 import { MulterModule } from '@nestjs/platform-express';
 import { Package } from 'src/packages/entities/package.entity';
 import { Localisation } from 'src/localisation/entities/localisation.entity';
+import { Report } from 'src/reports/entities/report.entity'
 
 @Module({
   imports: [
     TypeOrmModule.forFeature([
       Advertisement,
       Package,
-      Localisation,     
+      Localisation, 
+      Report,    
     ]),
     MulterModule.register({ dest: './uploads' }), 
   ],

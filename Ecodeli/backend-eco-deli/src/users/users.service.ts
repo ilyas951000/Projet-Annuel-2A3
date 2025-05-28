@@ -23,9 +23,18 @@ export class UsersService {
     return this.usersRepository.find();
   }
 
-  findOne(id: number): Promise<User | null> {
-    return this.usersRepository.findOneBy({ id: id });
+  async findOne(id: number): Promise<User | null> {
+    return this.usersRepository.findOne({
+      where: { id },
+      select: {
+        id: true,
+        userFirstName: true,
+        userLastName: true,
+        userSubscription: true, // 👈 nécessaire pour l'affichage côté admin
+      },
+    });
   }
+
 
   async update(id: number, updateUserDto: UpdateUserDto): Promise<User | null> {
     await this.usersRepository.update(id, updateUserDto);
@@ -47,6 +56,20 @@ export class UsersService {
     await this.usersRepository.update(id, { valid: true });
     return this.findOne(id);
   }
+
+  async findAllAdmins(): Promise<User[]> {
+    return this.usersRepository.find({
+      where: { userStatus: 'admin' },
+      select: {
+        id: true,
+        userFirstName: true,
+        userLastName: true,
+      },
+    });
+  }
+
+  
+
 
   async rejectUser(id: number): Promise<User | null> {
     return this.findOne(id);

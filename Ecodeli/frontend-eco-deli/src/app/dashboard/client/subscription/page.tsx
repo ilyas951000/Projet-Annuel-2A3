@@ -1,38 +1,36 @@
 "use client"
-import '../globals.css'
-import { useState, useEffect } from "react"
-import axios from "axios"
-import { Moon, Sun, Settings, PlusCircle, User, Menu, X } from "lucide-react"
-import Link from "next/link"
-import Image from "next/image"
 
-export default function Dashboard() {
-  const [darkMode, setDarkMode] = useState(false)
-  const [sidebarOpen, setSidebarOpen] = useState(false)
-  const [subscription, setSubscription] = useState<number>(0)
-  const [userId, setUserId] = useState<number | null>(null)
-  const [userLoading, setUserLoading] = useState(true)
-  const [userError, setUserError] = useState<string | null>(null)
+import React, { useEffect, useState } from 'react'
+import axios from 'axios'
 
 
-  const getSubscriptionLabel = (level: number) => {
-    switch (level) {
-      case 0:
-        return "Free"
-      case 1:
-        return "Starter"
-      case 2:
-        return "Premium"
-      default:
-        return "Inconnu"
-    }
-  }
+const plans = [
+  {
+    name: 'Starter',
+    price: 10,
+    planId: 'starter_plan',
+    priceId: 'price_1RR8liENhvkcPeq4meFzZRrU',
+  },
+  {
+    name: 'Premium',
+    price: 20,
+    planId: 'premium_plan',
+    priceId: 'price_1RR8mQENhvkcPeq4wyYK9q2a',
+  },
+]
+
+export default function SubscriptionPage() {
+  const [userId, setUserId] = useState(null)
+  const [email, setEmail] = useState('')
+  const [subscription, setSubscription] = useState(null)
+  const [loading, setUserLoading] = useState(true)
+  const [error, setUserError] = useState(null)
 
   useEffect(() => {
     const fetchUser = async () => {
       try {
         const token = localStorage.getItem('token')
-        if (!token) throw new Error("Token manquant")
+        if (!token) throw new Error('Token manquant')
 
         const res = await fetch('http://localhost:3001/auth/me', {
           headers: { Authorization: `Bearer ${token}` },
@@ -48,8 +46,9 @@ export default function Dashboard() {
 
         if (typeof userData.userSubscription === 'number') {
           setSubscription(userData.userSubscription)
+          setEmail(userData.email)
         }
-      } catch (err: any) {
+      } catch (err) {
         setUserError(err.message)
       } finally {
         setUserLoading(false)
@@ -59,81 +58,64 @@ export default function Dashboard() {
     fetchUser()
   }, [])
 
-  const handleSubscriptionChange = async (e: React.ChangeEvent<HTMLSelectElement>) => {
-    const newLevel = parseInt(e.target.value, 10)
-    setSubscription(newLevel)
-
-    if (userId == null) {
-      alert("Utilisateur non identifié.")
-      return
-    }
-
+  const handleSubscribe = async (priceId, plan) => {
     try {
-      await axios.patch(`http://localhost:3001/users/${userId}/subscription`, {
-        userSubscription: newLevel,
+      const res = await axios.post('http://localhost:3001/payments/subscription-checkout', {
+        userId,
+        priceId,
+        plan,
       })
-      alert("Abonnement mis à jour !")
-    } catch (error) {
-      console.error(error)
-      alert("Échec de la mise à jour.")
+      window.location.href = res.data.url
+    } catch (err) {
+      alert("Erreur lors de la souscription")
     }
   }
-  
+
+  const handleCancel = async () => {
+    try {
+      await axios.post('http://localhost:3001/payments/cancel-subscription', {
+        email,
+      })
+      alert('Abonnement annulé')
+      setSubscription(0)
+    } catch (err) {
+      alert("Erreur lors de l'annulation")
+    }
+  }
+
+  const getPlanName = () => {
+    switch (subscription) {
+      case 1:
+        return 'Starter'
+      case 2:
+        return 'Premium'
+      default:
+        return 'Aucun'
+    }
+  }
+
+  if (loading) return <p>Chargement...</p>
+  if (error) return <p>Erreur : {error}</p>
 
   return (
-    <div className={`${darkMode ? "dark" : ""}`}>
-      <div className="flex h-screen bg-gray-100 dark:bg-gray-900 relative">
-        {sidebarOpen && (
-          <div
-            className="fixed inset-0 bg-black bg-opacity-50 z-30 md:hidden"
-            onClick={() => setSidebarOpen(false)}
-          ></div>
-        )}
-        <main className="flex-1 p-5 md:p-10 overflow-auto w-full">
-          <h2 className="text-3xl font-semibold text-gray-900 dark:text-white mb-6">
-            Bienvenue Chez <span className="text-black">Eco</span>
-            <span className="text-green-500">Deli</span> - partie Client
-          </h2>
+    <div style={{ padding: '2rem' }}>
+      <h2>Votre abonnement actuel : {getPlanName()}</h2>
 
-          {userLoading ? (
-            <p className="text-gray-700 dark:text-gray-300">Chargement...</p>
-          ) : userError ? (
-            <p className="text-red-600 dark:text-red-400">Erreur : {userError}</p>
-          ) : (
-            
-            <div className="mt-6 max-w-md">
-              <p className="mb-4 text-gray-800 dark:text-white">
-                Votre abonnement actuel est : <strong>{getSubscriptionLabel(subscription)}</strong>
-              </p>
-              <label className="block mb-2 text-sm font-medium text-gray-900 dark:text-white">
-                Choisir un abonnement :
-              </label>
-              <select
-                value={subscription}
-                onChange={handleSubscriptionChange}
-                className="p-2 border rounded w-full dark:bg-gray-700 dark:text-white"
-              >
-                <option value={0}>Free</option>
-                <option value={1}>Starter</option>
-                <option value={2}>Premium</option>
-              </select>
-            </div>
-          )}
-        </main>
+      <div style={{ display: 'flex', gap: '2rem', marginTop: '2rem' }}>
+        {plans.map((plan) => (
+          <div key={plan.planId} style={{ border: '1px solid #ccc', padding: '1rem' }}>
+            <h3>{plan.name}</h3>
+            <p>{plan.price} €/mois</p>
+            <button onClick={() => handleSubscribe(plan.priceId, plan.planId)}>
+              Choisir ce plan
+            </button>
+          </div>
+        ))}
+      </div>
 
-        
+      <div style={{ marginTop: '2rem' }}>
+        <button onClick={handleCancel}>Annuler mon abonnement</button>
       </div>
     </div>
-  )
-}
-
-function NavItem({ title, link }: { title: string; link: string }) {
-  return (
-    <li className="flex items-center space-x-2 text-gray-700 dark:text-gray-300 hover:text-green-500 cursor-pointer p-2 rounded-md">
-      <PlusCircle className="w-4 h-4" />
-      <Link href={link}>
-        <span>{title}</span>
-      </Link>
-    </li>
   )
 }

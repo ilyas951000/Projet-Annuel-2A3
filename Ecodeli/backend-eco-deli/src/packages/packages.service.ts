@@ -207,8 +207,12 @@ export class PackagesService {
   }
 
   findOne(id: number) {
-    return this.packageRepository.findOne({ where: { id } });
+    return this.packageRepository.findOne({
+      where: { id },
+      relations: ['advertisement', 'users', 'localisations'], // adapte selon ton besoin
+    });
   }
+
 
   update(id: number, updatePackageDto: UpdatePackageDto) {
     return this.packageRepository.update(id, updatePackageDto);
@@ -368,8 +372,13 @@ export class PackagesService {
   }
 
 
-
-
+  async findByUser(userId: number): Promise<Package[]> {
+    return this.packageRepository.find({
+    where: { advertisement: { usersId: userId } },
+    select: ['id', 'packageName'],
+    relations: ['advertisement'],
+  });
+  }
 
 
 

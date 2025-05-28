@@ -30,6 +30,9 @@ export class Package {
   @Column({ nullable: true })
   isPaid?: boolean;
 
+  @Column({ default: false })
+  prioritaire: boolean;
+
   @Column({ nullable: true })
   packageDimension?: string;
 
@@ -59,6 +62,7 @@ export class Package {
 
   @OneToMany(() => TransferHistory, (transfer) => transfer.package)
   transferHistories: TransferHistory[];
+
 
   toJSON() {
     const { advertisement, ...rest } = this;

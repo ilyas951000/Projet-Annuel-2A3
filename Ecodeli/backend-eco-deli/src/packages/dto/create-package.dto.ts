@@ -1,25 +1,27 @@
-
-import { IsNotEmpty, IsNumber, IsOptional, IsString } from 'class-validator';
+import { IsBoolean, IsNotEmpty, IsNumber, IsOptional, IsString } from 'class-validator';
 
 export class CreatePackageDto {
-    @IsOptional()
-    @IsString()
-    packageName: string;
+  @IsOptional()
+  @IsString()
+  packageName: string;
 
-    @IsOptional()
-    @IsNumber()
-    packageQuantity: number;
+  @IsOptional()
+  @IsNumber()
+  packageQuantity: number;
 
-    @IsOptional()
-    @IsNumber()
-    packageWeight: number;
+  @IsOptional()
+  @IsNumber()
+  packageWeight: number;
 
-    @IsOptional()
-    @IsString()
-    packageDimension: string;
+  @IsOptional()
+  @IsString()
+  packageDimension: string;
 
-    @IsOptional()
-    @IsNumber()
-    advertisementId?: number;
+  @IsOptional()
+  @IsNumber()
+  advertisementId?: number;
 
+  @IsOptional()
+  @IsBoolean()
+  prioritaire?: boolean; // ✅ ajoute ceci
 }

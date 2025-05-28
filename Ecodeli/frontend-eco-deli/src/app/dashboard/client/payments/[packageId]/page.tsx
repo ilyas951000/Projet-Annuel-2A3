@@ -33,14 +33,24 @@ function CheckoutForm() {
   const { packageId } = useParams()
   const router = useRouter()
 
+  const [subscription, setSubscription] = useState<any>(null)
+  const [discountedFee, setDiscountedFee] = useState<number>(0)
   const [clientId, setClientId] = useState<number | null>(null)
   const [providerId, setProviderId] = useState<number | null>(null)
   const [amount, setAmount] = useState<number>(0)
+  const [baseAmount, setBaseAmount] = useState<number>(0)
+  const [fee, setFee] = useState<number>(0)
   const [message, setMessage] = useState<string>("")
   const [loading, setLoading] = useState<boolean>(false)
   const [packageInfo, setPackageInfo] = useState<any>(null)
   const [success, setSuccess] = useState<boolean>(false)
   const [error, setError] = useState<string | null>(null)
+  const [freeShippingActivated, setFreeShippingActivated] = useState(false)
+  const [discount, setDiscount] = useState<number>(0)
+  const [hasPriorityFee, setHasPriorityFee] = useState(false)
+  const [remainingFreePriority, setRemainingFreePriority] = useState<number | null>(null)
+
+
 
   useEffect(() => {
     const fetchData = async () => {
@@ -58,6 +68,14 @@ function CheckoutForm() {
         if (!userRes.ok || !userData.userId) throw new Error("Utilisateur non valide.")
         setClientId(userData.userId)
 
+        const subRes = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/subscriptions/user/${userData.userId}`, {
+          headers: { Authorization: `Bearer ${token}` },
+        })
+        const subData = await subRes.json()
+        if (subRes.ok) {
+          setSubscription(subData)
+        }
+
         const packageRes = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/packages/${packageId}`, {
           headers: { Authorization: `Bearer ${token}` },
         })
@@ -65,20 +83,96 @@ function CheckoutForm() {
         if (!packageRes.ok || !packageData.advertisementId) throw new Error("Colis introuvable.")
         setPackageInfo(packageData)
 
-        // 🔍 Récupérer le livreur affecté à ce colis
         const delivererRes = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/packages/${packageId}/deliverer`, {
           headers: { Authorization: `Bearer ${token}` },
         })
         const delivererData = await delivererRes.json()
-        if (!delivererRes.ok || !delivererData.userId) {
-          throw new Error("Livreur introuvable.")
-        }
+        if (!delivererRes.ok || !delivererData.userId) throw new Error("Livreur introuvable.")
         setProviderId(delivererData.userId)
 
         const adRes = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/advertisements/${packageData.advertisementId}`)
         const adData = await adRes.json()
         if (!adRes.ok || adData.advertisementPrice == null) throw new Error("Prix introuvable.")
-        setAmount(parseFloat(adData.advertisementPrice))
+        const base = parseFloat(adData.advertisementPrice)
+
+        const baseFee = parseFloat((base * 0.2).toFixed(2)) // 20%
+        let feeToUse = baseFee
+        let discount = 0
+        let amountToPay = base + baseFee
+
+        // Cas Premium
+        if (subData?.subscriptionTitle === "Premium") {
+          const hasFreeSend = base < 150 && !subData.hasUsedFreeShipping;
+
+          if (hasFreeSend) {
+            feeToUse = 0;
+            amountToPay = base;
+            discount = baseFee;
+            setFreeShippingActivated(true);
+          } else {
+            const totalDiscountRate = (subData.shippingDiscount + subData.permanentDiscount) / 100;
+            const totalDiscount = (base + baseFee) * totalDiscountRate;
+
+            discount = totalDiscount;
+            amountToPay = base + baseFee - totalDiscount;
+          }
+        }
+
+
+
+
+        // Cas Starter
+        else if (subData?.subscriptionTitle === "Starter") {
+          // 5% sur frais obligatoires
+          const baseReduction = baseFee * 0.05
+          feeToUse = baseFee - baseReduction
+
+          // 5% supplémentaire si colis XS ou S
+          if (packageData?.packageDimension === "xs" || packageData?.packageDimension === "s") {
+            const extraDiscount = (base + feeToUse) * 0.05
+            discount += extraDiscount
+            amountToPay = base + feeToUse - extraDiscount
+          } else {
+            amountToPay = base + feeToUse
+          }
+        }
+
+        // Vérifie si le colis est prioritaire
+        if (packageData?.prioritaire) {
+          let surchargeApplied = false;
+
+          if (!subData?.subscriptionTitle) {
+            // Aucun abonnement → +15%
+            const surcharge = amountToPay * 0.15;
+            amountToPay += surcharge;
+            surchargeApplied = true;
+          } else if (subData.subscriptionTitle === "Starter") {
+            const surcharge = amountToPay * 0.05;
+            amountToPay += surcharge;
+            surchargeApplied = true;
+          } else if (subData.subscriptionTitle === "Premium") {
+            const used = subData.priorityShippingUsed ?? 0;
+            const remaining = 3 - used;
+
+            setRemainingFreePriority(remaining > 0 ? remaining : 0);
+
+            if (remaining <= 0) {
+              const surcharge = amountToPay * 0.05;
+              amountToPay += surcharge;
+              surchargeApplied = true;
+            }
+          }
+
+          if (surchargeApplied) {
+            setHasPriorityFee(true);
+          }
+        }
+
+
+        setBaseAmount(base)
+        setFee(baseFee)
+        setDiscountedFee(feeToUse)
+        setAmount(parseFloat(amountToPay.toFixed(2)))
       } catch (err: any) {
         setError(err.message || "Erreur inattendue.")
       }
@@ -86,6 +180,7 @@ function CheckoutForm() {
 
     fetchData()
   }, [packageId])
+
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -110,7 +205,8 @@ function CheckoutForm() {
           clientId,
           providerId,
           amount,
-          packageId, // 👈 AJOUT ICI
+          packageId,
+          fee: parseFloat((amount - baseAmount).toFixed(2)),
         }),
       })
 
@@ -205,12 +301,112 @@ function CheckoutForm() {
 
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">Montant à payer</label>
-                <input
-                  type="text"
-                  value={`${amount.toFixed(2)} €`}
-                  readOnly
-                  className="w-full border border-gray-300 p-3 rounded-lg bg-gray-50 cursor-not-allowed font-medium text-gray-900"
-                />
+                <div className="text-sm text-gray-700 space-y-1 border border-gray-200 rounded-lg p-4 bg-gray-50">
+                  <div className="flex justify-between">
+                    <span>Livraison</span>
+                    <span>{baseAmount.toFixed(2)} €</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span>Frais de service (20%)</span>
+                    <span>
+                      {discountedFee < fee ? (
+                        <>
+                          <s className="text-gray-400">{fee.toFixed(2)} €</s>{" "}
+                          <span className="text-green-600">{discountedFee.toFixed(2)} €</span>
+                        </>
+                      ) : (
+                        <>{fee.toFixed(2)} €</>
+                      )}
+                    </span>
+                  </div>
+                  <div className="flex justify-between font-semibold border-t pt-2 mt-2">
+                    <span>Total à payer</span>
+                    <span>{amount.toFixed(2)} €</span>
+                  </div>
+                    {discount > 0 && (
+                      <div className="mt-4">
+                        <h4 className="text-sm font-semibold text-gray-700 mb-1">Promotions appliquées</h4>
+                        <ul className="text-sm text-gray-600 space-y-1">
+                          {freeShippingActivated ? (
+                            <li className="flex items-center">
+                              <CheckCircle className="w-4 h-4 mr-2 text-green-500" />
+                              Frais offerts (colis &lt; 150€)
+                            </li>
+                          ) : (
+                            <>
+                              {subscription?.subscriptionTitle === "Premium" && (
+                                <li className="flex items-center">
+                                  <CheckCircle className="w-4 h-4 mr-2 text-green-500" />
+                                  Réduction Premium ({subscription.shippingDiscount + subscription.permanentDiscount}%)
+                                </li>
+                              )}
+                              {subscription?.subscriptionTitle === "Starter" && (
+                                <>
+                                  <li className="flex items-center">
+                                    <CheckCircle className="w-4 h-4 mr-2 text-green-500" />
+                                    Réduction frais 5%
+                                  </li>
+                                  {["xs", "s"].includes(packageInfo?.packageDimension) && (
+                                    <li className="flex items-center">
+                                      <CheckCircle className="w-4 h-4 mr-2 text-green-500" />
+                                      Réduction XS/S 5%
+                                    </li>
+                                  )}
+                                </>
+                              )}
+                            </>
+                          )}
+                        </ul>
+                      </div>
+                    )}
+                    {packageInfo?.prioritaire && (
+                      <div className="mt-4">
+                        <h4 className="text-sm font-semibold text-gray-700 mb-1">Frais prioritaire</h4>
+                        <ul className="text-sm text-gray-600 space-y-1">
+                          {hasPriorityFee ? (
+                            <li className="flex items-center">
+                              <CheckCircle className="w-4 h-4 mr-2 text-yellow-500" />
+                              Des frais ont été ajoutés pour livraison prioritaire
+                            </li>
+                          ) : (
+                            <li className="flex items-center">
+                              <CheckCircle className="w-4 h-4 mr-2 text-green-500" />
+                              Livraison prioritaire offerte
+                            </li>
+                          )}
+                          {subscription?.subscriptionTitle === "Premium" && remainingFreePriority !== null && (
+                            <li className="text-xs text-gray-500 ml-6">
+                              {remainingFreePriority} livraison{remainingFreePriority > 1 ? "s" : ""} prioritaire{remainingFreePriority > 1 ? "s" : ""} gratuite{remainingFreePriority > 1 ? "s" : ""} restante{remainingFreePriority > 1 ? "s" : ""}
+                            </li>
+                          )}
+                        </ul>
+                      </div>
+                    )}
+                  {subscription?.subscriptionTitle === "Premium" && (
+                    <div className="mt-2">
+                      <p className="text-sm text-green-600">
+                        Grâce à votre abonnement <strong>Premium</strong>, vous avez bénéficié des réductions suivantes :
+                      </p>
+                      <ul className="text-sm text-gray-600 space-y-1 mt-1">
+                        <li className="flex items-center">
+                          <CheckCircle className="w-4 h-4 mr-2 text-green-500" />
+                          Réduction Premium : {subscription.shippingDiscount}%
+                        </li>
+                        <li className="flex items-center">
+                          <CheckCircle className="w-4 h-4 mr-2 text-green-500" />
+                          Réduction permanente : {subscription.permanentDiscount}%
+                        </li>
+                      </ul>
+                    </div>
+                  )}
+
+                  {subscription?.subscriptionTitle === "Starter" &&
+                    (packageInfo?.packageDimension === "xs" || packageInfo?.packageDimension === "s") && (
+                      <p className="text-sm text-green-600 mt-1">
+                        Grâce à votre abonnement <strong>Starter</strong>, vous avez bénéficié de <strong>{subscription.permanentDiscount}% de réduction</strong> sur le total.
+                      </p>
+                  )}
+                </div>
               </div>
 
               <div>

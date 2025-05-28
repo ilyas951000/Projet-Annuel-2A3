@@ -12,15 +12,16 @@ interface Invoice {
 
 export default function WalletPage() {
   const [providerId, setProviderId] = useState<number | null>(null);
+  
   const [balance, setBalance] = useState<number>(0);
   const [pendingBalance, setPendingBalance] = useState<number>(0);
   const [amount, setAmount] = useState<number>(0);
   const [message, setMessage] = useState<string>("");
   const [hasIban, setHasIban] = useState<boolean>(true);
-  const [iban, setIban] = useState<string>("");
   const [invoices, setInvoices] = useState<Invoice[]>([]);
   const [selectedMonth, setSelectedMonth] = useState<string>("");
   const [selectedYear, setSelectedYear] = useState<string>("");
+  const [virements, setVirements] = useState<any[]>([]);
 
   useEffect(() => {
     const token = localStorage.getItem("token");
@@ -36,9 +37,12 @@ export default function WalletPage() {
       .then((data) => {
         if (data?.userId) {
           setProviderId(data.userId);
-          if (!data.stripeAccountId) {
-            setHasIban(false);
-          }
+
+          // ✅ Nouvelle vérification du statut Stripe
+          fetch(`${process.env.NEXT_PUBLIC_API_URL}/payments/provider/${data.userId}/account-status`)
+            .then(res => res.json())
+            .then((res) => setHasIban(res.hasValidAccount))
+            .catch(() => setHasIban(false));
         } else {
           setMessage("Utilisateur invalide.");
         }
@@ -64,6 +68,11 @@ export default function WalletPage() {
       .catch(() => setMessage("Erreur lors du chargement du solde en attente."));
 
     fetchInvoices();
+    fetch(`${process.env.NEXT_PUBLIC_API_URL}/payments/provider/${providerId}/virements`)
+      .then((res) => res.json())
+      .then((data) => setVirements(data))
+      .catch(() => setMessage("Erreur lors du chargement des virements."));
+
   }, [providerId]);
 
   const fetchInvoices = () => {
@@ -109,31 +118,7 @@ export default function WalletPage() {
     }
   };
 
-  const handleRegisterIban = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setMessage("Enregistrement du RIB...");
-
-    const token = localStorage.getItem("token");
-    if (!token || !providerId || !iban) return setMessage("Erreur d'identification");
-
-    try {
-      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/payments/create-express-account`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify({ userId: providerId, iban }),
-      });
-
-      if (!res.ok) throw new Error(await res.text());
-
-      setMessage("✅ RIB enregistré avec succès !");
-      setHasIban(true);
-    } catch (err: any) {
-      setMessage(err.message || "Erreur lors de l'enregistrement du RIB.");
-    }
-  };
+  
 
   const generateMonthlyInvoice = async () => {
     if (!selectedMonth || !selectedYear) {
@@ -175,20 +160,42 @@ export default function WalletPage() {
           </p>
 
           {!hasIban && (
-            <form onSubmit={handleRegisterIban} className="mb-4 bg-yellow-50 p-4 rounded">
-              <label className="block mb-2 text-sm">IBAN :</label>
-              <input
-                type="text"
-                value={iban}
-                onChange={(e) => setIban(e.target.value)}
-                required
-                className="w-full border p-2 rounded mb-2"
-              />
-              <button type="submit" className="w-full bg-blue-600 text-white p-2 rounded">
-                Enregistrer mon RIB
+            <div className="mb-4 bg-yellow-50 p-4 rounded">
+              <p className="mb-2 text-sm">
+                📎 Vous devez compléter vos informations Stripe pour recevoir des virements.
+              </p>
+              <button
+                onClick={async () => {
+                  setMessage("Redirection vers Stripe...");
+                  try {
+                    const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/payments/create-express-account`, {
+                      method: "POST",
+                      headers: {
+                        "Content-Type": "application/json",
+                        Authorization: `Bearer ${localStorage.getItem("token")}`,
+                      },
+                      body: JSON.stringify({ userId: providerId }),
+                    });
+
+                    if (!res.ok) throw new Error(await res.text());
+
+                    const data = await res.json();
+                    if (data.url) {
+                      window.location.href = data.url;
+                    } else {
+                      setMessage("Erreur : lien Stripe non reçu.");
+                    }
+                  } catch (err: any) {
+                    setMessage(err.message || "Erreur lors de la redirection.");
+                  }
+                }}
+                className="w-full bg-blue-600 text-white p-2 rounded"
+              >
+                Compléter mes infos de paiement
               </button>
-            </form>
+            </div>
           )}
+
 
           <input
             type="number"
@@ -232,6 +239,24 @@ export default function WalletPage() {
               </ul>
             )}
           </div>
+          <div className="mt-8 border-t pt-4">
+            <h3 className="text-lg font-semibold mb-2">💶 Historique de mes virements</h3>
+            {virements.length === 0 ? (
+              <p>Aucun virement effectué pour le moment.</p>
+            ) : (
+              <ul className="space-y-3">
+                {virements.map((v) => (
+                  <li key={v.id} className="border p-3 rounded shadow">
+                    <p>Montant : €{parseFloat(v.amount).toFixed(2)}</p>
+                    <p>Date : {new Date(v.createdAt).toLocaleString()}</p>
+                    <p>ID Stripe : <span className="text-xs text-gray-500">{v.stripePayoutId}</span></p>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </div>
+
+
 
           {/* Génération mensuelle */}
           <div className="mt-8 border-t pt-4">

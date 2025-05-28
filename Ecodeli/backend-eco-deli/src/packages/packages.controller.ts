@@ -80,6 +80,11 @@ export class PackagesController {
     return this.packagesService.findUnpaidPackagesByClient(+clientId);
   }
 
+  @Get('user/:userId')
+  findPackagesByUser(@Param('userId') userId: number) {
+    return this.packagesService.findByUser(userId); // ✅
+  }
+
   @Patch(':id')
   update(@Param('id') id: string, @Body() updatePackageDto: UpdatePackageDto) {
     const packageId = parseInt(id, 10);

@@ -28,6 +28,12 @@ import { ContractElementModule } from './contract-element/contract-element.modul
 import { MessagesModule } from './message/messages.module';
 import { ChatGateway } from './message/chat.gateway'; // ✅ ajouté ici
 import { TransferHistoryModule } from './transfer-history/transfer-history.module';
+import { LocalModule } from './local/local.module'; // adapte le chemin selon ta structure
+import { BoxModule } from './box/box.module';
+import { ReservationModule } from './reservation/reservation.module';
+import { ReportsModule } from './reports/reports.module';
+import { TransferModule } from './payments/transfer.module';
+
 
 @Module({
   imports: [
@@ -74,6 +80,11 @@ import { TransferHistoryModule } from './transfer-history/transfer-history.modul
     ContractElementModule,
     MessagesModule,
     TransferHistoryModule,
+    LocalModule,
+    BoxModule, // ✅ ajouté ici
+    ReservationModule,
+    ReportsModule,
+    TransferModule, // ✅ ajouté ici
   ],
   controllers: [AppController],
   providers: [AppService, ChatGateway], // ✅ ajouté ici

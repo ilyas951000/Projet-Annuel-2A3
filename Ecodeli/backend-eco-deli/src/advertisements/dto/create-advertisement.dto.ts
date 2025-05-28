@@ -1,11 +1,9 @@
-
 import { IsArray, IsNotEmpty, IsNumber, IsOptional, IsString } from 'class-validator';
 
 export class CreateAdvertisementDto {
   @IsOptional()
   @IsString()
   advertisementPhoto?: string;
-
 
   @IsNotEmpty()
   publicationDate: Date;
@@ -22,22 +20,22 @@ export class CreateAdvertisementDto {
 
   @IsNumber()
   usersId: number;
-  
+
   @IsOptional()
   @IsArray()
   packages?: Array<{
-    quantity:    number;
-    item:        string;
-    dimension?:  string;
-    weight?:     number;
-    // si vous gérez déjà “localisations” ici, ajoutez-le aussi
+    quantity: number;
+    item: string;
+    dimension?: string;
+    weight?: number;
+    prioritaire?: boolean; // ✅ Ajouté ici
     localisations?: Array<{
-      currentStreet:        string;
-      currentCity:          string;
-      currentPostalCode:    number;
-      destinationStreet:    string;
-      destinationCity:      string;
-      destinationPostalCode:number;
+      currentStreet: string;
+      currentCity: string;
+      currentPostalCode: number;
+      destinationStreet: string;
+      destinationCity: string;
+      destinationPostalCode: number;
     }>;
   }>;
 }
