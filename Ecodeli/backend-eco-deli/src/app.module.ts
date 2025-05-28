@@ -28,6 +28,8 @@ import { ContractElementModule } from './contract-element/contract-element.modul
 import { MessagesModule } from './message/messages.module';
 import { ChatGateway } from './message/chat.gateway'; // ✅ ajouté ici
 import { TransferHistoryModule } from './transfer-history/transfer-history.module';
+import { PrestataireRolesModule } from './prestataire-roles/prestataire-roles.module';
+import { PrestataireRequirementsModule } from './prestataire-requirements/prestataire-requirements.module';
 import { LocalModule } from './local/local.module'; // adapte le chemin selon ta structure
 import { BoxModule } from './box/box.module';
 import { ReservationModule } from './reservation/reservation.module';
@@ -55,7 +57,7 @@ import { TransferModule } from './payments/transfer.module';
     JwtModule.register({
       global: true,
       secret: '5115231248',
-      signOptions: { expiresIn: '1h' },
+      signOptions: { expiresIn: '12h' },
     }),
     UsersModule,
     PublicProfileModule,
@@ -80,6 +82,8 @@ import { TransferModule } from './payments/transfer.module';
     ContractElementModule,
     MessagesModule,
     TransferHistoryModule,
+    PrestataireRolesModule,
+    PrestataireRequirementsModule,
     LocalModule,
     BoxModule, // ✅ ajouté ici
     ReservationModule,

@@ -47,8 +47,11 @@ export default function ClientLayout({ children }: { children: React.ReactNode }
                 <NavItem title="Suivi des Livraisons" link="/dashboard/client/suivi-livraisons" />
                 <NavItem title="Mes Paiements" link="/dashboard/client/paiements" />
                 <NavItem title="Abonnement" link="/dashboard/client/subscription" />
+                <NavItem title="commerçant" link="/dashboard/client/shopkeeperClientAdvertisement" />
                 <NavItem title="Services & Prestataires" link="/dashboard/client/services" />
                 <NavItem title="Profil / Compte" link="/dashboard/client/compte" />
+
+                
               </ul>
 
               <div className="mt-10 space-y-3">
@@ -102,9 +105,12 @@ export default function ClientLayout({ children }: { children: React.ReactNode }
 
 function NavItem({ title, link }: { title: string; link: string }) {
   return (
-    <li className="flex items-center space-x-2 text-gray-700 dark:text-gray-300 hover:text-green-500 cursor-pointer p-2 rounded-md">
-      <PlusCircle className="w-4 h-4" />
-      <Link href={link}>
+    <li>
+      <Link
+        href={link}
+        className="flex items-center space-x-2 text-gray-700 dark:text-gray-300 hover:text-green-500 cursor-pointer p-2 rounded-md"
+      >
+        <PlusCircle className="w-4 h-4" />
         <span>{title}</span>
       </Link>
     </li>
