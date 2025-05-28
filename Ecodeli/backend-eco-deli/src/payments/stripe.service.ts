@@ -141,21 +141,29 @@ async addIbanToStripeAccount(userId: number, iban: string) {
 
 async payoutToProvider(providerId: number, amount: number) {
   const provider = await this.userRepo.findOneBy({ id: providerId }) as UserWithStripe;
-  if (!provider || !provider.stripeAccountId) throw new Error('Compte Stripe introuvable');
+  if (!provider || !provider.stripeAccountId) {
+    throw new Error('Compte Stripe introuvable');
+  }
 
-  // Montant en centimes
+  // On crée un payout vers le compte bancaire
   const payout = await this.stripe.payouts.create(
     {
-      amount: Math.round(amount * 100),
+      amount: Math.round(amount * 100), // En centimes
       currency: 'eur',
     },
     {
-      stripeAccount: provider.stripeAccountId, // Connect account
+      stripeAccount: provider.stripeAccountId, // Compte connecté
     }
   );
 
-  return { success: true, payoutId: payout.id };
+  return {
+    success: true,
+    payoutId: payout.id,
+    arrival_date: payout.arrival_date,
+    status: payout.status,
+  };
 }
+
 
 
 
@@ -467,7 +475,9 @@ async payoutToProvider(providerId: number, amount: number) {
 
   async transferFunds(providerId: number, amount: number) {
     const provider = await this.userRepo.findOneBy({ id: providerId });
-    if (!provider) throw new Error('Provider not found');
+    if (!provider || !provider.stripeAccountId) {
+      throw new Error('Provider or Stripe account not found');
+    }
 
     const validTransfers = await this.transferRepo.find({
       where: { provider, status: 'completed', isValidatedByClient: true },
@@ -475,7 +485,9 @@ async payoutToProvider(providerId: number, amount: number) {
     });
 
     const totalAvailable = validTransfers.reduce((sum, t) => sum + t.amount, 0);
-    if (amount > totalAvailable) throw new Error('Solde insuffisant.');
+    if (amount > totalAvailable) {
+      throw new Error('Solde insuffisant.');
+    }
 
     let toPay = amount;
     for (const t of validTransfers) {
@@ -486,21 +498,27 @@ async payoutToProvider(providerId: number, amount: number) {
       toPay -= pay;
     }
 
-    const payoutResult = await this.payoutToProvider(providerId, amount);
+    // Utilisation de transfer au lieu de payout
+    const transfer = await this.stripe.transfers.create({
+      amount: Math.round(amount * 100),
+      currency: 'eur',
+      destination: provider.stripeAccountId, // vers le compte connecté
+    });
 
-    // ✅ Historique du virement
+    // Historique
     await this.virementRepo.save({
       provider,
       amount,
-      stripePayoutId: payoutResult.payoutId,
+      stripePayoutId: transfer.id,
     });
 
     return {
       success: true,
-      message: 'Virement effectué avec succès via Stripe.',
-      stripePayoutId: payoutResult.payoutId,
+      message: 'Virement envoyé au compte Stripe connecté.',
+      stripeTransferId: transfer.id,
     };
   }
+
 
 
 
