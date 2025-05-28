@@ -9,6 +9,8 @@ import { Transaction } from './entities/transaction.entity';
 import { Transfer } from './entities/transfer.entity';
 import { User } from 'src/users/entities/user.entity';
 import { TransferHistory } from 'src/transfer-history/entities/transfer-history.entity';
+import { PlatformFee } from './entities/platform-fee.entity'; // 👈 Assure-toi de l'importer
+import { Subscription } from 'src/subscriptions/entities/subscription.entity';
 
 @Injectable()
 export class TransferService {
@@ -24,6 +26,12 @@ export class TransferService {
 
     @InjectRepository(TransferHistory)
     private readonly transferHistoryRepo: Repository<TransferHistory>,
+
+    @InjectRepository(PlatformFee) // 👈 Ajout à faire ici
+    private readonly platformFeeRepo: Repository<PlatformFee>, // 👈 Ajout à faire ici
+
+    @InjectRepository(Subscription)
+    private readonly subscriptionRepo: Repository<Subscription>,
   ) {}
 
   // ✅ Fonction manquante ajoutée ici
@@ -37,6 +45,43 @@ export class TransferService {
         return 0; // Free
     }
   }
+
+  // Exemple dans transfer.service.ts ou un service dédié
+async getTotalRevenue(): Promise<number> {
+  const totalTransfers = await this.transferRepo
+    .createQueryBuilder('transfer')
+    .select('SUM(transfer.amount)', 'total')
+    .getRawOne();
+
+  const totalFees = await this.platformFeeRepo
+    .createQueryBuilder('fee')
+    .select('SUM(fee.amount)', 'total')
+    .getRawOne();
+
+  const subscriptions = await this.subscriptionRepo.find();
+  const subscriptionRevenue = subscriptions.reduce((sum, sub) => {
+    if (sub.subscriptionTitle === 'Premium') return sum + 19.99;
+    if (sub.subscriptionTitle === 'Starter') return sum + 9.99;
+    return sum;
+  }, 0);
+
+  const transfersAmount = parseFloat(totalTransfers.total) || 0;
+  const feesAmount = parseFloat(totalFees.total) || 0;
+
+  return transfersAmount + feesAmount + subscriptionRevenue;
+}
+
+async getTotalTransfersAmount(): Promise<number> {
+  const result = await this.transferRepo
+    .createQueryBuilder('transfer')
+    .select('SUM(transfer.amount)', 'total')
+    .getRawOne();
+
+  return parseFloat(result.total) || 0;
+}
+
+
+
 
   async getBalance(providerId: number): Promise<{ balance: number }> {
     const transfers = await this.transferRepo.find({

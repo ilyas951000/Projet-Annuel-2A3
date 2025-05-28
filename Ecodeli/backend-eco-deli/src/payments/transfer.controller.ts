@@ -37,6 +37,18 @@ export class TransferController {
     );
   }
 
+  @UseGuards(AuthGuard('jwt'))
+  @Get('admin/total-transfers')
+  getTotalTransfersAmount() {
+    return this.transferService.getTotalTransfersAmount();
+  }
+
+
+  @Get('admin/total-revenue')
+  getTotalRevenue() {
+    return this.transferService.getTotalRevenue();
+  }
+
 
   // ✅ Le livreur demande un virement vers son compte
   @Post(':id/transfer')

@@ -45,6 +45,9 @@ export class User {
   @Column({ default: false })
   valid: boolean;
 
+  @Column({ nullable: true })
+  stripeAccountId?: string;
+
   @OneToMany(() => Subscription, (subscription) => subscription.users)
   subscription: Subscription[];
 

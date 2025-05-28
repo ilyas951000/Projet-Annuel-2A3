@@ -30,14 +30,15 @@ export default function AdminFinancePage() {
   const [totalPlatformFees, setTotalPlatformFees] = useState<number>(0)
   const [transfers, setTransfers] = useState<Transfer[]>([])
   const [loading, setLoading] = useState(true)
+  const [totalTransfersAmount, setTotalTransfersAmount] = useState<number>(0)
 
   useEffect(() => {
     const token = localStorage.getItem("token")
 
     const fetchData = async () => {
       try {
-        const [overviewRes, feesRes, totalFeesRes, transfersRes] = await Promise.all([
-          fetch(`${process.env.NEXT_PUBLIC_API_URL}/admin/finance/overview`, {
+        const [revenueRes, feesRes, totalFeesRes, transfersRes, totalTransfersRes] = await Promise.all([
+          fetch(`${process.env.NEXT_PUBLIC_API_URL}/payments/provider/admin/total-revenue`, {
             headers: { Authorization: `Bearer ${token}` },
           }),
           fetch(`${process.env.NEXT_PUBLIC_API_URL}/admin/finance/platform-fees`, {
@@ -49,14 +50,22 @@ export default function AdminFinancePage() {
           fetch(`${process.env.NEXT_PUBLIC_API_URL}/admin/finance/transfers`, {
             headers: { Authorization: `Bearer ${token}` },
           }),
+          fetch(`${process.env.NEXT_PUBLIC_API_URL}/payments/provider/admin/total-transfers`, {
+            headers: { Authorization: `Bearer ${token}` },
+          }),
         ])
 
-        const overviewData = await overviewRes.json()
+        const revenueData = await revenueRes.json()
         const feesData = await feesRes.json()
         const totalFeesData = await totalFeesRes.json()
         const transfersData = await transfersRes.json()
+        const transfersTotal = await totalTransfersRes.json()
 
-        setOverview(overviewData)
+        setOverview({
+          totalRevenue: parseFloat(revenueData),
+          totalTransfers: parseFloat(transfersTotal),
+        })
+
         setFees(Array.isArray(feesData) ? feesData : feesData.data || [])
         setTotalPlatformFees(parseFloat(totalFeesData?.total || 0))
         setTransfers(Array.isArray(transfersData) ? transfersData : transfersData.data || [])
@@ -86,7 +95,7 @@ export default function AdminFinancePage() {
       {/* Résumé */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
         <StatCard title="Revenus totaux" value={overview?.totalRevenue ?? 0} />
-        <StatCard title="Frais de plateforme" value={totalPlatformFees} />
+        <StatCard title="Frais de plateforme + Abonnements" value={totalPlatformFees} />
         <StatCard title="Virements envoyés" value={overview?.totalTransfers ?? 0} />
       </div>
 

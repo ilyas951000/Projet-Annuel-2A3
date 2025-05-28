@@ -17,7 +17,6 @@ export default function WalletPage() {
   const [amount, setAmount] = useState<number>(0);
   const [message, setMessage] = useState<string>("");
   const [hasIban, setHasIban] = useState<boolean>(true);
-  const [iban, setIban] = useState<string>("");
   const [invoices, setInvoices] = useState<Invoice[]>([]);
   const [selectedMonth, setSelectedMonth] = useState<string>("");
   const [selectedYear, setSelectedYear] = useState<string>("");
@@ -109,31 +108,7 @@ export default function WalletPage() {
     }
   };
 
-  const handleRegisterIban = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setMessage("Enregistrement du RIB...");
-
-    const token = localStorage.getItem("token");
-    if (!token || !providerId || !iban) return setMessage("Erreur d'identification");
-
-    try {
-      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/payments/create-express-account`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify({ userId: providerId, iban }),
-      });
-
-      if (!res.ok) throw new Error(await res.text());
-
-      setMessage("✅ RIB enregistré avec succès !");
-      setHasIban(true);
-    } catch (err: any) {
-      setMessage(err.message || "Erreur lors de l'enregistrement du RIB.");
-    }
-  };
+  
 
   const generateMonthlyInvoice = async () => {
     if (!selectedMonth || !selectedYear) {
@@ -175,20 +150,42 @@ export default function WalletPage() {
           </p>
 
           {!hasIban && (
-            <form onSubmit={handleRegisterIban} className="mb-4 bg-yellow-50 p-4 rounded">
-              <label className="block mb-2 text-sm">IBAN :</label>
-              <input
-                type="text"
-                value={iban}
-                onChange={(e) => setIban(e.target.value)}
-                required
-                className="w-full border p-2 rounded mb-2"
-              />
-              <button type="submit" className="w-full bg-blue-600 text-white p-2 rounded">
-                Enregistrer mon RIB
+            <div className="mb-4 bg-yellow-50 p-4 rounded">
+              <p className="mb-2 text-sm">
+                📎 Vous devez compléter vos informations Stripe pour recevoir des virements.
+              </p>
+              <button
+                onClick={async () => {
+                  setMessage("Redirection vers Stripe...");
+                  try {
+                    const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/payments/create-express-account`, {
+                      method: "POST",
+                      headers: {
+                        "Content-Type": "application/json",
+                        Authorization: `Bearer ${localStorage.getItem("token")}`,
+                      },
+                      body: JSON.stringify({ userId: providerId }),
+                    });
+
+                    if (!res.ok) throw new Error(await res.text());
+
+                    const data = await res.json();
+                    if (data.url) {
+                      window.location.href = data.url;
+                    } else {
+                      setMessage("Erreur : lien Stripe non reçu.");
+                    }
+                  } catch (err: any) {
+                    setMessage(err.message || "Erreur lors de la redirection.");
+                  }
+                }}
+                className="w-full bg-blue-600 text-white p-2 rounded"
+              >
+                Compléter mes infos de paiement
               </button>
-            </form>
+            </div>
           )}
+
 
           <input
             type="number"

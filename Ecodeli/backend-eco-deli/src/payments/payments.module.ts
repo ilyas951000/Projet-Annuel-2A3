@@ -10,6 +10,8 @@ import { User } from '../users/entities/user.entity'
 import { Subscription } from '../subscriptions/entities/subscription.entity'
 import { Package } from '../packages/entities/package.entity'
 import { Advertisement } from '../advertisements/entities/advertisement.entity'
+import { Virement } from 'src/virement/entities/virement.entity';
+
 
 @Module({
   imports: [
@@ -21,6 +23,7 @@ import { Advertisement } from '../advertisements/entities/advertisement.entity'
       Subscription,
       Package,
       Advertisement,
+      Virement,
     ]),
   ],
   controllers: [StripeController],

@@ -13,6 +13,7 @@ import { Package } from 'src/packages/entities/package.entity';
 import { Advertisement } from 'src/advertisements/entities/advertisement.entity';
 import { PackagesModule } from 'src/packages/packages.module';
 import { AdvertisementsModule } from 'src/advertisements/advertisements.module';
+import { Virement } from 'src/virement/entities/virement.entity';
 
 @Module({
   imports: [
@@ -24,6 +25,7 @@ import { AdvertisementsModule } from 'src/advertisements/advertisements.module';
       PlatformFee,
       Package,
       Advertisement,
+      Virement,
     ]),
     AuthModule,
     PackagesModule,          // ✅ nécessaire pour injecter PackageRepo

@@ -1,22 +1,40 @@
 import { Controller, Post, Body, Req, UseGuards, Param, Get } from '@nestjs/common';
+import { InjectRepository } from '@nestjs/typeorm'; // ✅ Obligatoire
+import { Repository } from 'typeorm';                // ✅ Obligatoire
 import { StripeService } from './stripe.service';
 import { AuthGuard } from '../auth/auth.guard';
+import { User } from '../users/entities/user.entity'; // ✅ Ton entity
 
 @Controller('payments')
 export class StripeController {
-  constructor(private readonly stripeService: StripeService) {}
+  constructor(
+    private readonly stripeService: StripeService,
 
-  // ✅ Route principale d'enregistrement du compte Stripe Express (avec RIB via Stripe UI)
-  @UseGuards(AuthGuard)
-  @Post('create-express-account')
-  createExpressAccount(@Req() req) {
-    return this.stripeService.createStripeExpressAccount(req.user.userId);
-  }
+    @InjectRepository(User)
+    private readonly userRepo: Repository<User>,
+  ) {}
 
   @Post('intervention-intent')
   createIntentForIntervention(@Body('interventionId') interventionId: number) {
     return this.stripeService.createPaymentIntentForIntervention(interventionId);
   }
+
+  @Get('provider/:id/account-status')
+  async getStripeAccountStatus(@Param('id') providerId: number) {
+    const user = await this.userRepo.findOneBy({ id: providerId });
+    if (!user?.stripeAccountId) {
+      return { hasValidAccount: false };
+    }
+
+    const account = await this.stripeService.getStripeAccountDetails(user.stripeAccountId);
+    return {
+      hasValidAccount: account.payouts_enabled && account.charges_enabled,
+      payouts_enabled: account.payouts_enabled,
+      charges_enabled: account.charges_enabled,
+      requirements: account.requirements,
+    };
+  }
+
 
   @Post('intervention/:id')
   createPaymentIntentForIntervention(@Param('id') id: number) {
@@ -28,12 +46,24 @@ export class StripeController {
     return this.stripeService.getPlatformFeesOverview();
   }
 
+  @Get('provider/:id/virements')
+  getVirements(@Param('id') id: number) {
+    return this.stripeService.getVirementsForProvider(+id);
+  }
+
+
   @Get('admin/finance/overview')
   getAdminFinanceOverview() {
     return this.stripeService.getFinanceOverview();
   }
 
 
+  @UseGuards(AuthGuard)
+@Post('create-express-account')
+async onboardStripe(@Req() req) {
+  const userId = req.user.sub; // ✅ la vraie valeur du user.id
+  return this.stripeService.createOrGetStripeExpressAccount(userId);
+}
 
 
 

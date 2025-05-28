@@ -9,6 +9,7 @@ import { Subscription as SubscriptionEntity } from 'src/subscriptions/entities/s
 import { PlatformFee } from './entities/platform-fee.entity' // adapte chemin
 import { Package } from 'src/packages/entities/package.entity';
 import { Advertisement } from 'src/advertisements/entities/advertisement.entity';
+import { Virement } from 'src/virement/entities/virement.entity';
 
 // ✅ Typage local étendu pour éviter l'erreur TS2339
 interface UserWithStripe extends User {
@@ -34,6 +35,9 @@ export class StripeService {
     private readonly packageRepo: Repository<Package>,
     @InjectRepository(Advertisement)
     private readonly advertisementRepo: Repository<Advertisement>,
+    @InjectRepository(Virement)
+    private readonly virementRepo: Repository<Virement>,
+
   ) {
     const stripeKey = process.env.STRIPE_SECRET_KEY;
 
@@ -49,40 +53,112 @@ export class StripeService {
     
   }
 
-  async getFinanceOverview() {
-    const transferTotal = await this.transferRepo
-      .createQueryBuilder('transfer')
-      .select('SUM(transfer.amount)', 'sum')
-      .getRawOne();
+  async getFinanceOverview(): Promise<{ totalRevenue: number; totalTransfers: number }> {
+  // Total des virements envoyés
+  const transferTotalResult = await this.transferRepo
+    .createQueryBuilder('transfer')
+    .select('SUM(transfer.amount)', 'total')
+    .getRawOne();
 
-    const platformFeeTotal = await this.platformFeeRepo
-      .createQueryBuilder('platform_fee')
-      .select('SUM(platform_fee.amount)', 'sum')
-      .getRawOne();
+  // Total des frais de plateforme
+  const feeTotalResult = await this.platformFeeRepo
+    .createQueryBuilder('fee')
+    .select('SUM(fee.amount)', 'total')
+    .getRawOne();
 
-    const totalTransfers = parseFloat(transferTotal?.sum || '0');
-    const totalPlatformFees = parseFloat(platformFeeTotal?.sum || '0');
+  const totalTransfers = parseFloat(transferTotalResult.total) || 0;
+  const totalFees = parseFloat(feeTotalResult.total) || 0;
 
-    return {
-      totalRevenue: totalTransfers + totalPlatformFees,
-      totalPlatformFees,
-      totalTransfers,
-    };
-  }
+  return {
+    totalRevenue: totalTransfers + totalFees, // Revenus = virements + frais
+    totalTransfers: totalTransfers,
+  };
+}
+
+async getAccountStatus(providerId: number) {
+  const user = await this.userRepo.findOneBy({ id: providerId }) as UserWithStripe;
+  if (!user || !user.stripeAccountId) return { hasValidAccount: false };
+
+  const account = await this.stripe.accounts.retrieve(user.stripeAccountId);
+  return { hasValidAccount: account.charges_enabled && account.payouts_enabled };
+}
+
+async getStripeAccountDetails(accountId: string) {
+  return await this.stripe.accounts.retrieve(accountId);
+}
+
+
 
 
 
 
 async getPlatformFeesOverview() {
-  const total = await this.platformFeeRepo
+  const feeResult = await this.platformFeeRepo
     .createQueryBuilder('fee')
     .select('SUM(fee.amount)', 'sum')
     .getRawOne();
 
+  const subscriptionTotal = await this.subscriptionRepo
+    .createQueryBuilder('subscription')
+    .select(`
+      SUM(
+        CASE 
+          WHEN subscription.subscriptionTitle = 'Starter' THEN 9.99
+          WHEN subscription.subscriptionTitle = 'Premium' THEN 19.99
+          ELSE 0
+        END
+      )`, 'total')
+    .getRawOne();
+
+  const platformFees = parseFloat(feeResult.sum || '0');
+  const subscriptionRevenue = parseFloat(subscriptionTotal.total || '0');
+
   return {
-    total: parseFloat(total.sum || '0'),
+    total: platformFees + subscriptionRevenue,
   };
 }
+
+async addIbanToStripeAccount(userId: number, iban: string) {
+  const user = await this.userRepo.findOneBy({ id: userId }) as UserWithStripe;
+  if (!user || !user.stripeAccountId) throw new Error("Compte Stripe introuvable");
+
+  const bankAccount = await this.stripe.accounts.createExternalAccount(
+    user.stripeAccountId,
+    {
+      external_account: {
+        object: 'bank_account',
+        country: 'FR',
+        currency: 'eur',
+        account_holder_name: `${user.userFirstName} ${user.userLastName}`,
+        account_holder_type: 'individual',
+        account_number: iban,
+      },
+    }
+  );
+
+  return { success: true, bankAccountId: bankAccount.id };
+}
+
+async payoutToProvider(providerId: number, amount: number) {
+  const provider = await this.userRepo.findOneBy({ id: providerId }) as UserWithStripe;
+  if (!provider || !provider.stripeAccountId) throw new Error('Compte Stripe introuvable');
+
+  // Montant en centimes
+  const payout = await this.stripe.payouts.create(
+    {
+      amount: Math.round(amount * 100),
+      currency: 'eur',
+    },
+    {
+      stripeAccount: provider.stripeAccountId, // Connect account
+    }
+  );
+
+  return { success: true, payoutId: payout.id };
+}
+
+
+
 
 
   async createStripeExpressAccount(userId: number) {
@@ -100,6 +176,7 @@ async getPlatformFeesOverview() {
       business_type: 'individual',
       capabilities: {
         transfers: { requested: true },
+        card_payments: { requested: true }, // ✅ AJOUT ESSENTIEL
       },
       individual: {
         first_name: user.userFirstName,
@@ -123,6 +200,43 @@ async getPlatformFeesOverview() {
       url: accountLink.url,
     };
   }
+
+  async createOrGetStripeExpressAccount(userId: number) {
+    const user = await this.userRepo.findOneBy({ id: userId }) as UserWithStripe;
+    if (!user) throw new Error('Utilisateur introuvable');
+
+    // S'il a déjà un compte, renvoyer le lien d'onboarding
+    if (!user.stripeAccountId) {
+      const account = await this.stripe.accounts.create({
+        type: 'express',
+        country: 'FR',
+        email: user.email,
+        business_type: 'individual',
+        capabilities: {
+          transfers: { requested: true },
+        },
+        individual: {
+          first_name: user.userFirstName,
+          last_name: user.userLastName,
+          email: user.email,
+        },
+      });
+
+      user.stripeAccountId = account.id;
+      await this.userRepo.save(user);
+    }
+
+    // Renvoyer le lien d'onboarding même s'il avait déjà un compte
+    const accountLink = await this.stripe.accountLinks.create({
+      account: user.stripeAccountId,
+      refresh_url: 'http://localhost:3000/dashboard/livreur/wallet',
+      return_url: 'http://localhost:3000/dashboard/livreur/wallet',
+      type: 'account_onboarding',
+    });
+
+    return { success: true, url: accountLink.url };
+  }
+
 
   async createPaymentIntentForIntervention(interventionId: number) {
     // ✅ Ne pas demander la relation "client" (car elle n'existe pas dans l'entité)
@@ -343,6 +457,14 @@ async getPlatformFeesOverview() {
     return { pending: parseInt(total.sum || '0', 10) };
   }
 
+  async getVirementsForProvider(providerId: number) {
+    return this.virementRepo.find({
+      where: { provider: { id: providerId } },
+      order: { createdAt: 'DESC' },
+    });
+  }
+
+
   async transferFunds(providerId: number, amount: number) {
     const provider = await this.userRepo.findOneBy({ id: providerId });
     if (!provider) throw new Error('Provider not found');
@@ -364,8 +486,23 @@ async getPlatformFeesOverview() {
       toPay -= pay;
     }
 
-    return { success: true, message: 'Virement enregistré.' };
+    const payoutResult = await this.payoutToProvider(providerId, amount);
+
+    // ✅ Historique du virement
+    await this.virementRepo.save({
+      provider,
+      amount,
+      stripePayoutId: payoutResult.payoutId,
+    });
+
+    return {
+      success: true,
+      message: 'Virement effectué avec succès via Stripe.',
+      stripePayoutId: payoutResult.payoutId,
+    };
   }
+
+
 
   async createSubscriptionCheckoutSession(userId: number, priceId: string, subscriptionPlan: string) {
     const user = await this.userRepo.findOneBy({ id: userId });
