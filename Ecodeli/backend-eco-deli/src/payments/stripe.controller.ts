@@ -23,6 +23,19 @@ export class StripeController {
     return this.stripeService.createPaymentIntentForIntervention(+id);
   }
 
+  @Get('platform-fees-overview')
+  getPlatformFeesOverview() {
+    return this.stripeService.getPlatformFeesOverview();
+  }
+
+  @Get('admin/finance/overview')
+  getAdminFinanceOverview() {
+    return this.stripeService.getFinanceOverview();
+  }
+
+
+
+
 
 
   @Post('intent')

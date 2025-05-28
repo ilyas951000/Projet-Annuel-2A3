@@ -49,6 +49,42 @@ export class StripeService {
     
   }
 
+  async getFinanceOverview() {
+    const transferTotal = await this.transferRepo
+      .createQueryBuilder('transfer')
+      .select('SUM(transfer.amount)', 'sum')
+      .getRawOne();
+
+    const platformFeeTotal = await this.platformFeeRepo
+      .createQueryBuilder('platform_fee')
+      .select('SUM(platform_fee.amount)', 'sum')
+      .getRawOne();
+
+    const totalTransfers = parseFloat(transferTotal?.sum || '0');
+    const totalPlatformFees = parseFloat(platformFeeTotal?.sum || '0');
+
+    return {
+      totalRevenue: totalTransfers + totalPlatformFees,
+      totalPlatformFees,
+      totalTransfers,
+    };
+  }
+
+
+
+
+async getPlatformFeesOverview() {
+  const total = await this.platformFeeRepo
+    .createQueryBuilder('fee')
+    .select('SUM(fee.amount)', 'sum')
+    .getRawOne();
+
+  return {
+    total: parseFloat(total.sum || '0'),
+  };
+}
+
+
   async createStripeExpressAccount(userId: number) {
     const user = await this.userRepo.findOneBy({ id: userId }) as UserWithStripe;
     if (!user) throw new Error('Utilisateur introuvable');
@@ -127,7 +163,7 @@ export class StripeService {
 
 
 
-async createPaymentIntent(
+  async createPaymentIntent(
     clientId: number,
     providerId: number,
     amount: number,
@@ -156,65 +192,62 @@ async createPaymentIntent(
 
     const basePrice = parseFloat(advertisement.advertisementPrice.toString());
 
-    // Frais de base à 20%
-    let serviceFee = basePrice * 0.2;
+    let serviceFee: number;
 
-    // Réductions selon abonnement
-    if (subscription?.subscriptionTitle === 'Starter') {
-      serviceFee *= 0.95; // -5%
-      if (
-        packageEntity.packageDimension &&
-        ['xs', 's'].includes(packageEntity.packageDimension)
-      ) {
-        serviceFee *= 0.95; // -5% supplémentaire
+    if (fee !== undefined) {
+      // ✅ Si le front a déjà calculé les frais, on les prend directement
+      serviceFee = fee;
+    } else {
+      // ✅ Sinon, on les calcule côté backend
+      serviceFee = basePrice * 0.2;
+
+      if (subscription?.subscriptionTitle === 'Starter') {
+        serviceFee *= 0.95; // -5%
+        if (
+          packageEntity.packageDimension &&
+          ['xs', 's'].includes(packageEntity.packageDimension)
+        ) {
+          serviceFee *= 0.95; // -5% supplémentaire
+        }
       }
-    }
 
-    if (subscription?.subscriptionTitle === 'Premium') {
-      const totalDiscount = (subscription.shippingDiscount + subscription.permanentDiscount) / 100;
-      serviceFee *= 1 - totalDiscount;
+      if (subscription?.subscriptionTitle === 'Premium') {
+        const totalDiscount = (subscription.shippingDiscount + subscription.permanentDiscount) / 100;
+        serviceFee *= 1 - totalDiscount;
 
-      // Premier envoi gratuit si < 150 €
-      if (!subscription.hasUsedFreeShipping && basePrice < 150) {
-        serviceFee = 0;
-        subscription.hasUsedFreeShipping = true;
-        await this.subscriptionRepo.save(subscription);
-      }
-    }
-
-    // 👉 Frais supplémentaires si le colis est prioritaire
-    if (packageEntity.prioritaire) {
-      if (!subscription || !subscription.subscriptionTitle) {
-        // Aucun abonnement → +15%
-        const priorityFee = (basePrice + serviceFee) * 0.15;
-        serviceFee += priorityFee;
-      } else if (subscription.subscriptionTitle === 'Starter') {
-        // Starter → +5%
-        const priorityFee = (basePrice + serviceFee) * 0.05;
-        serviceFee += priorityFee;
-      } else if (subscription.subscriptionTitle === 'Premium') {
-        // Premium → 3 gratuits par mois puis +5%
-        const now = new Date();
-        const lastReset = subscription.lastPriorityReset;
-        const shouldReset =
-          !lastReset ||
-          now.getMonth() !== new Date(lastReset).getMonth() ||
-          now.getFullYear() !== new Date(lastReset).getFullYear();
-
-        if (shouldReset) {
-          subscription.priorityShippingUsed = 0;
-          subscription.lastPriorityReset = now;
+        if (!subscription.hasUsedFreeShipping && basePrice < 150) {
+          serviceFee = 0;
+          subscription.hasUsedFreeShipping = true;
           await this.subscriptionRepo.save(subscription);
         }
+      }
 
-        const used = subscription.priorityShippingUsed ?? 0;
-        if (used < 3) {
-          subscription.priorityShippingUsed = used + 1;
-          await this.subscriptionRepo.save(subscription);
-          // Pas de surtaxe
-        } else {
-          const priorityFee = (basePrice + serviceFee) * 0.05;
-          serviceFee += priorityFee;
+      if (packageEntity.prioritaire) {
+        if (!subscription || !subscription.subscriptionTitle) {
+          serviceFee += (basePrice + serviceFee) * 0.15;
+        } else if (subscription.subscriptionTitle === 'Starter') {
+          serviceFee += (basePrice + serviceFee) * 0.05;
+        } else if (subscription.subscriptionTitle === 'Premium') {
+          const now = new Date();
+          const lastReset = subscription.lastPriorityReset;
+          const shouldReset =
+            !lastReset ||
+            now.getMonth() !== new Date(lastReset).getMonth() ||
+            now.getFullYear() !== new Date(lastReset).getFullYear();
+
+          if (shouldReset) {
+            subscription.priorityShippingUsed = 0;
+            subscription.lastPriorityReset = now;
+            await this.subscriptionRepo.save(subscription);
+          }
+
+          const used = subscription.priorityShippingUsed ?? 0;
+          if (used < 3) {
+            subscription.priorityShippingUsed = used + 1;
+            await this.subscriptionRepo.save(subscription);
+          } else {
+            serviceFee += (basePrice + serviceFee) * 0.05;
+          }
         }
       }
     }
@@ -229,7 +262,7 @@ async createPaymentIntent(
         clientId: String(clientId),
         providerId: String(providerId),
         ...(packageId && { packageId: String(packageId) }),
-        ...(fee && { platformFee: serviceFee.toFixed(2) }),
+        platformFee: serviceFee.toFixed(2),
       },
     });
 
@@ -253,6 +286,7 @@ async createPaymentIntent(
 
     return { clientSecret: paymentIntent.client_secret };
   }
+
 
 
 

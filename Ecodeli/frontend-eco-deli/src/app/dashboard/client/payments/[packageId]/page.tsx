@@ -206,7 +206,7 @@ function CheckoutForm() {
           providerId,
           amount,
           packageId,
-          fee: discountedFee, // ✅ frais avec éventuelle réduction
+          fee: parseFloat((amount - baseAmount).toFixed(2)),
         }),
       })
 
