@@ -62,14 +62,18 @@ export class DocumentsService {
   }
 
   async validateDocument(documentId: number, action: 'accept' | 'refuse'): Promise<User> {
-    const document = await this.documentRepository.findOne({
-      where: { id: documentId },
-      relations: ['user'],
-    });
+  const document = await this.documentRepository.findOne({
+    where: { id: documentId },
+    relations: ['user'],
+  });
 
-    if (!document || !document.user) {
-      throw new BadRequestException('Document ou utilisateur introuvable');
-    }
+  if (!document || !document.user) {
+    throw new BadRequestException('Document ou utilisateur introuvable');
+  }
+
+  // 👉 Met à jour documentValid
+  document.documentValid = action === 'accept' ? 'yes' : 'no';
+    await this.documentRepository.save(document); // ✅ sauvegarde la mise à jour du document
 
     const user = document.user;
     if (user.userStatus === 'livreur') {
@@ -82,6 +86,7 @@ export class DocumentsService {
 
     return await this.userRepository.save(user);
   }
+
 
   /**
    * Supprime tous les documents (en base et fichiers) d'un même utilisateur

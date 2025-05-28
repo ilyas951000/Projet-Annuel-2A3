@@ -30,6 +30,9 @@ export class Document {
   @Column()
   fileName: string;
 
+  @Column({ default: "undetermined" })
+  documentValid: string;
+
   @Column()
   filePath: string;
 

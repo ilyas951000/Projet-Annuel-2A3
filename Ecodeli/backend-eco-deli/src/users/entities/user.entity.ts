@@ -5,6 +5,7 @@ import { Column, Entity, ManyToOne, OneToMany, OneToOne, JoinColumn, PrimaryGene
 import { Document } from "src/documents/entities/document.entity";
 import { CompanyDetail } from "src/company-detail/entities/company-detail.entity";
 import { ContractElement } from "src/contract-element/entities/contract-element.entity";
+import { PrestataireRole } from 'src/prestataire-roles/entities/prestataire-role.entity';
 
 @Entity('user')  // Utilisation explicite du nom de la table
 export class User {
@@ -32,6 +33,8 @@ export class User {
   @Column()
   userAddress: string;
 
+
+
   @Column({ default: false })
   hasAccount: boolean;
 
@@ -44,6 +47,13 @@ export class User {
 
   @Column({ default: false })
   valid: boolean;
+
+
+
+  @ManyToOne(() => PrestataireRole, (role) => role.users, { nullable: true })
+  @JoinColumn()
+  prestataireRole: PrestataireRole;
+
 
   @OneToMany(() => Subscription, (subscription) => subscription.users)
   subscription: Subscription[];

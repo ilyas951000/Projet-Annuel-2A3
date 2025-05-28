@@ -28,6 +28,8 @@ import { ContractElementModule } from './contract-element/contract-element.modul
 import { MessagesModule } from './message/messages.module';
 import { ChatGateway } from './message/chat.gateway'; // ✅ ajouté ici
 import { TransferHistoryModule } from './transfer-history/transfer-history.module';
+import { PrestataireRolesModule } from './prestataire-roles/prestataire-roles.module';
+import { PrestataireRequirementsModule } from './prestataire-requirements/prestataire-requirements.module';
 
 @Module({
   imports: [
@@ -74,6 +76,8 @@ import { TransferHistoryModule } from './transfer-history/transfer-history.modul
     ContractElementModule,
     MessagesModule,
     TransferHistoryModule,
+    PrestataireRolesModule,
+    PrestataireRequirementsModule,
   ],
   controllers: [AppController],
   providers: [AppService, ChatGateway], // ✅ ajouté ici
