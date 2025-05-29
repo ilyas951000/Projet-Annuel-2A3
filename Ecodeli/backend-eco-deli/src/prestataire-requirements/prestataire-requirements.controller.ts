@@ -16,6 +16,10 @@ export class PrestataireRequirementsController {
   findAll() {
     return this.prestataireRequirementsService.findAll();
   }
+  @Get('by-role/:roleId')
+  findByRole(@Param('roleId') roleId: string) {
+    return this.prestataireRequirementsService.findByRole(+roleId);
+  }
 
   @Get(':id')
   findOne(@Param('id') id: string) {
@@ -31,4 +35,7 @@ export class PrestataireRequirementsController {
   remove(@Param('id') id: string) {
     return this.prestataireRequirementsService.remove(+id);
   }
+
+  
+
 }

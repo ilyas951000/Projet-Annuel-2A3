@@ -36,7 +36,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       localStorage.setItem("token", data.accessToken);
     } catch (error) {
       console.error(error);
-      throw error; // ✅ Propage l'erreur vers page.tsx pour qu'elle soit gérée proprement
+      throw error; 
     }    
   };
 

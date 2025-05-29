@@ -11,13 +11,18 @@ type UserData = {
   userId: number;
   userStatus: string;
   valid: boolean;
+  prestataireRoleId: number;
 };
+
+
+
 
 const AdminConnexion: NextPage = () => {
   const [userData, setUserData] = useState<UserData | null>(null);
   const [loading, setLoading] = useState(true);
   const [darkMode, setDarkMode] = useState(false);
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [requirements, setRequirements] = useState<Requirement[]>([]);
 
   useEffect(() => {
     const token = localStorage.getItem("token");
@@ -45,6 +50,8 @@ const AdminConnexion: NextPage = () => {
         };
 
         setUserData(formattedData);
+        const requirementsRes = await axios.get(`${process.env.NEXT_PUBLIC_API_URL}/prestataire-requirements/by-role/${data.prestataireRoleId}`);
+        setRequirements(requirementsRes.data);
       } catch (err) {
         console.error("Erreur lors de la récupération des infos utilisateur", err);
       } finally {
@@ -71,6 +78,14 @@ const AdminConnexion: NextPage = () => {
     return (
       <div className="flex flex-col items-center justify-center h-screen space-y-6">
         <h1 className="text-3xl font-bold">Bienvenue sur votre espace livreur</h1>
+        <div className="text-left space-y-2">
+          <h2 className="text-xl font-semibold">Documents requis :</h2>
+          <ul className="list-disc pl-5">
+            {requirements.map((doc) => (
+              <li key={doc.id}>{doc.name}</li>
+            ))}
+          </ul>
+        </div>
         <Link href="/dashboard/livreur/documents">
           <button className="bg-yellow-500 text-white px-6 py-2 rounded hover:bg-yellow-600 transition">
             Envoyer mes justificatifs

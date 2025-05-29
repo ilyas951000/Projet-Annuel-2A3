@@ -125,4 +125,9 @@ export class DocumentsService {
     const docs = await this.documentRepository.find({ relations: ['user'], order: { id: 'DESC' } });
     return docs.map((d) => ({ ...d, fileUrl: `http://127.0.0.1:3001/${d.filePath}` }));
   }
+
+  async findByUser(userId: number): Promise<Document[]> {
+    return this.documentRepository.find({ where: { userId } });
+  }
+
 }

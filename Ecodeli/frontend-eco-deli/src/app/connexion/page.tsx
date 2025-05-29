@@ -1,10 +1,10 @@
-"use client"; // Next.js 13+ (assure que ce code s'exécute côté client)
+"use client";
 import React, { useState } from "react";
-import { useAuth } from "../context/AuthContext"; // 🔥 Importation du contexte d'auth
-import { useRouter } from "next/navigation"; // Pour rediriger après connexion
+import { useAuth } from "../context/AuthContext";
+import { useRouter } from "next/navigation";
 
 export default function LoginPage() {
-  const { login } = useAuth(); // 🔥 Récupère la fonction login du contexte
+  const { login } = useAuth(); 
   const router = useRouter();
 
   const [email, setEmail] = useState("");
@@ -13,14 +13,14 @@ export default function LoginPage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setError(""); // Réinitialise les erreurs
+    setError("");
   
     try {
-      await login(email, password); // 🔥 Essaye de se connecter
-      router.push("/dashboard"); // ✅ Seulement en cas de succès !
+      await login(email, password);
+      router.push("/dashboard"); 
     } catch (err) {
       console.error(err);
-      setError("Email ou mot de passe incorrect."); // 🔥 Bloque la redirection en cas d'échec
+      setError("Email ou mot de passe incorrect.");
     }
   };
   
@@ -35,7 +35,7 @@ export default function LoginPage() {
         </div>
         <h2 className="text-xl font-semibold text-gray-800 mb-6">Me connecter</h2>
 
-        {error && <p className="text-red-500">{error}</p>} {/* 🔥 Affichage erreur */}
+        {error && <p className="text-red-500">{error}</p>}
 
         <form className="space-y-4" onSubmit={handleSubmit}>
           <input

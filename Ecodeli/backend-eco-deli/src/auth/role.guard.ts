@@ -7,7 +7,7 @@ export class RoleGuard implements CanActivate {
   constructor(private jwtService: JwtService) {}
 
   canActivate(context: ExecutionContext): boolean {
-    const requiredRole = 'admin'; // Ici, tu peux ajouter une logique pour récupérer le rôle requis
+    const requiredRole = 'admin';
     const request = context.switchToHttp().getRequest<Request>();
     const authHeader = request.headers.authorization;
 

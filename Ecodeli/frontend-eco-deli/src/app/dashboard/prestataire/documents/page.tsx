@@ -1,28 +1,43 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import axios from 'axios';
 
-const DOCUMENT_TYPES = [
-  'CNI',
-  'Permis de conduire',
-  'Passeport',
-  'RIB',
-  'Justificatif de domicile',
-  'Autre',
-];
+// Autres imports nécessaires...
+
+type UserData = {
+  userId: number;
+  userStatus: string;
+  valid: boolean;
+  prestataireRoleId: number;
+};
+
+type Requirement = {
+  id: number;
+  name: string;
+};
 
 type DocumentForm = {
-  documentType: string;
+  requirementId: number;
+  name: string;
   documentDate: string;
   expirationDate: string;
   format: string;
   file: File | null;
 };
 
-export default function JustificationPage() {
+type JustificationFormProps = {
+  requirements: Requirement[];
+};
+
+function JustificationForm({ requirements }: JustificationFormProps) {
   const [documents, setDocuments] = useState<DocumentForm[]>([
-    { documentType: '', documentDate: '', expirationDate: '', format: '', file: null },
+    { requirementId: 0, name: '', documentDate: '', expirationDate: '', format: '', file: null },
   ]);
+
+
+
+
   const [message, setMessage] = useState('');
   const [loading, setLoading] = useState(false);
 
@@ -33,8 +48,14 @@ export default function JustificationPage() {
   };
 
   const addDocumentForm = () => {
-    setDocuments([...documents, { documentType: '', documentDate: '', expirationDate: '', format: '', file: null }]);
-  };
+  if (documents.length < requirements.length) {
+    setDocuments([
+      ...documents,
+      { requirementId: 0, name: '', documentDate: '', expirationDate: '', format: '', file: null },
+    ]);
+  }
+};
+
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -42,14 +63,18 @@ export default function JustificationPage() {
     setMessage('');
 
     const formData = new FormData();
-    formData.append('documents', JSON.stringify(
-      documents.map((d) => ({
-        documentType: d.documentType,
-        documentDate: d.documentDate,
-        expirationDate: d.expirationDate,
-        format: d.format,
-      }))
-    ));
+    formData.append(
+      'documents',
+      JSON.stringify(
+        documents.map((d) => ({
+          requirementId: d.requirementId,
+          documentDate: d.documentDate,
+          expirationDate: d.expirationDate,
+          format: d.format,
+        }))
+      )
+    );
+
 
     documents.forEach((d) => d.file && formData.append('file', d.file));
 
@@ -63,7 +88,9 @@ export default function JustificationPage() {
       const data = await res.json();
       if (res.ok) {
         setMessage('✅ Tous les justificatifs ont été envoyés !');
-        setDocuments([{ documentType: '', documentDate: '', expirationDate: '', format: '', file: null }]);
+        setDocuments([
+          { documentType: '', documentDate: '', expirationDate: '', format: '', file: null },
+        ]);
       } else {
         setMessage(`❌ Erreur : ${data.message}`);
       }
@@ -82,24 +109,143 @@ export default function JustificationPage() {
         {documents.map((doc, i) => (
           <div key={i} className="p-4 border rounded space-y-4">
             <select
-              value={doc.documentType}
-              onChange={(e) => handleChange(i, 'documentType', e.target.value)}
+              value={doc.requirementId}
+              onChange={(e) =>
+                handleChange(i, 'requirementId', parseInt(e.target.value))
+              }
               className="w-full p-2 border rounded"
               required
             >
               <option value="">Type de document</option>
-              {DOCUMENT_TYPES.map((type) => <option key={type} value={type}>{type}</option>)}
+              {requirements.map((req) => (
+                <option key={req.id} value={req.id}>
+                  {req.name}
+                </option>
+              ))}
             </select>
-            <input type="date" value={doc.documentDate} onChange={(e) => handleChange(i, 'documentDate', e.target.value)} className="w-full p-2 border rounded" required />
-            <input type="date" value={doc.expirationDate} onChange={(e) => handleChange(i, 'expirationDate', e.target.value)} className="w-full p-2 border rounded" required />
-            <input type="text" placeholder="Format (PDF, JPG...)" value={doc.format} onChange={(e) => handleChange(i, 'format', e.target.value)} className="w-full p-2 border rounded" required />
-            <input type="file" accept=".pdf,.jpg,.jpeg,.png" onChange={(e) => handleChange(i, 'file', e.target.files?.[0] || null)} className="w-full p-2 border rounded" required />
+
+            <input
+              type="date"
+              value={doc.documentDate}
+              onChange={(e) => handleChange(i, 'documentDate', e.target.value)}
+              className="w-full p-2 border rounded"
+              required
+            />
+            <input
+              type="date"
+              value={doc.expirationDate}
+              onChange={(e) => handleChange(i, 'expirationDate', e.target.value)}
+              className="w-full p-2 border rounded"
+              required
+            />
+            <input
+              type="text"
+              placeholder="Format (PDF, JPG...)"
+              value={doc.format}
+              onChange={(e) => handleChange(i, 'format', e.target.value)}
+              className="w-full p-2 border rounded"
+              required
+            />
+            <input
+              type="file"
+              accept=".pdf,.jpg,.jpeg,.png"
+              onChange={(e) => handleChange(i, 'file', e.target.files?.[0] || null)}
+              className="w-full p-2 border rounded"
+              required
+            />
           </div>
         ))}
-        <button type="button" onClick={addDocumentForm} className="text-blue-600 underline text-sm">+ Ajouter un autre justificatif</button>
-        <button type="submit" disabled={loading} className="bg-blue-600 text-white py-2 px-4 rounded hover:bg-blue-700 mt-4">{loading ? 'Envoi...' : 'Envoyer tous les documents'}</button>
+        <div className="relative inline-block group">
+          <button
+            type="button"
+            onClick={addDocumentForm}
+            className={`text-sm underline ${
+              documents.length >= requirements.length
+                ? 'text-gray-400 cursor-not-allowed'
+                : 'text-blue-600'
+            }`}
+            disabled={documents.length >= requirements.length}
+          >
+            + Ajouter un autre justificatif
+          </button>
+
+          {documents.length >= requirements.length && (
+            <div className="absolute z-10 -top-8 left-0 w-max bg-black text-white text-xs rounded px-2 py-1 opacity-0 group-hover:opacity-100 transition-opacity">
+              brother t'es déjà au max peut plus rien faire pour toi
+            </div>
+          )}
+        </div>
+
+
+        <button
+          type="submit"
+          disabled={loading}
+          className="bg-blue-600 text-white py-2 px-4 rounded hover:bg-blue-700 mt-4"
+        >
+          {loading ? 'Envoi...' : 'Envoyer tous les documents'}
+        </button>
+        {message && <p className="mt-4 text-sm text-red-600">{message}</p>}
       </form>
-      {message && <p className="mt-4 text-sm text-red-600">{message}</p>}
     </div>
-);
+  );
 }
+
+const AdminConnexion = () => {
+  const [userData, setUserData] = useState<UserData | null>(null);
+  const [requirements, setRequirements] = useState<Requirement[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const token = localStorage.getItem('token');
+    if (!token) {
+      setLoading(false);
+      return;
+    }
+
+    const fetchData = async () => {
+      try {
+        const res = await axios.get('http://localhost:3001/auth/me', {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        });
+
+        const user = res.data;
+        setUserData(user);
+
+        const requirementsRes = await axios.get(
+          `${process.env.NEXT_PUBLIC_API_URL}/prestataire-requirements/by-role/${user.prestataireRoleId}`
+        );
+        setRequirements(requirementsRes.data);
+      } catch (err) {
+        console.error('Erreur API :', err);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchData();
+  }, []);
+
+  if (loading) return <p>Chargement...</p>;
+  if (!userData) return <p>Utilisateur non connecté</p>;
+
+  if (!userData.valid) {
+    return (
+      <div className="space-y-6 p-6 max-w-3xl mx-auto">
+        <h1 className="text-2xl font-bold">Documents requis pour validation</h1>
+        <ul className="list-disc pl-5 text-gray-700">
+          {requirements.map((r) => (
+            <li key={r.id}>{r.name}</li>
+          ))}
+        </ul>
+        <JustificationForm requirements={requirements} />
+
+      </div>
+    );
+  }
+
+  return <p className="text-center mt-10">Bienvenue, vous êtes validé ✅</p>;
+};
+
+export default AdminConnexion;

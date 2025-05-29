@@ -1,7 +1,7 @@
 import { Advertisement } from "src/advertisements/entities/advertisement.entity";
 import { Invoice } from "src/invoices/entities/invoice.entity";
 import { Subscription } from "src/subscriptions/entities/subscription.entity";
-import { Column, Entity, ManyToOne, OneToMany, OneToOne, JoinColumn, PrimaryGeneratedColumn } from "typeorm";
+import { Column, Entity, ManyToOne, OneToMany, OneToOne, JoinColumn, PrimaryGeneratedColumn, RelationId } from "typeorm";
 import { Document } from "src/documents/entities/document.entity";
 import { CompanyDetail } from "src/company-detail/entities/company-detail.entity";
 import { ContractElement } from "src/contract-element/entities/contract-element.entity";
@@ -53,6 +53,9 @@ export class User {
   @ManyToOne(() => PrestataireRole, (role) => role.users, { nullable: true })
   @JoinColumn()
   prestataireRole: PrestataireRole;
+  
+  @RelationId((user: User) => user.prestataireRole)
+  prestataireRoleId: number;
 
 
   @Column({ nullable: true })

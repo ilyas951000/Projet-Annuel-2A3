@@ -15,7 +15,7 @@ export class Document {
   @PrimaryGeneratedColumn()
   id: number;
 
-  @Column()
+  @Column({ default: "rien" })
   documentType: string;
 
   @Column({ type: 'date' })
