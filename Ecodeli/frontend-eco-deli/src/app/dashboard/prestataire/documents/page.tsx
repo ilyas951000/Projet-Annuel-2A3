@@ -28,13 +28,24 @@ type DocumentForm = {
 
 type JustificationFormProps = {
   requirements: Requirement[];
+  existingDocs: {
+    requirementId: number;
+    documentValid: string;
+    fileName: string;
+  }[];
+  isUserValid: boolean;
 };
 
-function JustificationForm({ requirements }: JustificationFormProps) {
+
+function JustificationForm({ requirements, existingDocs, isUserValid }: JustificationFormProps) {
+
   const [documents, setDocuments] = useState<DocumentForm[]>([
     { requirementId: 0, name: '', documentDate: '', expirationDate: '', format: '', file: null },
   ]);
 
+  const filledRequirementIds = new Set(existingDocs.map((d) => d.requirementId));
+  const canAddDocument =
+  documents.length + filledRequirementIds.size < requirements.length;
 
 
 
@@ -104,88 +115,130 @@ function JustificationForm({ requirements }: JustificationFormProps) {
 
   return (
     <div className="p-6 max-w-2xl mx-auto">
-      <h2 className="text-2xl font-semibold mb-6">Déposer plusieurs justificatifs</h2>
-      <form onSubmit={handleSubmit} className="space-y-8">
-        {documents.map((doc, i) => (
-          <div key={i} className="p-4 border rounded space-y-4">
-            <select
-              value={doc.requirementId}
-              onChange={(e) =>
-                handleChange(i, 'requirementId', parseInt(e.target.value))
-              }
-              className="w-full p-2 border rounded"
-              required
-            >
-              <option value="">Type de document</option>
-              {requirements.map((req) => (
-                <option key={req.id} value={req.id}>
-                  {req.name}
-                </option>
-              ))}
-            </select>
+      
 
-            <input
-              type="date"
-              value={doc.documentDate}
-              onChange={(e) => handleChange(i, 'documentDate', e.target.value)}
-              className="w-full p-2 border rounded"
-              required
-            />
-            <input
-              type="date"
-              value={doc.expirationDate}
-              onChange={(e) => handleChange(i, 'expirationDate', e.target.value)}
-              className="w-full p-2 border rounded"
-              required
-            />
-            <input
-              type="text"
-              placeholder="Format (PDF, JPG...)"
-              value={doc.format}
-              onChange={(e) => handleChange(i, 'format', e.target.value)}
-              className="w-full p-2 border rounded"
-              required
-            />
-            <input
-              type="file"
-              accept=".pdf,.jpg,.jpeg,.png"
-              onChange={(e) => handleChange(i, 'file', e.target.files?.[0] || null)}
-              className="w-full p-2 border rounded"
-              required
-            />
-          </div>
-        ))}
-        <div className="relative inline-block group">
-          <button
-            type="button"
-            onClick={addDocumentForm}
-            className={`text-sm underline ${
-              documents.length >= requirements.length
-                ? 'text-gray-400 cursor-not-allowed'
-                : 'text-blue-600'
-            }`}
-            disabled={documents.length >= requirements.length}
-          >
-            + Ajouter un autre justificatif
-          </button>
-
-          {documents.length >= requirements.length && (
-            <div className="absolute z-10 -top-8 left-0 w-max bg-black text-white text-xs rounded px-2 py-1 opacity-0 group-hover:opacity-100 transition-opacity">
-              brother t'es déjà au max peut plus rien faire pour toi
-            </div>
-          )}
+      {existingDocs.length > 0 && (
+        <div className="mb-6 space-y-4">
+          <h3 className="text-xl font-semibold">Etat de vos documents :</h3>
+          <ul className="space-y-2">
+            {existingDocs.map((doc) => (
+              <li
+                key={doc.requirementId}
+                className="flex justify-between items-center border p-2 rounded bg-gray-50"
+              >
+                <div>
+                  <p className="font-medium">{doc.fileName}</p>
+                  <p className="text-sm text-gray-600">État : {doc.documentValid}</p>
+                </div>
+                <a
+                  href={`http://localhost:3001/uploads/${doc.fileName}`} 
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-blue-600 underline text-sm"
+                >
+                  Voir
+                </a>
+              </li>
+            ))}
+          </ul>
         </div>
+      )}
 
+      {!isUserValid && (
+        <>
+          <h2 className="text-2xl font-semibold mb-6">Déposer plusieurs justificatifs</h2>
+          <form onSubmit={handleSubmit} className="space-y-8">
+            {documents.map((doc, i) => (
+              <div key={i} className="p-4 border rounded space-y-4">
+                <select
+                  value={doc.requirementId}
+                  onChange={(e) => handleChange(i, 'requirementId', parseInt(e.target.value))}
+                  className="w-full p-2 border rounded"
+                  required
+                >
+                  <option value="">Type de document</option>
+                  {requirements.map((req) => (
+                    <option
+                      key={req.id}
+                      value={req.id}
+                      disabled={filledRequirementIds.has(req.id)}
+                    >
+                      {req.name}
+                      {filledRequirementIds.has(req.id) ? ' ✅ (déjà envoyé)' : ''}
+                    </option>
+                  ))}
+                </select>
 
-        <button
-          type="submit"
-          disabled={loading}
-          className="bg-blue-600 text-white py-2 px-4 rounded hover:bg-blue-700 mt-4"
-        >
-          {loading ? 'Envoi...' : 'Envoyer tous les documents'}
-        </button>
-        {message && <p className="mt-4 text-sm text-red-600">{message}</p>}
-      </form>
+                <input
+                  type="date"
+                  value={doc.documentDate}
+                  onChange={(e) => handleChange(i, 'documentDate', e.target.value)}
+                  className="w-full p-2 border rounded"
+                  required
+                />
+                <input
+                  type="date"
+                  value={doc.expirationDate}
+                  onChange={(e) => handleChange(i, 'expirationDate', e.target.value)}
+                  className="w-full p-2 border rounded"
+                  required
+                />
+                <input
+                  type="text"
+                  placeholder="Format (PDF, JPG...)"
+                  value={doc.format}
+                  onChange={(e) => handleChange(i, 'format', e.target.value)}
+                  className="w-full p-2 border rounded"
+                  required
+                />
+                <input
+                  type="file"
+                  accept=".pdf,.jpg,.jpeg,.png"
+                  onChange={(e) => handleChange(i, 'file', e.target.files?.[0] || null)}
+                  className="w-full p-2 border rounded"
+                  required
+                />
+              </div>
+            ))}
+
+            <div className="relative inline-block group">
+              <button
+                type="button"
+                onClick={addDocumentForm}
+                disabled={!canAddDocument}
+                title={!canAddDocument ? 'Tous les documents requis ont été fournis' : ''}
+                className={`text-sm underline ${
+                  !canAddDocument ? 'text-gray-400 cursor-not-allowed' : 'text-blue-600'
+                }`}
+              >
+                + Ajouter un autre justificatif
+              </button>
+
+              {documents.length >= requirements.length && (
+                <div className="absolute z-10 -top-8 left-0 w-max bg-black text-white text-xs rounded px-2 py-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                  Tous les justificatifs sont déjà couverts.
+                </div>
+              )}
+            </div>
+
+            <button
+              type="submit"
+              disabled={loading}
+              className="bg-blue-600 text-white py-2 px-4 rounded hover:bg-blue-700 mt-4"
+            >
+              {loading ? 'Envoi...' : 'Envoyer tous les documents'}
+            </button>
+            {message && <p className="mt-4 text-sm text-red-600">{message}</p>}
+          </form>
+        </>
+      )}
+
+      {isUserValid && (
+        <p className="text-gray-600 italic mt-4">
+          ✅ Vous êtes validé – l'ajout de nouveaux documents est désactivé.
+        </p>
+      )}
+
     </div>
   );
 }
@@ -194,6 +247,8 @@ const AdminConnexion = () => {
   const [userData, setUserData] = useState<UserData | null>(null);
   const [requirements, setRequirements] = useState<Requirement[]>([]);
   const [loading, setLoading] = useState(true);
+  const [userDocuments, setUserDocuments] = useState<DocumentForm[]>([]);
+  
 
   useEffect(() => {
     const token = localStorage.getItem('token');
@@ -217,6 +272,14 @@ const AdminConnexion = () => {
           `${process.env.NEXT_PUBLIC_API_URL}/prestataire-requirements/by-role/${user.prestataireRoleId}`
         );
         setRequirements(requirementsRes.data);
+
+        const docsRes = await axios.get(
+          `http://localhost:3001/documents/user/${user.userId}`,
+          {
+            headers: { Authorization: `Bearer ${token}` },
+          }
+        );
+        setUserDocuments(docsRes.data);
       } catch (err) {
         console.error('Erreur API :', err);
       } finally {
@@ -224,28 +287,41 @@ const AdminConnexion = () => {
       }
     };
 
+
     fetchData();
   }, []);
 
   if (loading) return <p>Chargement...</p>;
   if (!userData) return <p>Utilisateur non connecté</p>;
 
-  if (!userData.valid) {
-    return (
-      <div className="space-y-6 p-6 max-w-3xl mx-auto">
+  return (
+  <div className="space-y-6 p-6 max-w-3xl mx-auto">
+    {!userData.valid && (
+      <>
         <h1 className="text-2xl font-bold">Documents requis pour validation</h1>
         <ul className="list-disc pl-5 text-gray-700">
           {requirements.map((r) => (
             <li key={r.id}>{r.name}</li>
           ))}
         </ul>
-        <JustificationForm requirements={requirements} />
+      </>
+    )}
 
-      </div>
-    );
-  }
+    {userData.valid && (
+      <h1 className="text-2xl font-bold text-green-600">
+        ✅ Vous êtes validé — voici vos documents envoyés
+      </h1>
+    )}
 
-  return <p className="text-center mt-10">Bienvenue, vous êtes validé ✅</p>;
+    <JustificationForm
+      requirements={requirements}
+      existingDocs={userDocuments}
+      isUserValid={userData.valid}
+    />
+
+  </div>
+);
+
 };
 
 export default AdminConnexion;

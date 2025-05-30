@@ -5,6 +5,7 @@ import { Document } from './entities/document.entity';
 import { User } from 'src/users/entities/user.entity';
 import * as fs from 'fs';
 import * as path from 'path';
+import { PrestataireRequirement } from 'src/prestataire-requirements/entities/prestataire-requirement.entity';
 
 @Injectable()
 export class DocumentsService {
@@ -129,5 +130,50 @@ export class DocumentsService {
   async findByUser(userId: number): Promise<Document[]> {
     return this.documentRepository.find({ where: { userId } });
   }
+
+  async getAllUsersRequirementsWithDocuments(): Promise<{
+    [userId: number]: {
+      user: {
+        id: number;
+        userFirstName: string;
+        userLastName: string;
+        email: string;
+      };
+      requirements: PrestataireRequirement[];
+    };
+  }> {
+    const users = await this.userRepository.find({
+      where: { userStatus: 'prestataire' },
+      relations: ['prestataireRole', 'prestataireRole.requirements'],
+    });
+
+    const result: {
+      [userId: number]: {
+        user: {
+          id: number;
+          userFirstName: string;
+          userLastName: string;
+          email: string;
+        };
+        requirements: PrestataireRequirement[];
+      };
+    } = {};
+
+    for (const user of users) {
+      result[user.id] = {
+        user: {
+          id: user.id,
+          userFirstName: user.userFirstName,
+          userLastName: user.userLastName,
+          email: user.email,
+        },
+        requirements: user.prestataireRole?.requirements || [],
+      };
+    }
+
+    return result;
+  }
+
+
 
 }
