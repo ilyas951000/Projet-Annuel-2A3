@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { useParams } from "next/navigation";
+import { useParams, useRouter } from "next/navigation";
 import { loadStripe } from "@stripe/stripe-js";
 import {
   Elements,
@@ -24,6 +24,7 @@ function PaiementForm() {
   const stripe = useStripe();
   const elements = useElements();
   const { interventionId } = useParams();
+  const router = useRouter(); // 👈 Ajout du router pour redirection
 
   const [amount, setAmount] = useState<number>(0);
   const [clientSecret, setClientSecret] = useState<string | null>(null);
@@ -108,6 +109,9 @@ function PaiementForm() {
           method: "PATCH",
           headers: { "Content-Type": "application/json" },
         });
+
+        // ✅ Redirection vers la page des réservations
+        router.push("/dashboard/client/MesReservations");
       }
     } catch (err: any) {
       setMessage(err.message || "Erreur de paiement.");

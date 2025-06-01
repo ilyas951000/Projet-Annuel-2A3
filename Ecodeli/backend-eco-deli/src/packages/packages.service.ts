@@ -58,6 +58,20 @@ export class PackagesService {
     return this.packageRepository.save(pkg);
   }
 
+  async findAssignedPackages(): Promise<Package[]> {
+    return this.packageRepository
+      .createQueryBuilder('package')
+      .leftJoinAndSelect('package.users', 'users') // livreurs
+      .leftJoinAndSelect('package.advertisement', 'advertisement')
+      .leftJoinAndSelect('advertisement.users', 'client') // client
+      .innerJoin('deliverPackage', 'dp', 'dp.packageId = package.id') // uniquement les colis pris en charge
+      .getMany();
+  }
+
+
+
+
+
   async transferPackage({
     packageId,
     fromCourierId,

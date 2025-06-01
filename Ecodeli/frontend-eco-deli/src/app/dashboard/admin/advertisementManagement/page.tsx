@@ -14,9 +14,28 @@ export default function AdvertisementManagement() {
   });
 
   useEffect(() => {
-    fetch('http://localhost:3001/advertisements') // Mets l'URL correcte de ton API
-      .then(res => res.json())
-      .then(data => setAdvertisements(data));
+    const fetchAds = async () => {
+      try {
+        const token = localStorage.getItem('token'); // Assure-toi que le JWT est bien stocké
+        const res = await fetch('http://localhost:3001/advertisements/admin', {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        });
+
+        const data = await res.json();
+        if (Array.isArray(data)) {
+          setAdvertisements(data);
+        } else {
+          console.error("Format inattendu :", data);
+          setAdvertisements([]);
+        }
+      } catch (error) {
+        console.error("Erreur lors de la récupération des annonces :", error);
+      }
+    };
+
+    fetchAds();
   }, []);
 
   const validateAd = async (id) => {
@@ -72,9 +91,9 @@ export default function AdvertisementManagement() {
           ad.id === editingAd.id ? { ...ad, ...formData } : ad
         )
       );
-      setEditingAd(null); // Ferme le formulaire après la modification
+      setEditingAd(null);
     } else {
-      console.error('Erreur lors de la modification de l\'annonce');
+      console.error("Erreur lors de la modification de l'annonce");
     }
   };
 
@@ -88,35 +107,25 @@ export default function AdvertisementManagement() {
               <strong>{ad.advertisementItem}</strong> - {ad.isValidated ? "✅ Validé" : "❌ En attente"}
             </div>
 
-            {/* Nom de l'utilisateur */}
             <div>
-              <strong>Utilisateur : </strong>{ad.users && ad.users[0] ? ad.users[0].userFirstName : 'Inconnu'} {ad.users && ad.users[0] ? ad.users[0].userLastName : ''}
+              <strong>Utilisateur :</strong>{' '}
+              {ad.users?.userFirstName ?? 'Inconnu'} {ad.users?.userLastName ?? ''}
             </div>
 
-            {/* Photo de l'annonce */}
             {ad.advertisementPhoto && (
               <div>
                 <img
-                  src={`http://localhost:3001/uploads/${ad.advertisementPhoto}`} // Assure-toi que l'URL est correcte
+                  src={`http://localhost:3001/uploads/${ad.advertisementPhoto}`}
                   alt={ad.advertisementItem}
                   style={{ width: '100px', height: '100px', objectFit: 'cover', marginTop: '10px' }}
                 />
               </div>
             )}
 
-            {/* Caractéristiques de l'annonce */}
-            <div>
-              <strong>Prix : </strong>{ad.advertisementPrice} €
-            </div>
-            <div>
-              <strong>Quantité : </strong>{ad.advertisementQuantity}
-            </div>
-            <div>
-              <strong>Poids : </strong>{ad.advertisementWeight} kg
-            </div>
-            <div>
-              <strong>Informations supplémentaires : </strong>{ad.additionalInformation}
-            </div>
+            <div><strong>Prix :</strong> {ad.advertisementPrice} €</div>
+            <div><strong>Quantité :</strong> {ad.advertisementQuantity}</div>
+            <div><strong>Poids :</strong> {ad.advertisementWeight} kg</div>
+            <div><strong>Informations supplémentaires :</strong> {ad.additionalInformation}</div>
 
             <div style={{ marginTop: '5px' }}>
               {!ad.isValidated && (
@@ -144,7 +153,6 @@ export default function AdvertisementManagement() {
         ))}
       </ul>
 
-      {/* Formulaire de modification d'annonce */}
       {editingAd && (
         <div style={{ marginTop: '20px', border: '1px solid #ddd', padding: '10px' }}>
           <h2>Modifier l'annonce</h2>

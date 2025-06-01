@@ -92,7 +92,7 @@ export default function Dashboard() {
   const [currentStreet, setcurrentStreet] = useState("")
   const [currentCity, setcurrentCity] = useState("")
   const [currentPostalCode, setcurrentPostalCode] = useState("")
-
+  const today = new Date().toISOString().split("T")[0]
   const [destinationStreet, setdestinationStreet] = useState("")
   const [destinationCity, setdestinationCity] = useState("")
   const [destinationPostalCode, setdestinationPostalCode] = useState("")
@@ -772,6 +772,7 @@ export default function Dashboard() {
                 <label className="block text-sm text-gray-700 mb-1">Date de livraison début</label>
                 <input
                   type="date"
+                  min={today}
                   value={advertisementBeginning}
                   onChange={(e) => setadvertisementBeginning(e.target.value)}
                   className="w-full border border-gray-300 rounded-lg p-2"
@@ -783,6 +784,7 @@ export default function Dashboard() {
                 <label className="block text-sm text-gray-700 mb-1">Date de livraison fin de délais</label>
                 <input
                   type="date"
+                  min={today}
                   value={advertisementEnd}
                   onChange={(e) => setadvertisementEnd(e.target.value)}
                   className="w-full border border-gray-300 rounded-lg p-2"
@@ -1113,7 +1115,7 @@ interface BoxReservationModalProps {
     date: string
   }) => void
 }
-
+const today = new Date().toISOString().split("T")[0];
 function BoxReservationModal({ type, initialCity, onClose, onComplete }: BoxReservationModalProps) {
   const [city, setCity] = useState(initialCity)
   const [date, setDate] = useState("")
@@ -1210,6 +1212,7 @@ function BoxReservationModal({ type, initialCity, onClose, onComplete }: BoxRese
             <label className="block text-sm font-medium text-gray-700 mb-1">Date</label>
             <input
               type="date"
+              min={today}
               value={date}
               onChange={(e) => setDate(e.target.value)}
               className="w-full border border-gray-300 rounded-lg p-2 focus:ring-2 focus:ring-green-500 focus:border-green-500 outline-none"
