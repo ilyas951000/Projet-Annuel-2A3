@@ -64,6 +64,17 @@ export class UsersController {
     return this.usersService.update(id, updateUserDto);
   }
 
+  @Get('prestataires/ids')
+  async getPrestataireIds(): Promise<number[]> {
+    return this.usersService.findAllPrestataireIds();
+  }
+
+  @Get('prestataires/with-role')
+  async getPrestatairesWithRole(): Promise<{ id: number; prestataireRoleId: number | null }[]> {
+    return this.usersService.findAllPrestatairesWithRole();
+  }
+
+
 
 }
 

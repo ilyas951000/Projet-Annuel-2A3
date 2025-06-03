@@ -6,6 +6,8 @@ import { User } from 'src/users/entities/user.entity';
 import * as fs from 'fs';
 import * as path from 'path';
 import { PrestataireRequirement } from 'src/prestataire-requirements/entities/prestataire-requirement.entity';
+import { getCurrentTargetYear } from './../utils/currentTime';
+
 
 @Injectable()
 export class DocumentsService {
@@ -17,70 +19,135 @@ export class DocumentsService {
   ) {}
 
   async uploadDocument(userId: number, documentDto: any): Promise<Document> {
-    if (!documentDto.file) {
-      throw new BadRequestException('Fichier manquant');
-    }
-
-    const documentDate = new Date(documentDto.documentDate);
-    const expirationDate = new Date(documentDto.expirationDate);
-
-    if (isNaN(documentDate.getTime()) || isNaN(expirationDate.getTime())) {
-      throw new BadRequestException('Dates invalides');
-    }
-
-    const uploadFolder = path.join(__dirname, '..', '..', 'public', 'uploads', 'documents');
-    if (!fs.existsSync(uploadFolder)) {
-      fs.mkdirSync(uploadFolder, { recursive: true });
-    }
-
-    const timestamp = Date.now();
-    const safeFileName = `${timestamp}-${documentDto.file.originalname.replace(/\s+/g, '_')}`;
-    const filePathOnDisk = path.join(uploadFolder, safeFileName);
-
-    try {
-      fs.writeFileSync(filePathOnDisk, documentDto.file.buffer);
-    } catch (err) {
-      console.error('Erreur d’écriture fichier:', err);
-      throw new BadRequestException('Échec de l’écriture du fichier');
-    }
-
-    const document = this.documentRepository.create({
-      userId,
-      documentType: documentDto.documentType,
-      documentDate,
-      expirationDate,
-      format: documentDto.format,
-      fileName: documentDto.file.originalname,
-      filePath: `uploads/documents/${safeFileName}`,
-    });
-
-    try {
-      return await this.documentRepository.save(document);
-    } catch (error) {
-      console.error('Erreur lors de la sauvegarde:', error.message);
-      throw new BadRequestException('Erreur en base de données');
-    }
+  if (!documentDto.file) {
+    throw new BadRequestException('Fichier manquant');
   }
 
-  async validateDocument(documentId: number, action: 'accept' | 'refuse'): Promise<User> {
-  const document = await this.documentRepository.findOne({
-    where: { id: documentId },
-    relations: ['user'],
+  const documentDate = new Date(documentDto.documentDate);
+  const expirationDate = new Date(documentDto.expirationDate);
+
+  if (isNaN(documentDate.getTime()) || isNaN(expirationDate.getTime())) {
+    throw new BadRequestException('Dates invalides');
+  }
+
+  const requirementId = parseInt(documentDto.requirementId);
+  const targetYear = parseInt(documentDto.targetYear) || getCurrentTargetYear();
+
+
+  if (isNaN(requirementId)) {
+    throw new BadRequestException('requirementId invalide');
+  }
+
+  const uploadFolder = path.join(__dirname, '..', '..', 'public', 'uploads', 'documents');
+  if (!fs.existsSync(uploadFolder)) {
+    fs.mkdirSync(uploadFolder, { recursive: true });
+  }
+
+  const timestamp = Date.now();
+  const safeFileName = `${timestamp}-${documentDto.file.originalname.replace(/\s+/g, '_')}`;
+  const filePathOnDisk = path.join(uploadFolder, safeFileName);
+
+  try {
+    fs.writeFileSync(filePathOnDisk, documentDto.file.buffer);
+  } catch (err) {
+    console.error('Erreur d’écriture fichier:', err);
+    throw new BadRequestException('Échec de l’écriture du fichier');
+  }
+
+  const documentType = documentDto.documentType?.trim();
+
+  if (!documentType) {
+    throw new BadRequestException('documentType manquant ou vide');
+  }
+
+  const existing = await this.documentRepository.findOne({
+    where: {
+      userId,
+      documentType,
+      targetYear,
+    },
   });
 
-  if (!document || !document.user) {
-    throw new BadRequestException('Document ou utilisateur introuvable');
+
+  if (existing) {
+    // Supprimer l'ancien fichier physique
+    const fullPath = path.join(__dirname, '..', '..', 'public', existing.filePath);
+    if (fs.existsSync(fullPath)) {
+      try {
+        fs.unlinkSync(fullPath);
+      } catch (err) {
+        console.error('Erreur suppression fichier existant :', err);
+      }
+    }
+
+    // Mettre à jour les champs
+    existing.documentDate = documentDate;
+    existing.expirationDate = expirationDate;
+    existing.format = documentDto.format;
+    existing.fileName = documentDto.file.originalname;
+    existing.filePath = `uploads/documents/${safeFileName}`;
+    existing.documentValid = 'no'; // 👈 repasse à non validé
+
+    return await this.documentRepository.save(existing);
   }
 
-  // 👉 Met à jour documentValid
-  document.documentValid = action === 'accept' ? 'yes' : 'no';
-    await this.documentRepository.save(document); // ✅ sauvegarde la mise à jour du document
+  // ❗ Aucun document existant => on crée un nouveau
+  const document = this.documentRepository.create({
+    userId,
+    documentType,
+    documentDate,
+    expirationDate,
+    format: documentDto.format,
+    fileName: documentDto.file.originalname,
+    filePath: `uploads/documents/${safeFileName}`,
+    requirementId,
+    targetYear,
+    documentValid: 'no',
+  });
+
+  return await this.documentRepository.save(document);
+}
+
+
+  async validateDocument(documentId: number, action: 'accept' | 'refuse'): Promise<User> {
+    const document = await this.documentRepository.findOne({
+      where: { id: documentId },
+      relations: ['user'],
+    });
+
+    if (!document || !document.user) {
+      throw new BadRequestException('Document ou utilisateur introuvable');
+    }
+
+    document.documentValid = action === 'accept' ? 'yes' : 'no';
+    await this.documentRepository.save(document);
 
     const user = document.user;
-    if (user.userStatus === 'livreur') {
+
+    if (user.userStatus === 'prestataire') {
+      const userDocs = await this.documentRepository.find({
+        where: { userId: user.id },
+      });
+
+      const fullUser = await this.userRepository.findOne({
+        where: { id: user.id },
+        relations: ['prestataireRole', 'prestataireRole.requirements'],
+      });
+
+      const requiredNames = fullUser?.prestataireRole?.requirements.map(r => r.name) || [];
+
+      const currentYear = getCurrentTargetYear();
+
+      const currentYearDocs = userDocs.filter(d => d.targetYear === currentYear);
+
+      const allValid = requiredNames.every(reqName =>
+        currentYearDocs.find(d => d.documentType === reqName && d.documentValid === 'yes')
+      );
+
+
+      user.valid = allValid;
+    } else if (user.userStatus === 'livreur') {
       user.occasionalCourier = action === 'accept';
-    } else if (user.userStatus === 'prestataire') {
-      user.valid = action === 'accept';
     } else {
       throw new BadRequestException('Statut utilisateur inconnu');
     }
