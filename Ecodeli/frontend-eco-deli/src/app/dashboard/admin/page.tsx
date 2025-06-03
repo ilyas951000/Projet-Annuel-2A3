@@ -35,11 +35,8 @@ export default function Dashboard() {
                   isOpen={openMenus["gestionUtilisateur"]} 
                   toggleMenu={toggleMenu} 
                   subItems={[
-                    { title: "Création et inscription", link: "/dashboard/admin/creation-inscription" },
-                    { title: "Modification et mise à jour du profil", link: "/dashboard/admin/userManagement" },
-                    { title: "Gestion des rôles et permissions", link: "/dashboard/admin/roles-permissions" },
-                    { title: "Bannissement et suspension", link: "/dashboard/admin/bannissement" },
-                    { title: "Signalement des clients", link: "/dashboard/admin/admin_message_signalement" }
+                    { title: "Visuel sur les utilisateurs", link: "/dashboard/admin/userManagement" },
+                    { title: "Facture des Utilisateurs", link: "/dashboard/admin/AdminFacture" },
                   ]} 
                 />
 
@@ -49,10 +46,9 @@ export default function Dashboard() {
                   isOpen={openMenus["gestionCommercant"]} 
                   toggleMenu={toggleMenu} 
                   subItems={[
-                    { title: "Gestion du contrat", link: "./admin/contract" },
-                    { title: "Gestion des annonces", link: "./admin/announcement" },
-                    { title: "Facturation et paiements", link: "./admin/invoicePrestataire" },
-                    { title: "Tableau de bord", link: "./admin/dashboard" },
+                    { title: "Gestion du contrat//", link: "./admin/contract" },
+                    { title: "Gestion des annonces//", link: "./admin/announcement" },
+                    { title: "Tableau de bord//", link: "./admin/dashboard" },
                     { title: "Support et communication", link: "./admin/support" }
                   ]} 
                 />
@@ -64,11 +60,11 @@ export default function Dashboard() {
                   isOpen={openMenus["gestionPrestataire"]} 
                   toggleMenu={toggleMenu} 
                   subItems={[
-                    { title: "Validation et vérification", link: "./admin/ValidationUser" },
-                    { title: "Calendrier et disponibilités", link: "./admin/calendar" },
-                    { title: "Suivi des interventions", link: "./admin/intervention" },
-                    { title: "Facturation automatique", link: "./admin/auto-invoice" },
-                    { title: "Gestion tarifaire", link: "./admin/pricing" }
+                    { title: "Validation et vérification//", link: "./admin/ValidationUser" },
+                    { title: "Calendrier et disponibilités//", link: "./admin/AdminSchedule" },
+                    { title: "Suivi des interventions", link: "./admin/AdminIntervention" },
+                    { title: "Avis des Prestataires", link: "./admin/AdminAvis" },
+                    { title: "Gestion tarifaire//", link: "./admin/pricing" }
                   ]} 
                 />
 
@@ -78,13 +74,9 @@ export default function Dashboard() {
                   isOpen={openMenus["gestionLivreur"]} 
                   toggleMenu={toggleMenu} 
                   subItems={[
-                    { title: "Validation et vérification", link: "./admin/ValidationUser" },
-                    { title: "Inscription et vérification", link: "./admin/delivery-signup" },
-                    { title: "Gestion des annonces", link: "./admin/delivery-ads" },
-                    { title: "Suivi des livraisons", link: "./admin/delivery-tracking" },
-                    { title: "Planning et gestion des trajets", link: "./admin/delivery-planning" },
-                    { title: "Gestion des paiements", link: "./admin/delivery-payments" },
-                    { title: "Support et assistance", link: "./admin/delivery-support" }
+                    { title: "Validation et vérification//", link: "./admin/ValidationUser" },
+                    { title: "Suivi des livraisons", link: "./admin/AdminPackages" },
+                    { title: "Planning et gestion des trajets", link: "./admin/AdminPlanningTrajets" },
                   ]} 
                 />
 
@@ -95,14 +87,14 @@ export default function Dashboard() {
                   isOpen={openMenus["gestionClient"]} 
                   toggleMenu={toggleMenu} 
                   subItems={[
-                    { title: "Dépôt et gestion des annonces de transport", link: "./admin/client-ads" },
-                    { title: "Suivi des livraisons en cours", link: "./admin/client-tracking" },
-                    { title: "Paiements et facturation", link: "./admin/client-payments" },
-                    { title: "Gestion des box de stockage temporaire", link: "./admin/client-storage" },
-                    { title: "Service client et litiges", link: "./admin/client-support" }
+                    { title: "Dépôt et gestion des annonces de transport", link: "./admin/AdminAnnonces" },
+                    { title: "Suivi des livraisons en cours", link: "./admin/AdminPackages" },
+                    { title: "Gestion des box de stockage temporaire", link: "./admin/boxes" },
                   ]} 
                 />
-
+                <NavItem title="Virement Pour les Utilisateurs" link="./admin/AdminVirement" />
+                <NavItem title="Service client et Signalement" link="./admin/admin_message_signalement" />
+                <NavItem title="Partie monétaire de Ecodeli" link="./admin/AdminFinance" />
               </ul>
             </nav>
 

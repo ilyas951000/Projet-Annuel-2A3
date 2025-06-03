@@ -2,6 +2,8 @@
 
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
+import Link from "next/link"
+import { MessageCircle } from 'lucide-react'
 
 interface IPackage {
   id: number;
@@ -13,6 +15,7 @@ interface IPackage {
   recipientAddress: string;
   packageRequirements: string;
   deliveryStatus: string;
+  advertisementId?: number; // Ajouter cette ligne
 }
 
 export default function DeliveryHistory() {
@@ -20,6 +23,7 @@ export default function DeliveryHistory() {
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
   const [livreurId, setLivreurId] = useState<number | null>(null);
+  const [clientIds, setClientIds] = useState<{ [key: number]: number | null }>({});
 
   // Récupération de l'utilisateur connecté via l'endpoint /auth/me
   useEffect(() => {
@@ -67,6 +71,38 @@ export default function DeliveryHistory() {
     }
   };
 
+  const getClientIdFromAdvertisement = async (advertisementId: number): Promise<number | null> => {
+    try {
+      const token = localStorage.getItem('token');
+      const res = await axios.get(`http://127.0.0.1:3001/advertisements/${advertisementId}`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      return res.data?.usersId || null;
+    } catch (err) {
+      console.error("Erreur récupération client depuis annonce :", err);
+      return null;
+    }
+  };
+
+  useEffect(() => {
+    const fetchClientIds = async () => {
+      const newClientIds: { [key: number]: number | null } = {};
+      
+      for (const pkg of history) {
+        if (pkg.advertisementId) {
+          const clientId = await getClientIdFromAdvertisement(pkg.advertisementId);
+          newClientIds[pkg.id] = clientId;
+        }
+      }
+      
+      setClientIds(newClientIds);
+    };
+
+    if (history.length > 0) {
+      fetchClientIds();
+    }
+  }, [history]);
+
   if (loading) return <p>Chargement en cours...</p>;
   if (error) return <p className="text-red-600">{error}</p>;
 
@@ -83,10 +119,16 @@ export default function DeliveryHistory() {
               <p><strong>Poids :</strong> {pkg.packageWeight}</p>
               <p><strong>Dimension :</strong> {pkg.packageDimension}</p>
               <p><strong>Description :</strong> {pkg.packageDescription}</p>
-              <p><strong>Adresse d'envoi :</strong> {pkg.senderAddress}</p>
-              <p><strong>Adresse de réception :</strong> {pkg.recipientAddress}</p>
-              <p><strong>Exigences :</strong> {pkg.packageRequirements}</p>
               <p><strong>Statut :</strong> {pkg.deliveryStatus}</p>
+              {clientIds[pkg.id] && (
+                <Link
+                  href={`/dashboard/livreur/chat/${clientIds[pkg.id]}?packageId=${pkg.id}`}
+                  className="mt-2 inline-flex items-center gap-2 px-4 py-2 border border-gray-300 text-gray-700 rounded hover:bg-gray-50 transition-colors"
+                >
+                  <MessageCircle className="h-4 w-4" />
+                  Contacter le client
+                </Link>
+              )}
             </li>
           ))}
         </ul>

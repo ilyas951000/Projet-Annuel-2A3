@@ -255,9 +255,15 @@ const UsersPage = () => {
               <div className="mb-2">
                 <label className="block font-bold">Abonnements:</label>
                 <ul className="list-disc pl-5">
-                  {subscriptions.length > 0 ? subscriptions.map((sub) => (
-                    <li key={sub.id}>{sub.name} - {sub.price}€ ({sub.startDate} → {sub.endDate})</li>
-                  )) : <li>Aucun abonnement</li>}
+                  {Array.isArray(subscriptions) && subscriptions.length > 0 ? (
+                    subscriptions.map((sub) => (
+                      <li key={sub.id}>
+                        {sub.name} - {sub.price}€ ({sub.startDate} → {sub.endDate})
+                      </li>
+                    ))
+                  ) : (
+                    <li>Aucun abonnement</li>
+                  )}
                 </ul>
               </div>
               <div className="mt-4">

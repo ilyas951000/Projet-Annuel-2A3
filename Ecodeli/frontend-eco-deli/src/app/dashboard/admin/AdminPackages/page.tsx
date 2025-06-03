@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, ChangeEvent } from 'react';
+import { useEffect, useState } from 'react';
 
 interface User {
   id: number;
@@ -29,10 +29,12 @@ interface Package {
 
 export default function AdminTakenPackages() {
   const [takenPackages, setTakenPackages] = useState<Package[]>([]);
-  const [filterName, setFilterName] = useState<string>('');
-  const [filterPaid, setFilterPaid] = useState<string>('all');
-  const [filterPriority, setFilterPriority] = useState<string>('all');
-  const [filterStatus, setFilterStatus] = useState<string>('all');
+  const [filterName, setFilterName] = useState('');
+  const [filterClient, setFilterClient] = useState('');
+  const [filterCourier, setFilterCourier] = useState('');
+  const [filterPaid, setFilterPaid] = useState('all');
+  const [filterPriority, setFilterPriority] = useState('all');
+  const [filterStatus, setFilterStatus] = useState('all');
 
   useEffect(() => {
     const fetchTakenPackages = async () => {
@@ -66,14 +68,21 @@ export default function AdminTakenPackages() {
       filterPriority === 'all' || (filterPriority === 'yes' && pkg.prioritaire) || (filterPriority === 'no' && !pkg.prioritaire);
     const statusMatch =
       filterStatus === 'all' || pkg.deliveryStatus?.toLowerCase() === filterStatus.toLowerCase();
-    return nameMatch && paidMatch && priorityMatch && statusMatch;
+
+    const clientName = `${pkg.advertisement?.users?.userFirstName ?? ''} ${pkg.advertisement?.users?.userLastName ?? ''}`.toLowerCase();
+    const clientMatch = clientName.includes(filterClient);
+
+    const couriersNames = pkg.users.map(u => `${u.userFirstName} ${u.userLastName}`).join(' ').toLowerCase();
+    const courierMatch = couriersNames.includes(filterCourier);
+
+    return nameMatch && paidMatch && priorityMatch && statusMatch && clientMatch && courierMatch;
   });
 
   return (
     <div className="p-6 max-w-6xl mx-auto">
       <h1 className="text-2xl font-bold mb-4">📦 Colis pris en charge par les livreurs</h1>
 
-      <div className="mb-4 grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
+      <div className="mb-4 grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
         <input
           type="text"
           placeholder="Filtrer par nom de colis..."
@@ -81,7 +90,20 @@ export default function AdminTakenPackages() {
           onChange={(e) => setFilterName(e.target.value.toLowerCase())}
           className="p-2 border border-gray-300 rounded"
         />
-
+        <input
+          type="text"
+          placeholder="Filtrer par client..."
+          value={filterClient}
+          onChange={(e) => setFilterClient(e.target.value.toLowerCase())}
+          className="p-2 border border-gray-300 rounded"
+        />
+        <input
+          type="text"
+          placeholder="Filtrer par livreur..."
+          value={filterCourier}
+          onChange={(e) => setFilterCourier(e.target.value.toLowerCase())}
+          className="p-2 border border-gray-300 rounded"
+        />
         <select
           value={filterPaid}
           onChange={(e) => setFilterPaid(e.target.value)}
@@ -91,7 +113,6 @@ export default function AdminTakenPackages() {
           <option value="paid">Payé</option>
           <option value="unpaid">Non payé</option>
         </select>
-
         <select
           value={filterPriority}
           onChange={(e) => setFilterPriority(e.target.value)}
@@ -101,7 +122,6 @@ export default function AdminTakenPackages() {
           <option value="yes">Prioritaire</option>
           <option value="no">Non prioritaire</option>
         </select>
-
         <select
           value={filterStatus}
           onChange={(e) => setFilterStatus(e.target.value)}
@@ -131,6 +151,7 @@ export default function AdminTakenPackages() {
               <th className="border px-4 py-2">Prioritaire</th>
               <th className="border px-4 py-2">Payé</th>
               <th className="border px-4 py-2">Livreur(s)</th>
+              <th className="border px-4 py-2">Client</th>
             </tr>
           </thead>
           <tbody>
@@ -148,6 +169,11 @@ export default function AdminTakenPackages() {
                   {pkg.users.length > 0
                     ? pkg.users.map(u => `${u.userFirstName} ${u.userLastName}`).join(', ')
                     : 'Aucun'}
+                </td>
+                <td className="border px-4 py-2">
+                  {pkg.advertisement?.users
+                    ? `${pkg.advertisement.users.userFirstName} ${pkg.advertisement.users.userLastName}`
+                    : 'Inconnu'}
                 </td>
               </tr>
             ))}

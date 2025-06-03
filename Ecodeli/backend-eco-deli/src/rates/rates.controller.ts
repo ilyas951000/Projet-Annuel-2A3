@@ -14,6 +14,12 @@ export class RatesController {
     return this.ratesService.findByProvider(id);
   }
 
+  @Get()
+  async findAll(): Promise<Rates[]> {
+    return this.ratesService.findAll();
+  }
+
+
   @Post()
   async createRate(@Body() dto: CreateRateDto): Promise<Rates> {
     return this.ratesService.create(dto);

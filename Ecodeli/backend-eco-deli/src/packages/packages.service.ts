@@ -63,10 +63,11 @@ export class PackagesService {
       .createQueryBuilder('package')
       .leftJoinAndSelect('package.users', 'users') // livreurs
       .leftJoinAndSelect('package.advertisement', 'advertisement')
-      .leftJoinAndSelect('advertisement.users', 'client') // client
-      .innerJoin('deliverPackage', 'dp', 'dp.packageId = package.id') // uniquement les colis pris en charge
+      .leftJoinAndSelect('advertisement.users', 'advertisement_users') // ce nom est important
+      .innerJoin('deliverPackage', 'dp', 'dp.packageId = package.id')
       .getMany();
   }
+
 
 
 

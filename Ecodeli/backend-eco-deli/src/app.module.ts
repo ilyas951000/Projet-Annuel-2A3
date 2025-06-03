@@ -35,6 +35,8 @@ import { BoxModule } from './box/box.module';
 import { ReservationModule } from './reservation/reservation.module';
 import { ReportsModule } from './reports/reports.module';
 import { TransferModule } from './payments/transfer.module';
+import { VirementModule } from './virement/virement.module'; // ✅ correct
+
 
 
 @Module({
@@ -89,6 +91,7 @@ import { TransferModule } from './payments/transfer.module';
     ReservationModule,
     ReportsModule,
     TransferModule, // ✅ ajouté ici
+    VirementModule,
   ],
   controllers: [AppController],
   providers: [AppService, ChatGateway], // ✅ ajouté ici
