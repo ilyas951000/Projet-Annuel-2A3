@@ -54,6 +54,12 @@ export class MovementsService {
     return this.movementRepo.save(movement);
   }
 
+  async findAll(): Promise<Movement[]> {
+    return this.movementRepo.find();
+  }
+
+
+
   /**
    * Récupère tous les mouvements actifs d’un utilisateur
    */

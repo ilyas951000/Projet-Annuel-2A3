@@ -25,6 +25,11 @@ export class MovementsController {
     return this.movementService.create(dto);
   }
 
+  @Get()
+  findAll(): Promise<Movement[]> {
+    return this.movementService.findAll();
+  }
+
   /**
    * Récupère les mouvements actifs d’un utilisateur
    * GET /movements/user/:userId

@@ -255,7 +255,7 @@ export default function ChatPage() {
       {/* Header */}
       <div className="p-4 border-b flex items-center justify-between bg-white">
         <div className="flex items-center gap-3">
-          <Link href="/dashboard/client/conversations" className="p-2 rounded-full hover:bg-gray-100 transition-colors">
+          <Link href="/dashboard/client/clientMessagesPage" className="p-2 rounded-full hover:bg-gray-100 transition-colors">
             <ArrowLeft className="w-5 h-5 text-gray-600" />
           </Link>
 

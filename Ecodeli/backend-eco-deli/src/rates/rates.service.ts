@@ -20,6 +20,14 @@ export class RatesService {
     });
   }
 
+  async findAll(): Promise<Rates[]> {
+    return this.ratesRepository.find({
+      relations: ['client', 'provider'],
+      order: { createdAt: 'DESC' },
+    });
+  }
+
+
   async create(dto: CreateRateDto): Promise<Rates> {
     const rate = this.ratesRepository.create({
       rating: dto.rating,

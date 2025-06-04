@@ -1,5 +1,6 @@
-import { Column, Entity, OneToMany, PrimaryGeneratedColumn } from "typeorm";
+import { Column, Entity, OneToMany, PrimaryGeneratedColumn, ManyToOne, JoinColumn } from "typeorm";
 import { InvoiceItem } from "./invoice-item.entity";
+import { User } from "src/users/entities/user.entity";
 
 @Entity()
 export class Invoice {
@@ -32,6 +33,10 @@ export class Invoice {
 
   @Column()
   userId: number;
+
+  @ManyToOne(() => User, { eager: true }) // ⚠️ 'eager' => récupère automatiquement l'utilisateur
+  @JoinColumn({ name: 'userId' })
+  user: User;
 
   @OneToMany(() => InvoiceItem, (item) => item.invoice, { cascade: true })
   items: InvoiceItem[];

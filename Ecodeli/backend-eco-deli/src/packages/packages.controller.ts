@@ -14,6 +14,9 @@ import { CreatePackageDto } from './dto/create-package.dto';
 import { UpdatePackageDto } from './dto/update-package.dto';
 import { v4 as uuidv4 } from 'uuid';
 import { geocodeAddress } from 'src/common/geocoding.util'; // ou là où ta fonction est définie
+import { UseGuards } from '@nestjs/common';
+import { JwtAuthGuard } from 'src/auth/jwt-auth.guard';
+
 
 @Controller('packages')
 export class PackagesController {
@@ -28,6 +31,13 @@ export class PackagesController {
   findAll() {
     return this.packagesService.findAll();
   }
+
+  @UseGuards(JwtAuthGuard)
+  @Get('assigned')
+  async getAssignedPackages() {
+    return this.packagesService.findAssignedPackages();
+  }
+
 
   @Get('nearby')
   getNearbyPackages(@Query('userId') userId: string) {

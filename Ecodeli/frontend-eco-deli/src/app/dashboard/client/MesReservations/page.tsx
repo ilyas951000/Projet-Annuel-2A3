@@ -3,7 +3,18 @@
 import { useEffect, useState } from "react"
 import { useRouter } from "next/navigation"
 import { motion, AnimatePresence } from "framer-motion"
-import { Calendar, CreditCard, CheckCircle, AlertCircle, Clock, User, FileText, Euro, Tag } from "lucide-react"
+import {
+  Calendar,
+  CreditCard,
+  CheckCircle,
+  AlertCircle,
+  Clock,
+  User,
+  FileText,
+  Euro,
+  Tag,
+  MessageSquare,
+} from "lucide-react"
 import Link from "next/link"
 
 interface Transfer {
@@ -39,7 +50,6 @@ export default function MesReservations() {
       }
 
       try {
-        // ✅ 1. Récupérer l'utilisateur
         const userRes = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/auth/me`, {
           headers: { Authorization: `Bearer ${token}` },
         })
@@ -51,7 +61,6 @@ export default function MesReservations() {
 
         setClientId(userData.userId)
 
-        // ✅ 2. Récupérer les interventions du client
         const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/intervention/client/${userData.userId}`, {
           headers: { Authorization: `Bearer ${token}` },
         })
@@ -68,7 +77,7 @@ export default function MesReservations() {
   }, [])
 
   const getStatusBadge = (status: string, transfer?: Transfer) => {
-    if (status === "accepte" && transfer?.status === "completed") {
+    if (status === "accepte" && transfer?.status === "pending") {
       return (
         <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
           <CheckCircle className="w-3 h-3 mr-1" />
@@ -189,15 +198,27 @@ export default function MesReservations() {
                       </div>
                     </div>
 
-                    {intervention.statut === "accepte" && intervention.transfer?.status !== "completed" && (
+                    {intervention.statut === "accepte" && (
                       <div className="flex flex-col md:items-end gap-2 mt-4 md:mt-0">
-                        <button
-                          onClick={() => router.push(`paiementIntervention/${intervention.id}`)}
-                          className="inline-flex items-center px-4 py-2 bg-green-500 hover:bg-green-600 text-white rounded-lg transition-colors"
-                        >
-                          <CreditCard className="w-4 h-4 mr-2" />
-                          Payer maintenant
-                        </button>
+                        {(!intervention.transfer || intervention.transfer.status === "failed") && (
+                          <button
+                            onClick={() => router.push(`paiementIntervention/${intervention.id}`)}
+                            className="inline-flex items-center px-4 py-2 bg-green-500 hover:bg-green-600 text-white rounded-lg transition-colors"
+                          >
+                            <CreditCard className="w-4 h-4 mr-2" />
+                            Payer maintenant
+                          </button>
+                        )}
+
+                        {clientId && (
+                          <Link
+                            href={`/dashboard/client/chat/${intervention.prestataireId}?from=${clientId}`}
+                            className="inline-flex items-center px-4 py-2 bg-white border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors"
+                          >
+                            <MessageSquare className="w-4 h-4 mr-2 text-green-500" />
+                            Contacter le prestataire
+                          </Link>
+                        )}
                       </div>
                     )}
                   </div>

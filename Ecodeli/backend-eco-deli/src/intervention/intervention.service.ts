@@ -30,6 +30,13 @@ export class InterventionService {
     return this.interventionRepo.save(intervention);
   }
 
+  async findAll() {
+      return this.interventionRepo.find({
+    relations: ['client', 'prestataire'],
+  });
+  }
+
+
   async findByPrestataire(prestataireId: number): Promise<Intervention[]> {
     return this.interventionRepo.find({
       where: { prestataireId },

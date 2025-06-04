@@ -17,6 +17,9 @@ export class ScheduleController {
     return schedules;
   }
 
+  
+
+
   @Post()
   async createSchedule(
     @Param('id') courierId: number,
@@ -25,6 +28,12 @@ export class ScheduleController {
     this.logger.debug(`POST request pour créer un schedule pour le courier ${courierId} avec body: ${JSON.stringify(body)}`);
     return this.scheduleService.createForCourier(+courierId, body);
   }
+
+  @Get('all')
+  findAll() {
+    return this.scheduleService.findAll();
+  }
+
 
   @Delete(':scheduleId')
   async deleteSchedule(@Param('scheduleId') scheduleId: number): Promise<{ message: string }> {

@@ -52,6 +52,7 @@ export default function ClientLayout({ children }: { children: React.ReactNode }
               </ul>
 
               <div className="mt-10 space-y-3">
+                <NavItem title="News" link="/dashboard/prestataire/news" />
                 <NavItem title="À propos" link="/a-propos" />
                 <NavItem title="Nous contacter" link="/contact" />
               </div>

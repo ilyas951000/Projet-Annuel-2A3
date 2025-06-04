@@ -27,6 +27,14 @@ export class ScheduleService {
     return schedules;
   }
 
+  async findAll(): Promise<Schedule[]> {
+    return this.scheduleRepo.find({
+      relations: ['user'],
+      order: { scheduleStart: 'ASC' },
+    });
+  }
+
+
   async createForCourier(courierId: number, dto: Partial<Schedule>): Promise<Schedule> {
     this.logger.debug(`Création d'un nouveau schedule pour courierId: ${courierId} avec dto: ${JSON.stringify(dto)}`);
     const user = await this.userRepo.findOne({ where: { id: courierId } });

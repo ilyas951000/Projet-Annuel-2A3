@@ -1,6 +1,6 @@
-import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, UpdateDateColumn } from 'typeorm';
+import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, UpdateDateColumn, OneToOne, JoinColumn, ManyToOne } from 'typeorm';
 import { Transfer } from 'src/payments/entities/transfer.entity';
-import { OneToOne, JoinColumn } from 'typeorm';
+import { User } from 'src/users/entities/user.entity'; // ✅ import nécessaire
 
 @Entity()
 export class Intervention {
@@ -8,10 +8,18 @@ export class Intervention {
   id: number;
 
   @Column()
-  prestataireId: number; // juste l'ID du prestataire
+  prestataireId: number;
+
+  @ManyToOne(() => User, { eager: true }) // ✅ relation vers le prestataire
+  @JoinColumn({ name: 'prestataireId' })
+  prestataire: User;
 
   @Column({ nullable: true })
-  clientId?: number; // juste l'ID du client (optionnel)
+  clientId?: number;
+
+  @ManyToOne(() => User, { eager: true, nullable: true }) // ✅ relation vers le client
+  @JoinColumn({ name: 'clientId' })
+  client?: User;
 
   @Column()
   type: string;

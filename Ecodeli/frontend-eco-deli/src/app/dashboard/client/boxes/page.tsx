@@ -38,7 +38,7 @@ export default function BoxesPage() {
   const [boxesMap, setBoxesMap] = useState<Record<number, Box[]>>({})
   const [selectedLocalId, setSelectedLocalId] = useState<number | null>(null)
   const [selectedBox, setSelectedBox] = useState<Box | null>(null)
-
+  const today = new Date().toISOString().split("T")[0];
   const [startDate, setStartDate] = useState("")
   const [endDate, setEndDate] = useState("")
   const [selectedPackageId, setSelectedPackageId] = useState<number | null>(null)
@@ -212,9 +212,21 @@ export default function BoxesPage() {
             </button>
             <h2 className="text-lg font-bold mb-2">Réserver Box #{selectedBox.id}</h2>
             <label>Début</label>
-            <input type="date" value={startDate} onChange={e => setStartDate(e.target.value)} className="w-full mb-2 border rounded p-2" />
+            <input
+              type="date"
+              min={today} // ✅ bloque les dates passées
+              value={startDate}
+              onChange={e => setStartDate(e.target.value)}
+              className="w-full mb-2 border rounded p-2"
+            />
             <label>Fin</label>
-            <input type="date" value={endDate} onChange={e => setEndDate(e.target.value)} className="w-full mb-2 border rounded p-2" />
+            <input
+              type="date"
+              min={today} // ✅ bloque les dates passées
+              value={endDate}
+              onChange={e => setEndDate(e.target.value)}
+              className="w-full mb-2 border rounded p-2"
+            />
             <label>Colis à associer</label>
             <select
               value={selectedPackageId ?? ''}

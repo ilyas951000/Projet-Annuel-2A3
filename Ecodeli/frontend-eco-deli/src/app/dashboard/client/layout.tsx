@@ -42,19 +42,42 @@ export default function ClientLayout({ children }: { children: React.ReactNode }
             <nav>
               <ul className="space-y-3">
                 <NavItem title="Accueil" link="/dashboard/client" />
-                <NavItem title="Mes Annonces" link="/dashboard/client/announcements" />
-                <NavItem title="Annonces des Autres" link="/dashboard/client/otherAnnouncements" />
-                <NavItem title="Suivi des Livraisons" link="/dashboard/client/suivi-livraisons" />
-                <NavItem title="Mes Paiements" link="/dashboard/client/paiements" />
-                <NavItem title="Abonnement" link="/dashboard/client/subscription" />
-                <NavItem title="Services & Prestataires" link="/dashboard/client/services" />
-                <NavItem title="Profil / Compte" link="/dashboard/client/compte" />
-              </ul>
+                
+                {/* MENU DEROULANT POUR MES ANNONCES */}
+                <NavItem
+                  title="Les Annonces de livraison"
+                  subLinks={[
+                    { title: "Mes Annonces", link: "/dashboard/client/announcements" },
+                    { title: "Le Suivi de mes livraisons", link: "/dashboard/client/suivi_livraison" },
+                    { title: "Les annonces des autres...", link: "/dashboard/client/otherAnnouncements" },
+                    { title: "Payer mes livraisons", link: "/dashboard/client/payementpackage" },
+                  ]}
+                  
+                />
+                <NavItem
+                  title="Les Prestations"
+                  subLinks={[
+                    { title: "Mes Reservations", link: "/dashboard/client/MesReservations" },
+                    { title: "Les Prestataires", link: "/dashboard/client/prestation" },
+                  ]}
+                  
+                />
 
-              <div className="mt-10 space-y-3">
+                <NavItem title="Les Boxes" link="/dashboard/client/boxes" />
+                <NavItem title="Mes Messages" link="/dashboard/client/clientMessagesPage" />
+                <NavItem
+                  title="Les Payements"
+                  subLinks={[
+                    { title: "Mon Wallet", link: "/dashboard/client/wallet" },
+                    { title: "Validation des payements", link: "/dashboard/client/historyannonce" },
+                  ]}SSSS
+                />
+                <NavItem title="Abonnement" link="/dashboard/client/subscription" />
+                <NavItem title="News" link="/dashboard/client/news" />
+                <NavItem title="Profil / Compte" link="/dashboard/client/compte" />
                 <NavItem title="À propos" link="/a-propos" />
                 <NavItem title="Nous contacter" link="/contact" />
-              </div>
+              </ul>
             </nav>
           </div>
 
@@ -100,11 +123,55 @@ export default function ClientLayout({ children }: { children: React.ReactNode }
   )
 }
 
-function NavItem({ title, link }: { title: string; link: string }) {
+function NavItem({
+  title,
+  link,
+  subLinks,
+}: {
+  title: string
+  link?: string
+  subLinks?: { title: string; link: string }[]
+}) {
+  const [open, setOpen] = useState(false)
+
+  if (subLinks && subLinks.length > 0) {
+    return (
+      <li>
+        <div
+          onClick={() => setOpen(!open)}
+          className="flex items-center justify-between text-gray-700 dark:text-gray-300 hover:text-green-500 cursor-pointer p-2 rounded-md"
+        >
+          <div className="flex items-center space-x-2">
+            <PlusCircle className="w-4 h-4" />
+            <span>{title}</span>
+          </div>
+          <span>{open ? "▲" : "▼"}</span>
+        </div>
+        {open && (
+          <ul className="ml-6 mt-1 space-y-2">
+            {subLinks.map((subItem) => (
+              <li key={subItem.link}>
+                <Link
+                  href={subItem.link}
+                  className="block text-sm text-gray-600 dark:text-gray-400 hover:text-green-500"
+                >
+                  {subItem.title}
+                </Link>
+              </li>
+            ))}
+          </ul>
+        )}
+      </li>
+    )
+  }
+
   return (
-    <li className="flex items-center space-x-2 text-gray-700 dark:text-gray-300 hover:text-green-500 cursor-pointer p-2 rounded-md">
-      <PlusCircle className="w-4 h-4" />
-      <Link href={link}>
+    <li>
+      <Link
+        href={link || "#"}
+        className="flex items-center space-x-2 text-gray-700 dark:text-gray-300 hover:text-green-500 cursor-pointer p-2 rounded-md"
+      >
+        <PlusCircle className="w-4 h-4" />
         <span>{title}</span>
       </Link>
     </li>
