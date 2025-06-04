@@ -1,23 +1,22 @@
-// app/dashboard/page.tsx
 'use client';
 
 import { useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 
-// Fonction pour récupérer le `userStatus` du token JWT (ou via un appel API si nécessaire)
-const getUserStatus = () => {
-  const token = localStorage.getItem('token'); // Utilise 'token' ici
+
+const getUserInfo = () => {
+  const token = localStorage.getItem('token');
   if (!token) {
     console.log('Aucun token trouvé dans le localStorage');
     return null;
   }
 
   try {
-    const decodedToken = JSON.parse(atob(token.split('.')[1])); // Décoder le token JWT
-    console.log('Token décodé : ', decodedToken); // Affiche le contenu du token
-    return decodedToken.userStatus; // Récupérer le `userStatus` du token
+    const decodedToken = JSON.parse(atob(token.split('.')[1]));
+    console.log('Token décodé : ', decodedToken);
+    return decodedToken;
   } catch (e) {
-    console.error('Erreur lors de la récupération du userStatus', e);
+    console.error('Erreur lors du décodage du token', e);
     return null;
   }
 };
@@ -27,11 +26,12 @@ const DashboardPage: NextPage = () => {
   const router = useRouter();
 
   useEffect(() => {
-    const userStatus = getUserStatus();
-    console.log('UserStatus récupéré : ', userStatus); // Affiche le userStatus récupéré
+    const user = getUserInfo();
 
-    if (userStatus) {
-      switch (userStatus) {
+    if (user && user.userStatus) {
+      console.log('UserStatus récupéré : ', user.userStatus);
+
+      switch (user.userStatus) {
         case 'admin':
           router.push('/dashboard/admin');
           break;
@@ -42,7 +42,11 @@ const DashboardPage: NextPage = () => {
           router.push('/dashboard/livreur');
           break;
         case 'prestataire':
-          router.push('/dashboard/prestataire');
+          if (user.valid === true) {
+            router.push('/dashboard/prestataire');
+          } else {
+            router.push('/dashboard/prestataire/documents');
+          }
           break;
         case 'commercant':
           router.push('/dashboard/shopkeeper');

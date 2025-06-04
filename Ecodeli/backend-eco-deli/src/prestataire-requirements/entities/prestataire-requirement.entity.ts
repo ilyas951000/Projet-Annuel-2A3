@@ -1,5 +1,5 @@
 // prestataire-requirement.entity.ts
-import { Column, Entity, ManyToOne, PrimaryGeneratedColumn } from 'typeorm';
+import { Column, Entity, ManyToOne, PrimaryGeneratedColumn, RelationId } from 'typeorm';
 import { PrestataireRole } from 'src/prestataire-roles/entities/prestataire-role.entity';
 
 @Entity('prestataire_requirement')
@@ -12,4 +12,7 @@ export class PrestataireRequirement {
 
   @ManyToOne(() => PrestataireRole, (role) => role.requirements, { onDelete: 'CASCADE' })
   role: PrestataireRole;
+
+  @RelationId((requirement: PrestataireRequirement) => requirement.role)
+  roleId: number;
 }

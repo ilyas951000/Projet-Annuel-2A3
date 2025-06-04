@@ -46,6 +46,7 @@ export class AuthController {
       occasionalCourier: req.user.occasionalCourier,
       valid: req.user.valid,
       userSubscription: req.user.userSubscription,
+      prestataireRoleId: req.user.prestataireRoleId,
     };
   }
 

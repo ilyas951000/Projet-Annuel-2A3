@@ -30,7 +30,7 @@ export class UsersService {
         id: true,
         userFirstName: true,
         userLastName: true,
-        userSubscription: true, // 👈 nécessaire pour l'affichage côté admin
+        userSubscription: true,
       },
     });
   }
@@ -70,9 +70,45 @@ export class UsersService {
 
   
 
+  async findAllPrestataireIds(): Promise<number[]> {
+    const users = await this.usersRepository.find({
+      where: { userStatus: 'prestataire' },
+      select: ['id'],
+    });
+    return users.map((user) => user.id);
+  }
 
   async rejectUser(id: number): Promise<User | null> {
     return this.findOne(id);
   }
+
+  async findAllPrestatairesWithRole() {
+    const users = await this.usersRepository.find({
+      where: { userStatus: 'prestataire' },
+      relations: ['prestataireRole'],
+    });
+
+    return users.map((user) => ({
+      id: user.id,
+      prestataireRoleId: user.prestataireRole ? user.prestataireRole.id : null,
+      userFirstName: user.userFirstName,
+      userLastName: user.userLastName,
+      email: user.email,
+      userStatus: user.userStatus,
+      userSubscription: user.userSubscription,
+      valid: user.valid,
+    }));
+  }
+
+
+
+  async findByStatus(status: string): Promise<User[]> {
+    return this.usersRepository.find({
+      where: { userStatus: status },
+      select: ['id', 'userFirstName', 'userLastName', 'email', 'userStatus'],
+    });
+  }
+
+
 }
 

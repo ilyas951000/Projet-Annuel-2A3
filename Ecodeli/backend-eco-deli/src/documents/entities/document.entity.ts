@@ -15,7 +15,7 @@ export class Document {
   @PrimaryGeneratedColumn()
   id: number;
 
-  @Column()
+  @Column({ default: "rien" })
   documentType: string;
 
   @Column({ type: 'date' })
@@ -30,6 +30,10 @@ export class Document {
   @Column()
   fileName: string;
 
+  @Column({ type: 'int', default: new Date().getFullYear() })
+  targetYear: number;
+
+
   @Column({ default: "undetermined" })
   documentValid: string;
 
@@ -42,4 +46,7 @@ export class Document {
 
   @Column({ nullable: true })
   userId: number;
+
+  @Column({ nullable: true })
+  requirementId: number;
 }

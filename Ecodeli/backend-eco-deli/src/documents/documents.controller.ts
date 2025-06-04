@@ -8,6 +8,7 @@ import {
   BadRequestException,
   UploadedFiles,
   UseInterceptors,
+  Get,
 } from '@nestjs/common';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { DocumentsService } from './documents.service';
@@ -67,4 +68,16 @@ export class DocumentsController {
     await this.documentsService.deleteDocumentsByUser(userId);
     return { message: `Tous les documents de l'utilisateur #${userId} ont été supprimés.` };
   }
+
+  @Get('user/:userId')
+  @UseGuards(JwtAuthGuard)
+  async getDocumentsByUser(@Param('userId') userIdParam: string) {
+    const userId = parseInt(userIdParam, 10);
+    if (isNaN(userId)) {
+      throw new BadRequestException('userId invalide');
+    }
+
+    return this.documentsService.findByUser(userId);
+  }
+
 }

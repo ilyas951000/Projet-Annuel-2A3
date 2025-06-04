@@ -2,7 +2,7 @@ import { IsString, IsNotEmpty, IsDateString, IsOptional } from 'class-validator'
 
 export class CreateDocumentDto {
   @IsString()
-  @IsNotEmpty()
+  @IsOptional()
   documentType: string;
 
   @IsDateString()

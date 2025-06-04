@@ -1,4 +1,4 @@
-import { Controller, Post, Param, Body, Get, UseGuards, BadRequestException } from '@nestjs/common';
+import { Controller, Post, Param, Body, Get, UseGuards, BadRequestException, Delete } from '@nestjs/common';
 import { DocumentsService } from './documents.service';
 import { JwtAuthGuard } from 'src/auth/jwt-auth.guard';
 
@@ -6,7 +6,6 @@ import { JwtAuthGuard } from 'src/auth/jwt-auth.guard';
 export class AdminDocumentsController {
   constructor(private readonly documentsService: DocumentsService) {}
 
-  // Liste des documents pour les livreurs
   @UseGuards(JwtAuthGuard)
   @Get('livreur')
   async getDocumentsLivreur() {
@@ -17,7 +16,6 @@ export class AdminDocumentsController {
     }
   }
 
-  // Liste des documents pour les prestataires
   @UseGuards(JwtAuthGuard)
   @Get('prestataire')
   async getDocumentsPrestataire() {
@@ -28,7 +26,6 @@ export class AdminDocumentsController {
     }
   }
 
-  // Valider ou refuser un document
   @UseGuards(JwtAuthGuard)
   @Post(':id/validate')
   async validateDocument(
@@ -42,7 +39,6 @@ export class AdminDocumentsController {
     return await this.documentsService.validateDocument(documentId, body.action);
   }
 
-  // Supprimer tous les documents d'un utilisateur (refuser tout)
   @UseGuards(JwtAuthGuard)
   @Post(':userId/refuse-all')
   async refuseAllByUser(
@@ -58,7 +54,6 @@ export class AdminDocumentsController {
     };
   }
 
-  // Accepter tous les documents d'un utilisateur (accept all)
   @UseGuards(JwtAuthGuard)
   @Post(':userId/accept-all')
   async acceptAllByUser(
@@ -68,7 +63,6 @@ export class AdminDocumentsController {
     if (isNaN(userId)) {
       throw new BadRequestException('Paramètre userId invalide');
     }
-    // Récupérer tous les documents de cet utilisateur
     const allDocs = (await this.documentsService.findAll()).filter(d => d.userId === userId);
     await Promise.all(
       allDocs.map(doc => this.documentsService.validateDocument(doc.id, 'accept'))
@@ -77,4 +71,21 @@ export class AdminDocumentsController {
       message: `Tous les documents de l'utilisateur #${userId} ont été acceptés.`,
     };
   }
+
+  @UseGuards(JwtAuthGuard)
+  @Get('requirements/by-user')
+  async getRequirementsByUser() {
+    return await this.documentsService.getAllUsersRequirementsWithDocuments();
+  }
+
+  @UseGuards(JwtAuthGuard)
+  @Delete(':id')
+  async deleteDocument(@Param('id') id: string) {
+    const docId = parseInt(id, 10);
+    if (isNaN(docId)) throw new BadRequestException('ID invalide');
+    await this.documentsService.deleteDocumentById(docId);
+    return { message: 'Document supprimé' };
+  }
+
+
 }

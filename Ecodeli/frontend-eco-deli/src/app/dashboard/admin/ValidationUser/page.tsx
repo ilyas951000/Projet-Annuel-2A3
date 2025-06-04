@@ -1,54 +1,88 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useEffect, useState } from 'react';
+import { getCurrentTargetYear } from '../../../utils/currentTime';
+
+interface Prestataire {
+  id: number;
+  prestataireRoleId: number | null;
+}
 
 interface Document {
   id: number;
   userId: number;
-  userStatus: 'livreur' | 'prestataire';
   fileName: string;
   fileUrl: string;
   documentValid: 'yes' | 'no' | 'undetermined';
+  requirementId: number;
+  documentType: string;
 }
 
-type GroupedDocuments = {
-  [userId: number]: Document[];
-};
+interface Requirement {
+  id: number;
+  name: string;
+}
 
-// ... même imports
-export default function AdminDocumentVerification() {
-  const [groupedDocuments, setGroupedDocuments] = useState<GroupedDocuments>({});
-  const [message, setMessage] = useState('');
+interface UserData {
+  user: Prestataire;
+  documents: Document[];
+  requirements: Requirement[];
+}
+
+export default function AdminDocumentVerificationWithRequirements() {
+  const [usersData, setUsersData] = useState<UserData[]>([]);
   const [previewDoc, setPreviewDoc] = useState<Document | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [message, setMessage] = useState('');
+  const currentTargetYear = getCurrentTargetYear();
+  
 
-  // 🟡 Récupération initiale
   useEffect(() => {
-    const fetchDocuments = async () => {
+    const fetchAllData = async () => {
       try {
-        const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/admin/documents/prestataire`, {
-          headers: {
-            Authorization: `Bearer ${localStorage.getItem('token') || ''}`,
-          },
+        const token = localStorage.getItem('token') || '';
+
+        const [prestatairesRes, documentsRes] = await Promise.all([
+          fetch(`${process.env.NEXT_PUBLIC_API_URL}/users/prestataires/with-role`, {
+            headers: { Authorization: `Bearer ${token}` },
+          }),
+          fetch(`${process.env.NEXT_PUBLIC_API_URL}/admin/documents/prestataire`, {
+            headers: { Authorization: `Bearer ${token}` },
+          }),
+        ]);
+
+        if (!prestatairesRes.ok || !documentsRes.ok) throw new Error('Erreur lors de la récupération des données');
+
+        const prestataires: Prestataire[] = await prestatairesRes.json();
+        const documents: Document[] = await documentsRes.json();
+
+        const uniqueRoleIds = [...new Set(prestataires.map(p => p.prestataireRoleId).filter(Boolean))];
+
+        const requirementsByRole: Record<number, Requirement[]> = {};
+        for (const roleId of uniqueRoleIds) {
+          const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/prestataire-requirements/by-role/${roleId}`, {
+            headers: { Authorization: `Bearer ${token}` },
+          });
+          const data: Requirement[] = await res.json();
+          requirementsByRole[roleId!] = data;
+        }
+
+        const combined: UserData[] = prestataires.map(user => {
+          const userDocs = documents.filter(doc => doc.userId === user.id);
+          const userReqs = user.prestataireRoleId ? requirementsByRole[user.prestataireRoleId] || [] : [];
+          return { user, documents: userDocs, requirements: userReqs };
         });
 
-        if (res.ok) {
-          const data: Document[] = await res.json();
-          const grouped: GroupedDocuments = {};
-          data.forEach((doc) => {
-            if (!grouped[doc.userId]) grouped[doc.userId] = [];
-            grouped[doc.userId].push(doc);
-          });
-          setGroupedDocuments(grouped);
-        } else {
-          setMessage('Erreur lors de la récupération des documents.');
-        }
+        setUsersData(combined);
       } catch (err) {
-        console.error('Erreur réseau :', err);
-        setMessage('Impossible de contacter le serveur.');
+        console.error(err);
+        setMessage('Erreur réseau lors du chargement des données.');
+      } finally {
+        setLoading(false);
       }
     };
 
-    fetchDocuments();
+    fetchAllData();
   }, []);
 
   const handleValidation = async (doc: Document, action: 'accept' | 'refuse') => {
@@ -66,118 +100,128 @@ export default function AdminDocumentVerification() {
       );
 
       if (res.ok) {
-        setMessage(`Document ${action === 'accept' ? 'accepté' : 'refusé'} avec succès.`);
-        setGroupedDocuments((prev) => {
-          const updated = { ...prev };
-          updated[doc.userId] = updated[doc.userId].map((d) =>
-            d.id === doc.id ? { ...d, documentValid: action === 'accept' ? 'yes' : 'no' } : d
-          );
-          return updated;
-        });
+        setUsersData(prev =>
+          prev.map(data => ({
+            ...data,
+            documents: data.documents.map(d =>
+              d.id === doc.id ? { ...d, documentValid: action === 'accept' ? 'yes' : 'no' } : d
+            ),
+          }))
+        );
       } else {
-        const errData = await res.json();
-        setMessage(errData.message || 'Erreur serveur lors de la validation.');
+        setMessage("Erreur lors de la validation du document.");
       }
     } catch (err) {
-      console.error('Erreur validation :', err);
+      console.error(err);
       setMessage('Erreur réseau lors de la validation.');
     }
   };
 
-  const handleAcceptAll = async (userId: number) => {
-    try {
-      const res = await fetch(
-        `${process.env.NEXT_PUBLIC_API_URL}/admin/documents/${userId}/accept-all`,
-        {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            Authorization: `Bearer ${localStorage.getItem('token') || ''}`,
-          },
-        }
-      );
-
-      if (res.ok) {
-        setMessage(`Tous les documents de l'utilisateur #${userId} ont été acceptés.`);
-        setGroupedDocuments((prev) => {
-          const updated = { ...prev };
-          updated[userId] = updated[userId].map((doc) => ({
-            ...doc,
-            documentValid: 'yes',
-          }));
-          return updated;
-        });
-      } else {
-        const errData = await res.json();
-        setMessage(errData.message || 'Erreur lors de l’acceptation groupée.');
-      }
-    } catch (err) {
-      console.error('Erreur acceptation groupée :', err);
-      setMessage('Erreur réseau lors de l’acceptation groupée.');
-    }
-  };
-
-  const handlePreview = (doc: Document) => {
-    setPreviewDoc(doc);
-  };
+  if (loading) return <div className="p-6">Chargement...</div>;
+  if (message) return <div className="p-6 text-red-600">{message}</div>;
 
   return (
     <div className="container mx-auto p-6">
       <h1 className="text-2xl font-bold mb-6">Vérification des documents (Prestataires)</h1>
 
-      {message && <div className="mb-4 text-sm text-red-600">{message}</div>}
+      {usersData.map(({ user, documents, requirements }) => {
+        const sentReqIds = new Set(documents.map(d => d.requirementId));
+        const missingReqs = requirements.filter(req => !sentReqIds.has(req.id));
+        const documentsByYear = documents.reduce((acc: Record<number, Document[]>, doc) => {
+          const year = doc.targetYear || new Date(doc.documentDate).getFullYear();
+          if (!acc[year]) acc[year] = [];
+          acc[year].push(doc);
+          return acc;
+        }, {});
 
-      {Object.entries(groupedDocuments).map(([userIdStr, docs]) => {
-        const userId = parseInt(userIdStr, 10);
+
         return (
-          <div key={userId} className="mb-10">
-            <div className="flex justify-between items-center mb-2">
-              <h2 className="text-lg font-semibold">Utilisateur #{userId}</h2>
-              <button
-                onClick={() => handleAcceptAll(userId)}
-                className="bg-blue-600 text-white px-3 py-1 rounded hover:bg-blue-700 text-sm"
-              >
-                Accepter tous les documents
-              </button>
-            </div>
-            <table className="min-w-full bg-white border">
+  <div key={user.id} className="mb-10 border rounded p-4 bg-gray-50">
+    <h2 className="text-lg font-semibold mb-2">
+      Utilisateur #{user.id} (Rôle: {user.prestataireRoleId ?? '—'})
+    </h2>
+
+    <div className="mb-2">
+      <h3 className="font-medium mb-1">Documents requis :</h3>
+
+      {/* Préparation du tableau complet */}
+      {Object.entries(documentsByYear).map(([year, docsInYear]) => {
+        const requirementDocPairs = requirements.map((req) => {
+          const matchedDocs = docsInYear.filter((doc) => doc.documentType === req.name);
+          return { requirement: req, documents: matchedDocs };
+        });
+
+        return (
+          <div key={year} className="mb-6">
+            <h4 className="text-md font-semibold mb-2">
+              Documents pour l’année {year}
+              {parseInt(year) === currentTargetYear && (
+                <span className="ml-2 text-blue-600 text-sm">(année courante)</span>
+              )}
+            </h4>
+
+            <table className="w-full mb-4 border text-sm">
               <thead className="bg-gray-100">
                 <tr>
-                  <th className="py-2 px-4 border">ID</th>
-                  <th className="py-2 px-4 border">Fichier</th>
-                  <th className="py-2 px-4 border">Actions</th>
-                  <th className="py-2 px-4 border">État</th>
+                  <th className="border px-3 py-2">Nom</th>
+                  <th className="border px-3 py-2">Type</th>
+                  <th className="border px-3 py-2">Statut</th>
+                  <th className="border px-3 py-2">Action</th>
                 </tr>
               </thead>
               <tbody>
-                {docs.map((doc) => (
-                  <tr key={doc.id}>
-                    <td className="py-2 px-4 border">{doc.id}</td>
-                    <td className="py-2 px-4 border capitalize">
-                      {doc.documentValid === 'yes'
-                        ? '✅ Accepté'
-                        : doc.documentValid === 'no'
-                        ? '❌ Refusé'
-                        : '⏳ En attente'}
+                {requirementDocPairs.map(({ requirement, documents }) => (
+                  <tr key={`${requirement.id}-${year}`}>
+                    <td className="border px-3 py-2">
+                      {requirement.name}
+                      {documents.length > 0 && (
+                        <span className="text-green-600 font-medium"> (Présent)</span>
+                      )}
                     </td>
-                    <td className="py-2 px-4 border">
-                      <button onClick={() => handlePreview(doc)} className="text-blue-600 hover:underline">
-                        {doc.fileName}
-                      </button>
+
+                    <td className="border px-3 py-2">{requirement.name}</td>
+                    <td className="border px-3 py-2">
+                      {documents.length > 0 ? (
+                        documents.map((doc) => (
+                          <div key={doc.id}>
+                            {doc.documentValid === 'yes'
+                              ? '✅ Accepté'
+                              : doc.documentValid === 'no'
+                              ? '❌ Refusé'
+                              : '⏳ En attente'}
+                          </div>
+                        ))
+                      ) : (
+                        '❌ Pas envoyé'
+                      )}
                     </td>
-                    <td className="py-2 px-4 border space-x-2">
-                      <button
-                        className="bg-green-600 text-white px-3 py-1 rounded hover:bg-green-700"
-                        onClick={() => handleValidation(doc, 'accept')}
-                      >
-                        Accepter
-                      </button>
-                      <button
-                        className="bg-red-600 text-white px-3 py-1 rounded hover:bg-red-700"
-                        onClick={() => handleValidation(doc, 'refuse')}
-                      >
-                        Refuser
-                      </button>
+                    <td className="border px-3 py-2 space-y-1">
+                      {documents.length > 0 ? (
+                        documents.map((doc) => (
+                          <div key={doc.id} className="space-x-2">
+                            <button
+                              className="text-blue-600 underline"
+                              onClick={() => setPreviewDoc(doc)}
+                            >
+                              Voir
+                            </button>
+                            <button
+                              className="text-green-600"
+                              onClick={() => handleValidation(doc, 'accept')}
+                            >
+                              Accepter
+                            </button>
+                            <button
+                              className="text-red-600"
+                              onClick={() => handleValidation(doc, 'refuse')}
+                            >
+                              Refuser
+                            </button>
+                          </div>
+                        ))
+                      ) : (
+                        <span className="text-gray-400 italic">Aucune action</span>
+                      )}
                     </td>
                   </tr>
                 ))}
@@ -187,28 +231,24 @@ export default function AdminDocumentVerification() {
         );
       })}
 
+
+    </div>
+  </div>
+);
+
+      })}
+
       {previewDoc && (
         <div className="fixed inset-0 bg-black bg-opacity-60 flex justify-center items-center z-50">
-          <div className="bg-white p-6 rounded-lg shadow-lg max-w-4xl w-full max-h-[90vh] overflow-auto relative">
+          <div className="bg-white p-6 rounded-lg shadow-lg max-w-4xl w-full relative">
             <button
               onClick={() => setPreviewDoc(null)}
               className="absolute top-3 right-3 text-red-600 font-bold text-lg"
             >
               ✕
             </button>
-
-            <h2 className="text-xl font-semibold mb-4">Aperçu du document</h2>
-            <p className="mb-4 text-gray-600">{previewDoc.fileName}</p>
-
-            <div className="border rounded-md overflow-hidden w-full h-[600px] flex items-center justify-center">
-              {previewDoc.fileUrl?.match(/\.(jpg|jpeg|png|gif)$/i) ? (
-                <img src={previewDoc.fileUrl} alt={previewDoc.fileName} className="w-full h-full object-contain" />
-              ) : previewDoc.fileUrl?.match(/\.pdf$/i) ? (
-                <iframe src={previewDoc.fileUrl} title={previewDoc.fileName} className="w-full h-full" />
-              ) : (
-                <p>Format non supporté ou lien invalide.</p>
-              )}
-            </div>
+            <h2 className="text-xl font-semibold mb-2">Aperçu du document</h2>
+            <iframe src={previewDoc.fileUrl} className="w-full h-[500px]" />
           </div>
         </div>
       )}

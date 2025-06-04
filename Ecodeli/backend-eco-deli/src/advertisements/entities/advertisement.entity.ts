@@ -45,6 +45,10 @@ export class Advertisement {
     @Column({ nullable: true })
     usersId: number;
 
+    @Column({ default: 'null' })
+    advertisementType: 'client' | 'chariot';
+
+
     @ManyToOne(() => User, (user) => user.advertisements, { onDelete: 'SET NULL' })
     @JoinColumn({ name: 'usersId' }) 
     users: User; 
