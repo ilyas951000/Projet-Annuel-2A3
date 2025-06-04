@@ -65,6 +65,7 @@ function LayoutContent({ children }: { children: React.ReactNode }) {
                 <NavItem title="mes gains" link="/dashboard/shopkeeper/earnings" />
                 <NavItem title="historique de paiement" link="/dashboard/shopkeeper/historyannonce" />
                 <NavItem title="mes paiements en cours" link="/dashboard/shopkeeper/payementpackage" />
+                <NavItem title="News" link="/dashboard/shopkeeper/news" />
                 <NavItem title="À propos" link="/a-propos" />
                 <NavItem title="Nous contacter" link="/contact" />
               </ul>

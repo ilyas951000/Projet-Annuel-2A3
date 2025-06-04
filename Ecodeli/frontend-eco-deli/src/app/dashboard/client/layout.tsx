@@ -73,6 +73,7 @@ export default function ClientLayout({ children }: { children: React.ReactNode }
                   ]}SSSS
                 />
                 <NavItem title="Abonnement" link="/dashboard/client/subscription" />
+                <NavItem title="News" link="/dashboard/client/news" />
                 <NavItem title="Profil / Compte" link="/dashboard/client/compte" />
                 <NavItem title="À propos" link="/a-propos" />
                 <NavItem title="Nous contacter" link="/contact" />

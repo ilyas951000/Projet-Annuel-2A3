@@ -36,6 +36,7 @@ import { ReservationModule } from './reservation/reservation.module';
 import { ReportsModule } from './reports/reports.module';
 import { TransferModule } from './payments/transfer.module';
 import { VirementModule } from './virement/virement.module'; // ✅ correct
+import { NewsModule } from './news/news.module';
 
 
 
@@ -92,6 +93,7 @@ import { VirementModule } from './virement/virement.module'; // ✅ correct
     ReportsModule,
     TransferModule, // ✅ ajouté ici
     VirementModule,
+    NewsModule,
   ],
   controllers: [AppController],
   providers: [AppService, ChatGateway], // ✅ ajouté ici

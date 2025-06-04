@@ -224,6 +224,7 @@ const AdminConnexion: NextPage = () => {
             </nav>
 
             <div className="mt-10 space-y-3">
+              <NavItem title="News" link="/dashboard/livreur/news" />
               <NavItem title="À propos" link="/a-propos" />
               <NavItem title="Nous contacter" link="/contact" />
             </div>
