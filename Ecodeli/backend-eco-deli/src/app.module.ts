@@ -35,6 +35,7 @@ import { BoxModule } from './box/box.module';
 import { ReservationModule } from './reservation/reservation.module';
 import { ReportsModule } from './reports/reports.module';
 import { TransferModule } from './payments/transfer.module';
+import { LivreurRequirementsModule } from './livreur-requirements/livreur-requirements.module';
 
 
 @Module({
@@ -50,6 +51,11 @@ import { TransferModule } from './payments/transfer.module';
       username: 'eric',
       password: 'eric2024_2025',
       database: 'projet',
+      extra: {
+        connectionLimit: 10,
+        connectTimeout: 10000,
+        keepAliveInitialDelay: 10000,
+      },
       entities: [__dirname + '/**/*.entity{.ts,.js}'],
       synchronize: true,
       autoLoadEntities: true,
@@ -88,7 +94,8 @@ import { TransferModule } from './payments/transfer.module';
     BoxModule, // ✅ ajouté ici
     ReservationModule,
     ReportsModule,
-    TransferModule, // ✅ ajouté ici
+    TransferModule,
+    LivreurRequirementsModule, // ✅ ajouté ici
   ],
   controllers: [AppController],
   providers: [AppService, ChatGateway], // ✅ ajouté ici

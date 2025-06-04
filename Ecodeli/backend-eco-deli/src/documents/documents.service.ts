@@ -122,37 +122,23 @@ export class DocumentsService {
     document.documentValid = action === 'accept' ? 'yes' : 'no';
     await this.documentRepository.save(document);
 
-    const user = document.user;
-
-    if (user.userStatus === 'prestataire') {
-      const userDocs = await this.documentRepository.find({
-        where: { userId: user.id },
-      });
-
-      const fullUser = await this.userRepository.findOne({
-        where: { id: user.id },
-        relations: ['prestataireRole', 'prestataireRole.requirements'],
-      });
-
-      const requiredNames = fullUser?.prestataireRole?.requirements.map(r => r.name) || [];
-
+    if (document.user.userStatus === 'prestataire') {
+      await this.recalculateUserValidation(document.user.id);
+    } else if (document.user.userStatus === 'livreur') {
       const currentYear = getCurrentTargetYear();
+      const userDocs = await this.documentRepository.find({
+        where: { userId: document.user.id, targetYear: currentYear },
+      });
 
-      const currentYearDocs = userDocs.filter(d => d.targetYear === currentYear);
+      const allValid = userDocs.length > 0 && userDocs.every(d => d.documentValid === 'yes');
 
-      const allValid = requiredNames.every(reqName =>
-        currentYearDocs.find(d => d.documentType === reqName && d.documentValid === 'yes')
-      );
-
-
-      user.valid = allValid;
-    } else if (user.userStatus === 'livreur') {
-      user.occasionalCourier = action === 'accept';
+      document.user.valid = allValid;
+      await this.userRepository.save(document.user);
     } else {
       throw new BadRequestException('Statut utilisateur inconnu');
     }
 
-    return await this.userRepository.save(user);
+    return document.user;
   }
 
 
@@ -239,6 +225,45 @@ export class DocumentsService {
     }
 
     return result;
+  }
+
+  async deleteDocumentById(id: number): Promise<void> {
+    const doc = await this.documentRepository.findOne({ where: { id } });
+    if (!doc) throw new BadRequestException("Document introuvable");
+
+    const fullPath = path.join(__dirname, '..', '..', 'public', doc.filePath);
+    if (fs.existsSync(fullPath)) {
+      try {
+        fs.unlinkSync(fullPath);
+      } catch (err) {
+        console.error(`Erreur suppression fichier ${fullPath}:`, err);
+      }
+    }
+
+    await this.documentRepository.delete({ id });
+  }
+
+  async recalculateUserValidation(userId: number): Promise<void> {
+    const user = await this.userRepository.findOne({
+      where: { id: userId },
+      relations: ['prestataireRole', 'prestataireRole.requirements'],
+    });
+
+    if (!user || user.userStatus !== 'prestataire') return;
+
+    const currentYear = getCurrentTargetYear();
+    const userDocs = await this.documentRepository.find({ where: { userId } });
+
+    const requiredNames = user.prestataireRole?.requirements.map(r => r.name) || [];
+
+    const currentYearDocs = userDocs.filter(d => d.targetYear === currentYear);
+
+    const allValid = requiredNames.every(reqName =>
+      currentYearDocs.find(d => d.documentType === reqName && d.documentValid === 'yes')
+    );
+
+    user.valid = allValid;
+    await this.userRepository.save(user);
   }
 
 

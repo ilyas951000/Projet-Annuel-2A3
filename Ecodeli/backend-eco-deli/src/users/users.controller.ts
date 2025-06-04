@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Body, Patch, Param, Delete, ParseIntPipe, Put } from '@nestjs/common';
+import { Controller, Get, Post, Body, Patch, Param, Delete, ParseIntPipe, Put, Query } from '@nestjs/common';
 import { UsersService } from './users.service';
 import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
@@ -13,11 +13,7 @@ export class UsersController {
     return this.usersService.create(createUserDto);
   }
 
-  @Get()
-  findAllUsers(): Promise<User[]> {
-    return this.usersService.findAll();  
-  }
-
+  
   @Get('admins')
   async getAdmins() {
     return this.usersService.findAllAdmins();
@@ -70,9 +66,20 @@ export class UsersController {
   }
 
   @Get('prestataires/with-role')
-  async getPrestatairesWithRole(): Promise<{ id: number; prestataireRoleId: number | null }[]> {
+  async getPrestatairesWithRole() {
     return this.usersService.findAllPrestatairesWithRole();
   }
+
+
+
+  @Get()
+  async findUsers(@Query('status') status?: string): Promise<User[]> {
+    if (status) {
+      return this.usersService.findByStatus(status); 
+    }
+    return this.usersService.findAll();
+  }
+
 
 
 

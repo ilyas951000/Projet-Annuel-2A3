@@ -1,4 +1,4 @@
-import { Controller, Post, Param, Body, Get, UseGuards, BadRequestException } from '@nestjs/common';
+import { Controller, Post, Param, Body, Get, UseGuards, BadRequestException, Delete } from '@nestjs/common';
 import { DocumentsService } from './documents.service';
 import { JwtAuthGuard } from 'src/auth/jwt-auth.guard';
 
@@ -77,5 +77,15 @@ export class AdminDocumentsController {
   async getRequirementsByUser() {
     return await this.documentsService.getAllUsersRequirementsWithDocuments();
   }
+
+  @UseGuards(JwtAuthGuard)
+  @Delete(':id')
+  async deleteDocument(@Param('id') id: string) {
+    const docId = parseInt(id, 10);
+    if (isNaN(docId)) throw new BadRequestException('ID invalide');
+    await this.documentsService.deleteDocumentById(docId);
+    return { message: 'Document supprimé' };
+  }
+
 
 }

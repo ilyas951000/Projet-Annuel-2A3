@@ -46,16 +46,25 @@ function JustificationForm({ requirements, existingDocs, isUserValid }: Justific
   const [documents, setDocuments] = useState<DocumentForm[]>([
     { requirementId: 0, name: '', documentDate: '', expirationDate: '', format: '', file: null },
   ]);
+  const currentYear = getCurrentTargetYear();
+  const [selectedYear, setSelectedYear] = useState<number>(currentYear);
+  const filledRequirementIds = new Set(
+    existingDocs
+      .filter((d) => {
+        const docYear = d.targetYear || new Date(d.documentDate).getFullYear();
+        return docYear === selectedYear;
+      })
+      .map((d) => d.requirementId)
+  );
 
-  const filledRequirementIds = new Set(existingDocs.map((d) => d.requirementId));
   const canAddDocument =
   documents.length + filledRequirementIds.size < requirements.length;
   const [modalImageUrl, setModalImageUrl] = useState<string | null>(null);
   const [showModal, setShowModal] = useState(false);
   const [message, setMessage] = useState('');
   const [loading, setLoading] = useState(false);
-  const currentYear = getCurrentTargetYear();
-  const [selectedYear, setSelectedYear] = useState<number>(currentYear);
+  
+  
 
   const docsByYear = existingDocs.reduce((acc, doc) => {
     const year = doc.targetYear || new Date(doc.documentDate).getFullYear();
@@ -357,8 +366,9 @@ const AdminConnexion = () => {
       setUserData(user);
 
       const requirementsRes = await axios.get(
-        `${process.env.NEXT_PUBLIC_API_URL}/prestataire-requirements/by-role/${user.prestataireRoleId}`
+        `${process.env.NEXT_PUBLIC_API_URL}/livreur-requirements`
       );
+
       setRequirements(requirementsRes.data);
 
       const docsRes = await axios.get(

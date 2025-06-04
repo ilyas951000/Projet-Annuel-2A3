@@ -25,7 +25,7 @@ import { UpdateAdvertisementDto } from './dto/update-advertisement.dto';
 @Controller('advertisements')
 export class AdvertisementsController {
   constructor(private readonly advertisementsService: AdvertisementsService) {}
-
+  
   // ✅ Obtenir les annonces validées
   @Get('validated')
   async findAllValidated() {
@@ -82,7 +82,7 @@ export class AdvertisementsController {
     @Req() req,
   ) {
     let pkgs: any[] = [];
-
+    
     // ✅ Parse et validation du champ packages
     if (createAdvertisementDto.packages) {
       if (typeof createAdvertisementDto.packages === 'string') {
@@ -117,10 +117,12 @@ export class AdvertisementsController {
     if (file) {
       createAdvertisementDto.advertisementPhoto = file.filename;
     }
-
+    
     const userId = req.user.userId || req.user.sub;
     createAdvertisementDto.usersId = userId;
     createAdvertisementDto.packages = pkgs;
+    createAdvertisementDto.advertisementType = createAdvertisementDto.advertisementType || 'client';
+
 
     return this.advertisementsService.create(createAdvertisementDto);
   }
@@ -156,4 +158,12 @@ export class AdvertisementsController {
   ) {
     return this.advertisementsService.updatePrice(id, newPrice);
   }
+
+  @Get('chariot-drops')
+  @UseGuards(JwtAuthGuard)
+  async getChariotDrops() {
+    return this.advertisementsService.findAllChariotDrops();
+  }
+
+  
 }

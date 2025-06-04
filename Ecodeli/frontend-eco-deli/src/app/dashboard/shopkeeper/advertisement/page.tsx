@@ -1,6 +1,7 @@
 "use client"
 import "../globals.css"
 import type React from "react"
+
 import { useEffect, useState } from "react"
 import {
   PlusCircle,
@@ -15,9 +16,11 @@ import {
   ChevronRight,
   Edit,
   Trash2,
+  Box,
 } from "lucide-react"
 import Image from "next/image"
 import { motion, AnimatePresence } from "framer-motion"
+import { useRouter } from "next/navigation" // ✅ correct
 
 interface Localisation {
   currentStreet: string
@@ -49,10 +52,18 @@ interface Ad {
   advertisementStatus?: string
   advertisementBeginning?: string
   advertisementEnd?: string
+  isPriority?: boolean
   packages?: PackageType[]
 }
 
 export default function Dashboard() {
+  const router = useRouter()
+
+  const handleRedirect = () => {
+    // Par exemple, rediriger vers "/box-reservation"
+    router.push("/dashboard/client/boxes")
+  }
+
   const [sidebarOpen, setSidebarOpen] = useState(false)
   const [showAddModal, setShowAddModal] = useState(false)
   const [showModal, setShowModal] = useState(false)
@@ -64,6 +75,7 @@ export default function Dashboard() {
       weight: 0,
     },
   ])
+  const [userStatus, setUserStatus] = useState<string | null>(null)
 
   // États pour le formulaire
   const [advertisementQuantity, setAdvertisementQuantity] = useState(0)
@@ -76,6 +88,7 @@ export default function Dashboard() {
   const [file, setFile] = useState<File | null>(null)
   const [errorAdd, setErrorAdd] = useState<string | null>(null)
   const [loadingAdd, setLoadingAdd] = useState(false)
+  const [isPriority, setIsPriority] = useState(false)
 
   const [currentStreet, setcurrentStreet] = useState("")
   const [currentCity, setcurrentCity] = useState("")
@@ -105,6 +118,10 @@ export default function Dashboard() {
   const [selectedAd, setSelectedAd] = useState<Ad | null>(null)
   const [expandedAdId, setExpandedAdId] = useState<number | null>(null)
 
+  const [showBoxReservationModal, setShowBoxReservationModal] = useState(false)
+  const [boxReservationType, setBoxReservationType] = useState<"departure" | "arrival">("departure")
+  const [boxReservationCity, setBoxReservationCity] = useState("")
+
   const handleAddObject = () => {
     setObjects([...objects, { quantity: 1, item: "", dimension: "", weight: 0 }])
   }
@@ -120,6 +137,8 @@ export default function Dashboard() {
         if (!res.ok) throw new Error("Erreur récupération utilisateur")
         const data = await res.json()
         setUserId(data.userId)
+        setUserStatus(data.userStatus) 
+
       } catch (err: any) {
         setUserError(err.message)
       } finally {
@@ -131,25 +150,23 @@ export default function Dashboard() {
 
   useEffect(() => {
     if (!userLoading && typeof userId === "number" && !isNaN(userId)) {
-      
+      const fetchAds = async () => {
+        try {
+          const token = localStorage.getItem("token")
+          const res = await fetch("http://localhost:3001/advertisements/me", {
+            headers: { Authorization: `Bearer ${token}` },
+          })
+          if (!res.ok) throw new Error(await res.text())
+          setAds(await res.json())
+        } catch (err: any) {
+          setErrorAds(err.message)
+        } finally {
+          setLoadingAds(false)
+        }
+      }
       fetchAds()
     }
   }, [userLoading, userId])
-
-  const fetchAds = async () => {
-    try {
-      const token = localStorage.getItem("token")
-      const res = await fetch("http://localhost:3001/advertisements/me", {
-        headers: { Authorization: `Bearer ${token}` },
-      })
-      if (!res.ok) throw new Error(await res.text())
-      setAds(await res.json())
-    } catch (err: any) {
-      setErrorAds(err.message)
-    } finally {
-      setLoadingAds(false)
-    }
-  }
 
   const handleDeleteAd = async (adId: number) => {
     const confirmDelete = confirm(
@@ -170,6 +187,32 @@ export default function Dashboard() {
       setSelectedAd(null)
     } catch (err: any) {
       alert("Erreur lors de la suppression : " + err.message)
+    }
+  }
+
+  const handleOpenBoxReservation = (type: "departure" | "arrival", city: string) => {
+    setBoxReservationType(type)
+    setBoxReservationCity(city)
+    setShowBoxReservationModal(true)
+  }
+
+  const handleBoxReservationComplete = (data: {
+    localId: number
+    boxId: number
+    city: string
+    address: string
+    postalCode: string
+    date: string
+  }) => {
+    // Mettre à jour les champs en fonction du type de réservation
+    if (boxReservationType === "departure") {
+      setcurrentCity(data.city)
+      setcurrentStreet(data.address)
+      setcurrentPostalCode(data.postalCode)
+    } else {
+      setdestinationCity(data.city)
+      setdestinationStreet(data.address)
+      setdestinationPostalCode(data.postalCode)
     }
   }
 
@@ -196,11 +239,15 @@ export default function Dashboard() {
       formData.append("additionalInformation", additionalInformation)
 
       formData.append("advertisementPrice", advertisementPrice.toString())
-      formData.append("creatorRole", "client")
+      const advertisementType = userStatus === "commercant" ? "chariot" : "client"
+      formData.append("advertisementType", advertisementType)
+      formData.append("creatorRole", advertisementType) 
+
 
       formData.append("advertisementStatus", advertisementStatus)
       formData.append("advertisementBeginning", advertisementBeginning)
       formData.append("advertisementEnd", advertisementEnd)
+      formData.append("isPriority", isPriority.toString())
 
       formData.append("photoName", file.name)
       formData.append("publicationDate", new Date().toISOString())
@@ -216,6 +263,7 @@ export default function Dashboard() {
         item: obj.item,
         dimension: obj.dimension,
         weight: obj.weight,
+        prioritaire: isPriority, // ✅ ajoute ça
         localisations: [
           {
             currentStreet,
@@ -248,13 +296,12 @@ export default function Dashboard() {
       setAdditionalInformation("")
       setAdvertisementStatus("")
       setFile(null)
+      setIsPriority(false)
     } catch (err: any) {
       setErrorAdd(err.message)
     } finally {
       setLoadingAdd(false)
     }
-    await fetchAds()
-    setShowAddModal(false)
   }
 
   const toggleExpandAd = (id: number) => {
@@ -346,10 +393,17 @@ export default function Dashboard() {
                       <div className="flex-1 min-w-0">
                         <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-2">
                           <div>
-                            <h3 className="text-lg font-bold text-gray-900 truncate">
-                              {ad.packages?.[0]?.item || ad.advertisementItem || "Colis"}
-                              {ad.packages?.[0]?.quantity > 1 ? ` (x${ad.packages[0].quantity})` : ""}
-                            </h3>
+                            <div className="flex items-center gap-2">
+                              <h3 className="text-lg font-bold text-gray-900 truncate">
+                                {ad.packages?.[0]?.item || ad.advertisementItem || "Colis"}
+                                {ad.packages?.[0]?.quantity > 1 ? ` (x${ad.packages[0].quantity})` : ""}
+                              </h3>
+                              {ad.isPriority && (
+                                <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-orange-100 text-orange-800">
+                                  ⭐ Prioritaire
+                                </span>
+                              )}
+                            </div>
                             <p className="text-sm text-gray-500">
                               Publié le {new Date(ad.publicationDate).toLocaleDateString("fr-FR")}
                             </p>
@@ -590,8 +644,7 @@ export default function Dashboard() {
                   </div>
                   <div>
                     <label className="block text-sm text-gray-700 mb-1">Dimensions</label>
-                    <input
-                      type="text"
+                    <select
                       value={obj.dimension}
                       onChange={(e) => {
                         const newObjects = [...objects]
@@ -599,8 +652,15 @@ export default function Dashboard() {
                         setObjects(newObjects)
                       }}
                       className="w-full border border-gray-300 rounded-lg p-2"
-                      placeholder="30x20x10 cm"
-                    />
+                      required
+                    >
+                      <option value="">Sélectionner une taille</option>
+                      <option value="XS">xs</option>
+                      <option value="S">s</option>
+                      <option value="M">m</option>
+                      <option value="L">l</option>
+                      <option value="XL">xl</option>
+                    </select>
                   </div>
                   <div>
                     <label className="block text-sm text-gray-700 mb-1">Poids (kg)</label>
@@ -635,7 +695,7 @@ export default function Dashboard() {
                 />
               </div>
               <h1>Ville de départ:</h1>
-              <div className="flex gap-1">
+              <div className="flex gap-1 mb-2">
                 <div className="flex-2">
                   <label className="block text-sm text-gray-700 mb-1">Rue et numéro</label>
                   <input
@@ -669,9 +729,18 @@ export default function Dashboard() {
                   />
                 </div>
               </div>
+              <button
+                type="button"
+                onClick={handleRedirect}
+                className="mb-4 text-sm bg-green-500 hover:bg-green-600 text-white px-3 py-1 rounded-lg inline-flex items-center"
+              >
+                <Box className="w-4 h-4 mr-1" />
+                Réserver une box pour déposer votre colis ou bien chercher votre colis en toute sécurité (Noubliez pas
+                de renseigner l'adresse de la box)
+              </button>
 
               <h1 className="mt-4">Ville d'arrivée :</h1>
-              <div className="flex gap-1">
+              <div className="flex gap-1 mb-2">
                 <div className="flex-2">
                   <label className="block text-sm text-gray-700 mb-1">Rue et numéro</label>
                   <input
@@ -736,6 +805,28 @@ export default function Dashboard() {
                 />
               </div>
 
+              <div className="flex items-center justify-between p-3 border border-gray-300 rounded-lg bg-gray-50">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700">Annonce prioritaire</label>
+                  <p className="text-xs text-gray-500">Les annonces prioritaires sont mises en avant</p>
+                </div>
+                <label className="relative inline-flex items-center cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={isPriority}
+                    onChange={(e) => setIsPriority(e.target.checked)}
+                    className="sr-only"
+                  />
+                  <div
+                    className={`w-11 h-6 rounded-full transition-colors ${isPriority ? "bg-green-500" : "bg-gray-300"}`}
+                  >
+                    <div
+                      className={`w-5 h-5 bg-white rounded-full shadow transform transition-transform ${isPriority ? "translate-x-5" : "translate-x-0"} mt-0.5 ml-0.5`}
+                    ></div>
+                  </div>
+                </label>
+              </div>
+
               {errorAdd && <p className="text-red-500">{errorAdd}</p>}
               <button
                 type="submit"
@@ -753,8 +844,16 @@ export default function Dashboard() {
         <EditAdModal
           ad={selectedAd}
           onClose={() => setSelectedAd(null)}
-          onSave={(updated) => setAds((ads) => ads.map((a) => (a.id === updated.id ? updated : a)))}
+          onSave={(ads) => setAds((a) => ads.map((a) => (a.id === a.id ? a : a)))}
           onDelete={handleDeleteAd}
+        />
+      )}
+      {showBoxReservationModal && (
+        <BoxReservationModal
+          type={boxReservationType}
+          initialCity={boxReservationCity}
+          onClose={() => setShowBoxReservationModal(false)}
+          onComplete={handleBoxReservationComplete}
         />
       )}
     </div>
@@ -923,13 +1022,19 @@ function EditAdModal({
 
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">Dimensions</label>
-            <input
-              type="text"
+            <select
               value={dimension}
               onChange={(e) => setDimension(e.target.value)}
               className="w-full border border-gray-300 rounded-lg p-2 focus:ring-2 focus:ring-green-500 focus:border-green-500 outline-none"
-              placeholder="30x20x10 cm"
-            />
+              required
+            >
+              <option value="">Sélectionner une taille</option>
+              <option value="XS">XS - Très petit</option>
+              <option value="S">S - Petit</option>
+              <option value="M">M - Moyen</option>
+              <option value="L">L - Grand</option>
+              <option value="XL">XL - Très grand</option>
+            </select>
           </div>
 
           <div>
@@ -994,6 +1099,170 @@ function EditAdModal({
                 {saving ? "Enregistrement…" : "Enregistrer"}
               </button>
             </div>
+          </div>
+        </form>
+      </div>
+    </div>
+  )
+}
+
+interface BoxReservationModalProps {
+  type: "departure" | "arrival"
+  initialCity: string
+  onClose: () => void
+  onComplete: (data: {
+    localId: number
+    boxId: number
+    city: string
+    address: string
+    postalCode: string
+    date: string
+  }) => void
+}
+
+function BoxReservationModal({ type, initialCity, onClose, onComplete }: BoxReservationModalProps) {
+  const [city, setCity] = useState(initialCity)
+  const [date, setDate] = useState("")
+  const [address, setAddress] = useState("")
+  const [postalCode, setPostalCode] = useState("")
+  const [localId, setLocalId] = useState<number | null>(null)
+  const [boxId, setBoxId] = useState<number | null>(null)
+  const [loading, setLoading] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault()
+    setLoading(true)
+    setError(null)
+
+    // Validation des champs
+    if (!city || !date || !address || !postalCode || !localId || !boxId) {
+      setError("Veuillez remplir tous les champs.")
+      setLoading(false)
+      return
+    }
+
+    try {
+      // Simuler une requête API
+      await new Promise((resolve) => setTimeout(resolve, 1000))
+
+      // Préparer les données à renvoyer
+      const reservationData = {
+        localId,
+        boxId,
+        city,
+        address,
+        postalCode,
+        date,
+      }
+
+      // Appeler la fonction de callback pour mettre à jour les champs
+      onComplete(reservationData)
+
+      // Fermer le modal
+      onClose()
+    } catch (err: any) {
+      setError(err.message || "Une erreur est survenue lors de la réservation.")
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  return (
+    <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
+      <div className="bg-white rounded-lg shadow-lg w-full max-w-md p-6 overflow-y-auto max-h-[90vh]">
+        <div className="flex justify-between items-center mb-4">
+          <h3 className="text-xl font-semibold">Réserver une box ({type === "departure" ? "Départ" : "Arrivée"})</h3>
+          <button onClick={onClose} className="text-gray-500 hover:text-gray-700">
+            <X className="w-5 h-5" />
+          </button>
+        </div>
+
+        <form onSubmit={handleSubmit} className="space-y-4">
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Ville</label>
+            <input
+              type="text"
+              value={city}
+              onChange={(e) => setCity(e.target.value)}
+              className="w-full border border-gray-300 rounded-lg p-2 focus:ring-2 focus:ring-green-500 focus:border-green-500 outline-none"
+              required
+            />
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Adresse</label>
+            <input
+              type="text"
+              value={address}
+              onChange={(e) => setAddress(e.target.value)}
+              className="w-full border border-gray-300 rounded-lg p-2 focus:ring-2 focus:ring-green-500 focus:border-green-500 outline-none"
+              required
+            />
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Code Postal</label>
+            <input
+              type="text"
+              value={postalCode}
+              onChange={(e) => setPostalCode(e.target.value)}
+              className="w-full border border-gray-300 rounded-lg p-2 focus:ring-2 focus:ring-green-500 focus:border-green-500 outline-none"
+              required
+            />
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Date</label>
+            <input
+              type="date"
+              value={date}
+              onChange={(e) => setDate(e.target.value)}
+              className="w-full border border-gray-300 rounded-lg p-2 focus:ring-2 focus:ring-green-500 focus:border-green-500 outline-none"
+              required
+            />
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Local ID</label>
+            <input
+              type="number"
+              value={localId || ""}
+              onChange={(e) => setLocalId(Number(e.target.value))}
+              className="w-full border border-gray-300 rounded-lg p-2 focus:ring-2 focus:ring-green-500 focus:border-green-500 outline-none"
+              required
+            />
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Box ID</label>
+            <input
+              type="number"
+              value={boxId || ""}
+              onChange={(e) => setBoxId(Number(e.target.value))}
+              className="w-full border border-gray-300 rounded-lg p-2 focus:ring-2 focus:ring-green-500 focus:border-green-500 outline-none"
+              required
+            />
+          </div>
+
+          {error && <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg">{error}</div>}
+
+          <div className="flex justify-between pt-2">
+            <button
+              type="button"
+              onClick={onClose}
+              className="px-4 py-2 rounded-lg border border-gray-300 text-gray-700 hover:bg-gray-50 transition-colors"
+            >
+              Annuler
+            </button>
+
+            <button
+              type="submit"
+              disabled={loading}
+              className="px-4 py-2 rounded-lg bg-green-500 text-white hover:bg-green-600 transition-colors disabled:opacity-70"
+            >
+              {loading ? "Réservation…" : "Réserver"}
+            </button>
           </div>
         </form>
       </div>

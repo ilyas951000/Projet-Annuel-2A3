@@ -187,7 +187,11 @@ export class AdvertisementsService {
 
   async findOthers(userId: number): Promise<Advertisement[]> {
     const ads = await this.adRepo.find({
-      where: { usersId: Not(userId) },
+      where: {
+      usersId: Not(userId),
+      advertisementType: 'client', // on exclut les chariots
+    },
+
       relations: ['packages', 'packages.localisations'],
       order: { publicationDate: 'DESC' },
     });
@@ -230,4 +234,15 @@ export class AdvertisementsService {
 
     return input;
   }
+
+  async findAllChariotDrops(): Promise<Advertisement[]> {
+    const ads = await this.adRepo.find({
+      where: { advertisementType: 'chariot' },
+      relations: ['packages', 'packages.localisations', 'users'],
+      order: { publicationDate: 'DESC' },
+    });
+
+    return this.addComputedStatus(ads);
+  }
+
 }

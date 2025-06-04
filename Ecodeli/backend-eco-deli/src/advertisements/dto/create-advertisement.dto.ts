@@ -21,6 +21,8 @@ export class CreateAdvertisementDto {
   @IsNumber()
   usersId: number;
 
+  advertisementType?: 'client' | 'chariot';
+
   @IsOptional()
   @IsArray()
   packages?: Array<{
@@ -28,7 +30,7 @@ export class CreateAdvertisementDto {
     item: string;
     dimension?: string;
     weight?: number;
-    prioritaire?: boolean; // ✅ Ajouté ici
+    prioritaire?: boolean; 
     localisations?: Array<{
       currentStreet: string;
       currentCity: string;
