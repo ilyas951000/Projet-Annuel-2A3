@@ -10,11 +10,13 @@ export class CompanyDetail {
     companyName: string;
 
     @Column()
-    legalStructure: string; //AS SAS SARL etc..
+    legalStructure: string; 
 
     @Column()
     siren: string;
 
+    @Column({ default: 'pending' })
+    status: 'pending' | 'accepted' | 'rejected' | 'revolu';
 
 
     @Column()

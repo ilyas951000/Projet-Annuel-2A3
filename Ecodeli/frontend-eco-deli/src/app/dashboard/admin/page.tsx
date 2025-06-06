@@ -46,7 +46,7 @@ export default function Dashboard() {
                   isOpen={openMenus["gestionCommercant"]} 
                   toggleMenu={toggleMenu} 
                   subItems={[
-                    { title: "Gestion du contrat//", link: "./admin/contract" },
+                    { title: "Gestion du contrat//", link: "./admin/commercant/contract" },
                     { title: "Gestion des annonces//", link: "./admin/announcement" },
                     { title: "Tableau de bord//", link: "./admin/dashboard" },
                     { title: "Support et communication", link: "./admin/support" }
@@ -62,6 +62,7 @@ export default function Dashboard() {
                   subItems={[
                     { title: "Validation et vérification//", link: "./admin/ValidationUser" },
                     { title: "Calendrier et disponibilités//", link: "./admin/AdminSchedule" },
+                    { title: "Ajouter role prestataire//", link: "./admin/prestataire/prestataireRole" },
                     { title: "Suivi des interventions", link: "./admin/AdminIntervention" },
                     { title: "Avis des Prestataires", link: "./admin/AdminAvis" },
                     { title: "Gestion tarifaire//", link: "./admin/pricing" }
@@ -160,15 +161,18 @@ function DropdownMenu({ title, menuKey, isOpen, toggleMenu, subItems }: {
   );
 }
 
-function NavItem({ title, link }: { title: string; link: string; }) {
+function NavItem({ title, link }: { title: string; link: string }) {
   return (
-    <li className="flex items-center space-x-2 text-gray-700 dark:text-gray-300 hover:text-green-500 cursor-pointer p-2 rounded-md">
-      <PlusCircle className="w-4 h-4" />
-      <Link href={link}>
+    <li>
+      <Link
+        href={link}
+        className="flex items-center space-x-2 text-gray-700 dark:text-gray-300 hover:text-green-500 cursor-pointer p-2 rounded-md"
+      >
+        <PlusCircle className="w-4 h-4" />
         <span>{title}</span>
       </Link>
     </li>
-  );
+  )
 }
 
 function SubNavItem({ title, link }: { title: string; link: string; }) {

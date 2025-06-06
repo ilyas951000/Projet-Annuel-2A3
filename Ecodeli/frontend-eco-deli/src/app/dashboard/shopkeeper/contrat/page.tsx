@@ -3,6 +3,8 @@
 import { useEffect, useState } from "react"
 import { PDFDocument, rgb, StandardFonts } from "pdf-lib"
 import { useLang } from '../../../context/LanguageContext'
+import { getCurrentTargetYear } from '../../../utils/currentTime'
+
 
 interface CompanyDetail {
   id: number
@@ -15,6 +17,7 @@ interface CompanyDetail {
   registeredOfficeAddressPostalCode: string
   startDateOfActivity: string
   currentYear: string
+  status: 'pending' | 'accepted' | 'rejected' | 'revolu'; 
 }
 
 export default function PDFDownloader() {
@@ -23,7 +26,11 @@ export default function PDFDownloader() {
   const [userLoading, setUserLoading] = useState(true)
   const [loadingIds, setLoadingIds] = useState<number[]>([])
   const [savingId, setSavingId] = useState<number | null>(null)
-  const currentYear = new Date().getFullYear().toString()
+  const currentYear = getCurrentTargetYear().toString()
+  const [isModalOpen, setIsModalOpen] = useState(false)
+  const [draftData, setDraftData] = useState<Partial<CompanyDetail> | null>(null)
+
+
   const [companies, setCompanies] = useState<CompanyDetail[]>([])
   const { t, setLang, lang } = useLang();
   
@@ -118,7 +125,6 @@ export default function PDFDownloader() {
         throw new Error(errorData.message || "Erreur lors de la mise à jour")
       }
 
-      // Notification de succès plus élégante
       const updatedCompanies = [...companies]
       setCompanies(updatedCompanies)
     } catch (err: any) {
@@ -211,6 +217,72 @@ export default function PDFDownloader() {
   const handleInputChange = (companyId: number, field: keyof CompanyDetail, value: string) => {
     setCompanies((prev) => prev.map((company) => (company.id === companyId ? { ...company, [field]: value } : company)))
   }
+  
+
+  const handleCreateNextYearContract = () => {
+    if (!usersId) return
+
+    const nextYear = (parseInt(currentYear) + 1).toString()
+    const alreadyExists = companies.some(c => c.currentYear === nextYear)
+
+    if (alreadyExists) {
+      setUserError(`Le contrat pour ${nextYear} existe déjà.`)
+      return
+    }
+
+    const currentData = companies.find(c => c.currentYear === currentYear)
+    if (!currentData) {
+      setUserError("Aucune donnée actuelle à dupliquer.")
+      return
+    }
+
+    setDraftData({
+      companyName: currentData.companyName,
+      legalStructure: currentData.legalStructure,
+      siren: currentData.siren,
+      dateOfIncorporation: currentData.dateOfIncorporation,
+      registeredOfficeAddressStreet: currentData.registeredOfficeAddressStreet,
+      registeredOfficeAddressCity: currentData.registeredOfficeAddressCity,
+      registeredOfficeAddressPostalCode: currentData.registeredOfficeAddressPostalCode,
+      startDateOfActivity: currentData.startDateOfActivity,
+      currentYear: nextYear,
+      usersId,
+    })
+    setIsModalOpen(true)
+  }
+
+
+  const handleSaveFromModal = async () => {
+    if (!draftData) return
+
+    try {
+      const token = localStorage.getItem("token")
+      if (!token) throw new Error("Token manquant")
+
+      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/company-detail`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify(draftData),
+      })
+
+      if (!res.ok) {
+        const errorData = await res.json()
+        throw new Error(errorData.message || "Erreur lors de la création")
+      }
+
+      const newCompany = await res.json()
+      setCompanies(prev => [...prev, newCompany])
+      setIsModalOpen(false)
+      setDraftData(null)
+    } catch (err: any) {
+      setUserError(err.message)
+    }
+  }
+
+
 
   if (userLoading) {
     return (
@@ -293,6 +365,16 @@ export default function PDFDownloader() {
             </div>
           </div>
         )}
+        <div className="flex justify-end mb-6">
+          <button
+            onClick={handleCreateNextYearContract}
+            className="px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700 transition"
+          >
+            Ajouter un contrat pour {parseInt(currentYear) + 1}
+          </button>
+        </div>
+
+
 
         <div className="space-y-6">
           {companies.length === 0 && !userError ? (
@@ -319,25 +401,49 @@ export default function PDFDownloader() {
                 <p className="text-gray-500">Aucun contrat disponible</p>
               </div>
             </div>
+            
           ) : (
+            
             companies.map((data) => {
               const editable = data.currentYear === currentYear
               const isGenerating = loadingIds.includes(+data.currentYear)
               const isSaving = savingId === data.id
 
               return (
+                
                 <div key={data.id} className="bg-white rounded-lg shadow-md overflow-hidden">
                   <div className="p-6 pb-3">
                     <div className="flex justify-between items-center">
                       <div>
                         <h2 className="text-xl font-semibold flex items-center gap-2">
                           Exercice {data.currentYear}
-                          {editable && (
-                            <span className="ml-2 bg-green-600 text-white text-xs px-2 py-1 rounded-full">
-                              Éditable
+
+                          <span
+                            className={`text-xs px-2 py-1 rounded-full font-medium
+                              ${data.status === 'accepted'
+                                ? 'bg-green-100 text-green-800'
+                                : data.status === 'rejected'
+                                ? 'bg-red-100 text-red-800'
+                                : 'bg-yellow-100 text-yellow-800'}`}
+                          >
+                            {data.status === 'pending'
+                              ? 'En attente'
+                              : data.status === 'accepted'
+                              ? 'Accepté'
+                              : data.status === 'rejected'
+                              ? 'Refusé'
+                              : 'Révolu'}
+
+                          </span>
+
+                          {data.currentYear === currentYear && (
+                            <span className="bg-blue-100 text-blue-800 text-xs px-2 py-1 rounded-full font-medium">
+                              Modifiable car année courante
                             </span>
                           )}
                         </h2>
+
+
                         <p className="text-gray-500 text-sm">{data.companyName || "Nom de l'entreprise non défini"}</p>
                       </div>
                       <button
@@ -587,6 +693,88 @@ export default function PDFDownloader() {
           )}
         </div>
       </div>
+      
+
+      {isModalOpen && draftData && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center z-50">
+          <div className="bg-white p-6 rounded-lg w-full max-w-xl space-y-4">
+            <h2 className="text-lg font-semibold">Nouveau contrat – {draftData.currentYear}</h2>
+
+            <input
+              type="text"
+              value={draftData.companyName || ""}
+              onChange={(e) => setDraftData({ ...draftData, companyName: e.target.value })}
+              placeholder="Nom de l'entreprise"
+              className="w-full border p-2 rounded"
+            />
+
+            <input
+              type="text"
+              value={draftData.legalStructure || ""}
+              onChange={(e) => setDraftData({ ...draftData, legalStructure: e.target.value })}
+              placeholder="Forme juridique"
+              className="w-full border p-2 rounded"
+            />
+
+            <input
+              type="text"
+              value={draftData.siren || ""}
+              onChange={(e) => setDraftData({ ...draftData, siren: e.target.value })}
+              placeholder="SIREN"
+              className="w-full border p-2 rounded"
+            />
+            <input
+              type="date"
+              value={draftData.dateOfIncorporation || ""}
+              onChange={(e) => setDraftData({ ...draftData, dateOfIncorporation: e.target.value })}
+            />
+
+            <input
+              type="date"
+              value={draftData.startDateOfActivity || ""}
+              onChange={(e) => setDraftData({ ...draftData, startDateOfActivity: e.target.value })}
+            />
+
+            <input
+              type="text"
+              value={draftData.registeredOfficeAddressStreet || ""}
+              onChange={(e) => setDraftData({ ...draftData, registeredOfficeAddressStreet: e.target.value })}
+            />
+
+            <input
+              type="text"
+              value={draftData.registeredOfficeAddressCity || ""}
+              onChange={(e) => setDraftData({ ...draftData, registeredOfficeAddressCity: e.target.value })}
+            />
+
+            <input
+              type="text"
+              value={draftData.registeredOfficeAddressPostalCode || ""}
+              onChange={(e) => setDraftData({ ...draftData, registeredOfficeAddressPostalCode: e.target.value })}
+            />
+
+
+            <div className="flex justify-end gap-2 pt-4">
+              <button
+                onClick={() => {
+                  setIsModalOpen(false)
+                  setDraftData(null)
+                }}
+                className="px-4 py-2 bg-gray-300 rounded hover:bg-gray-400"
+              >
+                Annuler
+              </button>
+              <button
+                onClick={handleSaveFromModal}
+                className="px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700"
+              >
+                Sauvegarder
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
     </div>
   )
 }
