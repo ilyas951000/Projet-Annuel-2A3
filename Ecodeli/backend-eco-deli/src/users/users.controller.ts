@@ -24,11 +24,7 @@ export class UsersController {
     return this.usersService.getPendingUsers();
   }
 
-  @Get(':id')
-  findOne(@Param('id', ParseIntPipe) id: number): Promise<User | null> {
-    return this.usersService.findOne(id);
-  }
-
+  
   @Delete(':id')
   remove(@Param('id', ParseIntPipe) id: number): Promise<void> { 
     return this.usersService.remove(id);
@@ -81,7 +77,15 @@ export class UsersController {
   }
 
 
+  @Get('commercants')
+  getCommercants(): Promise<User[]> {
+    return this.usersService.findByStatus('commercant');
+  }
 
+  @Get(':id')
+  findOne(@Param('id', ParseIntPipe) id: number): Promise<User | null> {
+    return this.usersService.findOne(id);
+  }
 
 }
 

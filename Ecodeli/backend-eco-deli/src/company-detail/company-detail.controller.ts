@@ -41,4 +41,15 @@
       return this.companyDetailService.findAllByUser(userId);
     }
 
+    @Patch(':id/accept')
+    accept(@Param('id', ParseIntPipe) id: number) {
+      return this.companyDetailService.updateStatus(id, 'accepted');
+    }
+
+    @Patch(':id/reject')
+    reject(@Param('id', ParseIntPipe) id: number) {
+      return this.companyDetailService.updateStatus(id, 'rejected');
+    }
+
+
   }

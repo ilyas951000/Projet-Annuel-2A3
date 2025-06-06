@@ -10,6 +10,13 @@ export class PrestataireRole {
   @Column({ unique: true })
   name: string;
 
+  @Column({ type: 'decimal', nullable: true })
+  priceMin: number;
+
+  @Column({ type: 'decimal', nullable: true })
+  priceMax: number;
+
+
   @OneToMany(() => PrestataireRequirement, (req) => req.role)
   requirements: PrestataireRequirement[];
 

@@ -1,26 +1,46 @@
 import { Injectable } from '@nestjs/common';
+import { InjectRepository } from '@nestjs/typeorm';
+import { PrestataireRole } from './entities/prestataire-role.entity';
+import { PrestataireRequirement } from 'src/prestataire-requirements/entities/prestataire-requirement.entity';
+import { Repository } from 'typeorm';
 import { CreatePrestataireRoleDto } from './dto/create-prestataire-role.dto';
-import { UpdatePrestataireRoleDto } from './dto/update-prestataire-role.dto';
 
 @Injectable()
 export class PrestataireRolesService {
-  create(createPrestataireRoleDto: CreatePrestataireRoleDto) {
-    return 'This action adds a new prestataireRole';
-  }
+  constructor(
+    @InjectRepository(PrestataireRole)
+    private readonly roleRepo: Repository<PrestataireRole>,
 
-  findAll() {
-    return `This action returns all prestataireRoles`;
-  }
+    @InjectRepository(PrestataireRequirement)
+    private readonly reqRepo: Repository<PrestataireRequirement>,
+  ) {}
 
-  findOne(id: number) {
-    return `This action returns a #${id} prestataireRole`;
-  }
+  async create(dto: CreatePrestataireRoleDto) {
+    const { name, requirements,priceMin,priceMax} = dto;
 
-  update(id: number, updatePrestataireRoleDto: UpdatePrestataireRoleDto) {
-    return `This action updates a #${id} prestataireRole`;
-  }
+    const role = this.roleRepo.create({
+      name,
+      priceMin,
+      priceMax,
+    });
+    await this.roleRepo.save(role);
 
-  remove(id: number) {
-    return `This action removes a #${id} prestataireRole`;
+    if (requirements?.length) {
+      const reqEntities = requirements
+        .filter((r) => r.trim() !== '')
+        .map((r) =>
+          this.reqRepo.create({
+            name: r,
+            role: role,
+            
+          }),
+        );
+      await this.reqRepo.save(reqEntities);
+      role.requirements = reqEntities;
+    } else {
+      role.requirements = [];
+    }
+
+    return role;
   }
 }

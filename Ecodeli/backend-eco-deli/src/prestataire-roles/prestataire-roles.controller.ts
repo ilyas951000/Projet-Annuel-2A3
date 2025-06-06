@@ -8,27 +8,7 @@ export class PrestataireRolesController {
   constructor(private readonly prestataireRolesService: PrestataireRolesService) {}
 
   @Post()
-  create(@Body() createPrestataireRoleDto: CreatePrestataireRoleDto) {
-    return this.prestataireRolesService.create(createPrestataireRoleDto);
-  }
-
-  @Get()
-  findAll() {
-    return this.prestataireRolesService.findAll();
-  }
-
-  @Get(':id')
-  findOne(@Param('id') id: string) {
-    return this.prestataireRolesService.findOne(+id);
-  }
-
-  @Patch(':id')
-  update(@Param('id') id: string, @Body() updatePrestataireRoleDto: UpdatePrestataireRoleDto) {
-    return this.prestataireRolesService.update(+id, updatePrestataireRoleDto);
-  }
-
-  @Delete(':id')
-  remove(@Param('id') id: string) {
-    return this.prestataireRolesService.remove(+id);
+  create(@Body() dto: CreatePrestataireRoleDto) {
+    return this.prestataireRolesService.create(dto);
   }
 }

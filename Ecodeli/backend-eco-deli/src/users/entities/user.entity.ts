@@ -7,7 +7,7 @@ import { CompanyDetail } from "src/company-detail/entities/company-detail.entity
 import { ContractElement } from "src/contract-element/entities/contract-element.entity";
 import { PrestataireRole } from 'src/prestataire-roles/entities/prestataire-role.entity';
 
-@Entity('user')  // Utilisation explicite du nom de la table
+@Entity('user')
 export class User {
   @PrimaryGeneratedColumn()
   id: number;
