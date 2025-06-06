@@ -96,7 +96,7 @@ export class UsersService {
       email: user.email,
       userStatus: user.userStatus,
       userSubscription: user.userSubscription,
-      valid: user.valid,
+      valid: user.occasionalCourier,
     }));
   }
 
