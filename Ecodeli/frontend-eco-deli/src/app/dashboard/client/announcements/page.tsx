@@ -76,7 +76,6 @@ export default function Dashboard() {
     },
   ])
 
-  // États pour le formulaire
   const [advertisementQuantity, setAdvertisementQuantity] = useState(0)
   const [advertisementPrice, setAdvertisementPrice] = useState(0)
   const [advertisementWeight, setAdvertisementWeight] = useState(0)
@@ -124,6 +123,63 @@ export default function Dashboard() {
   const handleAddObject = () => {
     setObjects([...objects, { quantity: 1, item: "", dimension: "", weight: 0 }])
   }
+  const steps = [
+    {
+      selector: '[data-tour="nouvelle-annonce"]',
+      text: "Cliquez ici pour créer une nouvelle annonce de livraison.",
+    },
+    {
+      selector: '[data-tour="carte-annonce"]',
+      text: "Cliquez sur une carte pour afficher les détails de l'annonce.",
+    },
+    {
+      selector: '[data-tour="supprimer-annonce"]',
+      text: "Vous pouvez supprimer cette annonce ici.",
+    },
+    {
+      selector: '[data-tour="modifier-annonce"]',
+      text: "Vous pouvez modifier cette annonce ici.",
+    },
+  ]
+
+
+  const [tutorialActive, setTutorialActive] = useState(true)
+  const [stepIndex, setStepIndex] = useState(0)
+  const currentStep = tutorialActive ? steps[stepIndex] : null
+  const [isStepVisible, setIsStepVisible] = useState(false)
+
+
+  useEffect(() => {
+    if (tutorialActive && currentStep?.selector === '[data-tour="supprimer-annonce"]') {
+      const firstAd = ads[0];
+      if (firstAd && expandedAdId !== firstAd.id) {
+        setExpandedAdId(firstAd.id);
+      }
+    }
+  }, [currentStep?.selector, tutorialActive, ads, expandedAdId]);
+
+  useEffect(() => {
+    if (!currentStep?.selector) return
+
+    const timeout = setTimeout(() => {
+      const el = document.querySelector(currentStep.selector)
+      if (el) {
+        el.classList.add("spotlight")
+        el.scrollIntoView({ behavior: "smooth", block: "center" })
+
+        const rect = el.getBoundingClientRect()
+      }
+    }, 50)
+
+    return () => {
+      clearTimeout(timeout)
+      const el = document.querySelector(currentStep?.selector)
+      if (el) el.classList.remove("spotlight")
+    }
+  }, [currentStep?.selector])
+
+
+
 
   useEffect(() => {
     const fetchUser = async () => {
@@ -313,7 +369,7 @@ export default function Dashboard() {
         <div className="fixed inset-0 bg-black bg-opacity-50 z-30 md:hidden" onClick={() => setSidebarOpen(false)} />
       )}
 
-      <main className="p-5 md:p-10 overflow-auto w-full max-w-screen-2xl mx-auto">
+      <main className="p-5 md:p-10  w-full max-w-screen-2xl mx-auto">
         <div className="flex justify-between items-center md:hidden mb-5">
           <button onClick={() => setSidebarOpen(true)}>
             <Menu className="w-6 h-6 text-gray-900" />
@@ -327,6 +383,7 @@ export default function Dashboard() {
           </h2>
           <div className="mt-4 md:mt-0">
             <button
+              data-tour="nouvelle-annonce"
               onClick={() => setShowAddModal(true)}
               className="inline-flex items-center px-4 py-2 bg-green-500 hover:bg-green-600 text-white rounded-lg transition-colors shadow-sm"
             >
@@ -371,6 +428,7 @@ export default function Dashboard() {
                   className="bg-white rounded-xl shadow-sm overflow-hidden"
                 >
                   <div
+                    data-tour="carte-annonce"
                     className="p-5 cursor-pointer hover:bg-gray-50 transition-colors"
                     onClick={() => toggleExpandAd(ad.id)}
                   >
@@ -555,6 +613,7 @@ export default function Dashboard() {
                       <div className="mt-6 flex justify-end gap-3">
                         <button
                           onClick={() => handleDeleteAd(ad.id)}
+                          data-tour="supprimer-annonce" 
                           className="inline-flex items-center px-3 py-2 text-sm text-red-600 hover:text-red-700 hover:bg-red-50 rounded-lg transition-colors"
                         >
                           <Trash2 className="w-4 h-4 mr-1" />
@@ -562,6 +621,7 @@ export default function Dashboard() {
                         </button>
                         <button
                           onClick={() => setSelectedAd(ad)}
+                          data-tour="modifier-annonce" 
                           className="inline-flex items-center px-3 py-2 text-sm bg-gray-100 text-gray-700 hover:bg-gray-200 rounded-lg transition-colors"
                         >
                           <Edit className="w-4 h-4 mr-1" />
@@ -576,6 +636,60 @@ export default function Dashboard() {
           </div>
         )}
       </main>
+      {currentStep && (
+        <div
+          className="fixed top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 bg-white text-black p-4 rounded-lg shadow max-w-xs z-[10050]"
+        >
+
+          <p>{currentStep.text}</p>
+          <button
+            className="mt-2 bg-green-600 text-white px-3 py-1 rounded"
+            onClick={() => {
+              const el = document.querySelector(currentStep.selector)
+              if (el) el.classList.remove("spotlight")
+
+              if (stepIndex < steps.length - 1) {
+                setStepIndex(stepIndex + 1)
+              } else {
+                setTutorialActive(false)
+              }
+            }}
+          >
+            {stepIndex < steps.length - 1 ? "Suivant" : "Terminer"}
+          </button>
+        </div>
+      )}
+
+
+
+      <style jsx global>{`
+        .spotlight {
+          position: relative;
+          z-index: 9999;
+          box-shadow: 0 0 0 9999px rgba(0, 0, 0, 0.6);
+          border-radius: 8px;
+          transition: box-shadow 0.3s ease;
+        }
+
+        .spotlight::after {
+          content: '';
+          position: absolute;
+          top: -8px;
+          left: -8px;
+          right: -8px;
+          bottom: -8px;
+          border: 2px solid rgba(255, 255, 255, 0.8);
+          border-radius: 10px;
+          animation: pulse 1.5s infinite;
+          pointer-events: none;
+        }
+
+        @keyframes pulse {
+          0% { transform: scale(1); opacity: 1; }
+          100% { transform: scale(1.1); opacity: 0; }
+        }
+      `}</style>
+
 
       <button
         onClick={() => setShowAddModal(true)}
