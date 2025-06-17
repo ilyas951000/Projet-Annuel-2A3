@@ -16,18 +16,18 @@ export class AuthService {
   ) {}
 
   async register(registerUserDto: RegisterUserDto): Promise<User> {
-    const { password, userRole } = registerUserDto; 
-  
-    const hashedPassword = await bcrypt.hash(registerUserDto.password, 10);
-  
-    const user = this.usersRepository.create({
-      ...registerUserDto,
-      password: hashedPassword,
-      userRole,
-    });
-  
-    return this.usersRepository.save(user);
-  }
+  const { password, ...rest } = registerUserDto;
+
+  const hashedPassword = await bcrypt.hash(password, 10);
+
+  const user = this.usersRepository.create({
+    ...rest,
+    password: hashedPassword,
+  });
+
+  return this.usersRepository.save(user);
+}
+
 
   async login(loginUserDto: LoginUserDto): Promise<{ accessToken: string; userStatus: string }> {
     const user = await this.usersRepository.findOneBy({ email: loginUserDto.email });

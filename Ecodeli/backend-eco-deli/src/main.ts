@@ -5,6 +5,7 @@ import { NestExpressApplication } from '@nestjs/platform-express';
 import * as express from 'express';
 import { join } from 'path';
 import { RawBodyMiddleware } from './common/middleware/raw-body.middleware';
+import { ValidationPipe } from '@nestjs/common';
 
 
 async function bootstrap() {
@@ -16,6 +17,7 @@ async function bootstrap() {
   app.use('/uploads', express.static(join(__dirname, '..', 'uploads')));
 
   app.enableCors();
+  //app.useGlobalPipes(new ValidationPipe({ whitelist: true, forbidNonWhitelisted: true }));
   await app.listen(3001, '0.0.0.0');
 
 }
