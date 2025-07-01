@@ -1,33 +1,46 @@
 'use client';
-
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import Link from 'next/link';
 
 const PrestataireRegister: React.FC = () => {
   const [message, setMessage] = useState('');
-  
+  const [roles, setRoles] = useState([]);
+  const [selectedRoleId, setSelectedRoleId] = useState('');
+
+  useEffect(() => {
+    const fetchRoles = async () => {
+      try {
+        const res = await fetch('http://127.0.0.1:3001/prestataire-roles');
+        const data = await res.json();
+        setRoles(data);
+      } catch (err) {
+        console.error('Erreur de récupération des rôles :', err);
+      }
+    };
+    fetchRoles();
+  }, []);
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     const form = e.currentTarget;
     const formData = new FormData(form);
-    
+
+    const confirmPassword = formData.get('confirmPassword');
 
     const data = {
       userFirstName: formData.get('userFirstName'),
       userLastName: formData.get('userLastName'),
       email: formData.get('email'),
       password: formData.get('password'),
-      //confirmPassword: formData.get('confirmPassword'),
       userAddress: formData.get('userAddress'),
-      //companyName: formData.get('companyName'),
-      //siret: formData.get('siret'),
       userStatus: 'prestataire',
+      prestataireRoleId: parseInt(selectedRoleId, 10),
     };
 
-    /*if (data.password !== data.confirmPassword) {
+    if (data.password !== confirmPassword) {
       setMessage('Les mots de passe ne correspondent pas.');
       return;
-    }*/
+    }
 
     try {
       const res = await fetch('http://127.0.0.1:3001/auth/register', {
@@ -37,7 +50,7 @@ const PrestataireRegister: React.FC = () => {
       });
 
       const result = await res.json();
-      setMessage(res.ok ? result.message || 'Inscription réussie !' : result.message || "Erreur lors de l'inscription.");
+      setMessage(res.ok ? result.message || 'Inscription réussie connectez-vous afin de rentrer les documents nécessaires pour la validation !' : result.message || "Erreur lors de l'inscription.");
       if (res.ok) form.reset();
     } catch {
       setMessage('Erreur lors de la connexion au serveur.');
@@ -45,27 +58,52 @@ const PrestataireRegister: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-r from-green-800 to-green-400">
-      <div className="bg-white p-8 rounded-xl shadow-lg w-full max-w-md text-center">
-        <div className="text-white text-xl font-bold">
-          <span className="text-green-500">Eco</span>
-          <span className="text-black">Deli</span>
+    <div className="min-h-screen flex items-center justify-center bg-gradient-to-r from-green-800 to-green-400 px-4">
+      <div className="bg-white p-8 rounded-2xl shadow-2xl w-full max-w-md">
+        <div className="text-3xl font-bold text-center mb-6">
+          <span className="text-green-600">Eco</span>
+          <span className="text-gray-800">Deli</span>
         </div>
 
-        <h2 className="text-xl font-semibold text-gray-800 mb-6">Inscription Prestataire</h2>
+        <h2 className="text-xl font-semibold text-gray-700 text-center mb-6">Inscription Prestataire</h2>
 
         <form className="space-y-4" onSubmit={handleSubmit}>
-          <input name="userFirstName" placeholder="Prénom" required className="input" />
-          <input name="userLastName" placeholder="Nom" required className="input" />
-          <input name="email" type="email" placeholder="Adresse e-mail" required className="input" />
-          <input name="password" type="password" placeholder="Mot de passe" required className="input" />
-          <input name="confirmPassword" type="password" placeholder="Confirmer le mot de passe" required className="input" />
-          <input name="userAddress" placeholder="Adresse" required className="input" />
+          <input name="userFirstName" placeholder="Prénom" required className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500" />
+          <input name="userLastName" placeholder="Nom" required className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500" />
+          <input name="email" type="email" placeholder="Adresse e-mail" required className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500" />
+          <input name="password" type="password" placeholder="Mot de passe" required className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500" />
+          <input name="confirmPassword" type="password" placeholder="Confirmer le mot de passe" required className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500" />
+          <input name="userAddress" placeholder="Adresse" required className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500" />
 
-          <button type="submit" className="w-full bg-green-800 text-white py-2 rounded-lg hover:bg-green-700 transition-colors">Continuer</button>
+          <select
+            name="prestataireRoleId"
+            required
+            value={selectedRoleId}
+            onChange={(e) => setSelectedRoleId(e.target.value)}
+            className="w-full px-4 py-2 border rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-green-500"
+          >
+            <option value="">-- Sélectionner un rôle --</option>
+            {roles.map((role: any) => (
+              <option key={role.id} value={role.id}>
+                {role.id} - {role.name}
+              </option>
+            ))}
+          </select>
+
+          <button
+            type="submit"
+            className="w-full bg-green-700 text-white py-2 rounded-lg font-semibold hover:bg-green-600 transition-colors"
+          >
+            Continuer
+          </button>
         </form>
 
-        {message && <p className="mt-4 text-sm text-red-600">{message}</p>}
+        {message && <p className="mt-4 text-sm text-red-600 text-center">{message}</p>}
+
+        <div className="mt-6 flex justify-between text-sm text-green-700 font-medium">
+          <Link href="/" className="hover:underline">← Accueil</Link>
+          <Link href="/connexion" className="hover:underline">Connexion →</Link>
+        </div>
       </div>
     </div>
   );

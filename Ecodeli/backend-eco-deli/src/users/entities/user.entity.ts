@@ -49,11 +49,12 @@ export class User {
 
 
   @ManyToOne(() => PrestataireRole, (role) => role.users, { nullable: true })
-  @JoinColumn()
+  @JoinColumn({ name: 'prestataireRoleId' })
   prestataireRole: PrestataireRole;
-  
-  @RelationId((user: User) => user.prestataireRole)
+
+  @Column({ nullable: true })
   prestataireRoleId: number;
+
 
 
   @Column({ nullable: true })

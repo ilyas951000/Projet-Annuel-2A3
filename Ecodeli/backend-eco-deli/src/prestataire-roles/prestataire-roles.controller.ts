@@ -11,4 +11,9 @@ export class PrestataireRolesController {
   create(@Body() dto: CreatePrestataireRoleDto) {
     return this.prestataireRolesService.create(dto);
   }
+  @Get()
+  findAll() {
+    return this.prestataireRolesService.findAll();
+  }
+
 }

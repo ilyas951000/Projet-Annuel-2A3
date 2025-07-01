@@ -1,9 +1,11 @@
 "use client";
 import '../globals.css';
 import { useEffect, useState } from "react";
-import { PlusCircle, Menu, X, Moon, Sun } from "lucide-react";
+import { PlusCircle, Menu, X, Moon, Sun, Router } from "lucide-react";
 import Link from "next/link";
 import Image from "next/image";
+import { useRouter } from "next/navigation"
+
 
 interface Ad {
   id: number;
@@ -20,6 +22,8 @@ interface Ad {
 }
 
 export default function OtherAnnouncements() {
+  const router = useRouter()
+
   const [darkMode, setDarkMode] = useState(false);
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [userId, setUserId] = useState<number | null>(null);
@@ -182,12 +186,15 @@ export default function OtherAnnouncements() {
                         {new Date(ad.publicationDate).toLocaleDateString("fr-FR")}
                       </td>
                       <td className="px-4 py-2">
-                        <Link
-                          href={`/announcements/${ad.id}`}
-                          className="text-blue-600 dark:text-blue-400 hover:underline"
+                        <div className="mt-6 flex justify-end">
+                        <button
+                          onClick={() => router.push(`/dashboard/client/announcementPage/${ad.id}`)}
+
+                          className="inline-flex items-center px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors shadow-sm mr-3"
                         >
-                          Voir plus
-                        </Link>
+                          🔍 Voir plus de détails
+                        </button>
+                      </div>
                       </td>
                     </tr>
                   ))}

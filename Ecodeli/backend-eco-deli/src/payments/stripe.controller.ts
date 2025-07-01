@@ -113,11 +113,12 @@ async onboardStripe(@Req() req) {
 
 
   @Post('subscription-checkout')
-  createSubscription(@Body() body: { userId: number; priceId: string; plan: string }) {
+  createSubscription(@Body() body: { userId: number; priceId: string; plan: string ; platform: string}) {
     return this.stripeService.createSubscriptionCheckoutSession(
       body.userId,
       body.priceId,
-      body.plan // 👈 rajoute ce 3e argument
+      body.plan,
+      body.platform,
     );
   }
 

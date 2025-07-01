@@ -612,6 +612,13 @@ export default function Dashboard() {
 
                       <div className="mt-6 flex justify-end gap-3">
                         <button
+                          onClick={() => router.push(`/dashboard/client/announcementPage/${ad.id}`)}
+                          className="inline-flex items-center px-3 py-2 text-sm bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors"
+                        >
+                          Voir détail
+                        </button>
+
+                        <button
                           onClick={() => handleDeleteAd(ad.id)}
                           data-tour="supprimer-annonce" 
                           className="inline-flex items-center px-3 py-2 text-sm text-red-600 hover:text-red-700 hover:bg-red-50 rounded-lg transition-colors"

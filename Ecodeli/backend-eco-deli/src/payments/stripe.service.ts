@@ -522,9 +522,25 @@ async payoutToProvider(providerId: number, amount: number) {
 
 
 
-  async createSubscriptionCheckoutSession(userId: number, priceId: string, subscriptionPlan: string) {
+  async createSubscriptionCheckoutSession(
+    userId: number,
+    priceId: string,
+    subscriptionPlan: string,
+    platform: string = 'web' // 👈 ajouté ici
+  ) {
     const user = await this.userRepo.findOneBy({ id: userId });
     if (!user) throw new Error('Utilisateur introuvable');
+
+    const isMobile = platform === 'android';
+
+    const successUrl = isMobile
+      ? 'myapp://subscription-success?session_id={CHECKOUT_SESSION_ID}'
+      : 'http://localhost:3000/dashboard/client/subscription/success?session_id={CHECKOUT_SESSION_ID}';
+
+    const cancelUrl = isMobile
+      ? 'myapp://subscription-cancelled'
+      : 'http://localhost:3000/subscription/cancel';
+
 
     const session = await this.stripe.checkout.sessions.create({
       mode: 'subscription',
@@ -532,20 +548,21 @@ async payoutToProvider(providerId: number, amount: number) {
       customer_email: user.email,
       line_items: [
         {
-          price: priceId, // Le prix configuré sur Stripe, pas le productId
+          price: priceId,
           quantity: 1,
         },
       ],
-      success_url: `http://localhost:3000/dashboard/client/subscription/success?session_id={CHECKOUT_SESSION_ID}`,
-      cancel_url: `http://localhost:3000/subscription/cancel`,
+      success_url: successUrl,
+      cancel_url: cancelUrl,
       metadata: {
         userId: user.id.toString(),
-        subscriptionPlan, // 👈 starter_plan / premium_plan
+        subscriptionPlan,
       },
     });
 
     return { url: session.url };
   }
+
 
 
 
