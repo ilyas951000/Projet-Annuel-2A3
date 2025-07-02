@@ -45,6 +45,9 @@ export class Advertisement {
     @Column({ nullable: true })
     usersId: number;
 
+    @Column({ default: false })
+    isPriceLocked: boolean;
+
     @Column({ default: 'null' })
     advertisementType: 'client' | 'chariot';
 

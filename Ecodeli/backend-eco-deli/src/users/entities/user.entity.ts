@@ -6,6 +6,7 @@ import { Document } from "src/documents/entities/document.entity";
 import { CompanyDetail } from "src/company-detail/entities/company-detail.entity";
 import { ContractElement } from "src/contract-element/entities/contract-element.entity";
 import { PrestataireRole } from 'src/prestataire-roles/entities/prestataire-role.entity';
+import { Favorite } from "src/favorites/entities/favorite.entity";
 
 @Entity('user')
 export class User {
@@ -72,4 +73,8 @@ export class User {
 
   @OneToMany(() => CompanyDetail, (advertisement) => advertisement.user)
   companyDetail: CompanyDetail[]; 
+
+  @OneToMany(() => Favorite, (favorite) => favorite.user)
+  favorites: Favorite[];
+
 }

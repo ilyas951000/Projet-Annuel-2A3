@@ -4,6 +4,9 @@ import { useEffect, useState, useRef } from "react";
 import { useParams, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { io, Socket } from "socket.io-client";
+import { useRouter } from "next/navigation";
+import { ExternalLink } from "lucide-react";
+
 
 interface IMessage {
   id: number;
@@ -22,6 +25,9 @@ interface IPackage {
 let socket: Socket;
 
 export default function ChatPage() {
+  const [isPriceLocked, setIsPriceLocked] = useState<boolean>(false);
+
+  const router = useRouter();
   const { clientId } = useParams();
   const searchParams = useSearchParams();
   const packageIdFromQuery = searchParams.get("packageId");
@@ -92,7 +98,25 @@ export default function ChatPage() {
       if (lastPkgId) {
         const pkgRes = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/packages/${lastPkgId}`);
         const pkgData = await pkgRes.json();
-        if (pkgRes.ok) setPackageInfo(pkgData);
+
+        if (pkgRes.ok) {
+          setPackageInfo(pkgData);
+
+          if (pkgData.advertisementId) {
+            const adRes = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/advertisements/${pkgData.advertisementId}`);
+            const adData = await adRes.json();
+
+            if (adRes.ok && typeof adData.isPriceLocked === "boolean") {
+              setIsPriceLocked(adData.isPriceLocked);
+            }
+
+            // ✅ Écoute du verrouillage de prix
+            socket.on(`price-locked-${pkgData.advertisementId}`, (data: { isPriceLocked: boolean }) => {
+              console.log("🔒 Prix verrouillé via WebSocket", data);
+              setIsPriceLocked(data.isPriceLocked);
+            });
+          }
+        }
       }
     };
 
@@ -100,6 +124,9 @@ export default function ChatPage() {
 
     return () => {
       socket.disconnect();
+      if (packageInfo?.advertisementId) {
+        socket.off(`price-locked-${packageInfo.advertisementId}`);
+      }
     };
   }, [livreurId, clientId, packageIdFromQuery]);
 
@@ -159,14 +186,14 @@ export default function ChatPage() {
       <h1 className="text-2xl font-bold mb-4">Chat avec le client #{clientId}</h1>
 
       {packageInfo?.advertisementId && (
-        <div className="mb-4 text-right">
-          <Link
-            href={`/annonces/${packageInfo.advertisementId}`}
-            className="bg-indigo-600 text-white px-4 py-2 rounded hover:bg-indigo-700"
-          >
-            Voir l'annonce liée
-          </Link>
-        </div>
+        <button
+          onClick={() => router.push(`/dashboard/livreur/announcementPage/${packageInfo.advertisementId}`)}
+          className="inline-flex items-center text-sm font-medium text-green-600 hover:text-green-700"
+        >
+          <ExternalLink className="w-4 h-4 mr-1" />
+          Voir l'annonce
+        </button>
+
       )}
 
       <div className="flex-1 overflow-y-auto border p-4 rounded bg-gray-100 space-y-2">
@@ -191,10 +218,16 @@ export default function ChatPage() {
       <div className="mt-4 flex justify-between gap-2">
         <button
           onClick={() => setShowModal(true)}
-          className="bg-yellow-500 text-white px-4 py-2 rounded hover:bg-yellow-600"
+          className={`px-4 py-2 rounded text-white transition ${
+            isPriceLocked
+              ? "bg-gray-400 cursor-not-allowed"
+              : "bg-yellow-500 hover:bg-yellow-600"
+          }`}
+          disabled={isPriceLocked}
         >
           Négocier un prix
         </button>
+
         <div className="flex flex-1 gap-2">
           <input
             type="text"

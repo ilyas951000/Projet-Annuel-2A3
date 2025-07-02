@@ -39,13 +39,17 @@ const DashboardPage: NextPage = () => {
           router.push('/dashboard/client');
           break;
         case 'livreur':
-          router.push('/dashboard/livreur');
+          if (user.valid === true) {
+            router.push('/dashboard/livreur');
+          } else {
+            router.push('/dashboard/documentsLivreur');
+          }
           break;
         case 'prestataire':
           if (user.valid === true) {
             router.push('/dashboard/prestataire');
           } else {
-            router.push('/dashboard/prestataire/documents');
+            router.push('/dashboard/documentsPrestataire');
           }
           break;
         case 'commercant':

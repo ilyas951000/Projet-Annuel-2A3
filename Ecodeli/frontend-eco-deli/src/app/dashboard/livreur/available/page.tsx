@@ -75,6 +75,8 @@ export default function LivreurDashboard() {
   const [viewMode, setViewMode] = useState<ViewMode>("split")
   const [maxDistanceKm, setMaxDistanceKm] = useState<number>(5)
   const [refreshing, setRefreshing] = useState(false)
+  const [favorites, setFavorites] = useState<number[]>([])
+
 
   useEffect(() => {
     setMounted(true)
@@ -110,6 +112,47 @@ export default function LivreurDashboard() {
       fetchPackages()
     }
   }, [livreurId, filter, maxDistanceKm])
+
+  
+
+  useEffect(() => {
+    if (livreurId !== null) {
+      fetchFavorites()
+      fetchPackages()
+    }
+  }, [livreurId, filter, maxDistanceKm])
+
+  const fetchFavorites = async () => {
+    try {
+      const res = await axios.get(`${process.env.NEXT_PUBLIC_API_URL}/favorites/user/${livreurId}`)
+      const favoriteIds = res.data.map((fav: any) => fav.package.id)
+      setFavorites(favoriteIds)
+    } catch (error) {
+      console.error("Erreur lors du chargement des favoris", error)
+    }
+  }
+
+  const toggleFavorite = async (packageId: number) => {
+    if (!livreurId) return
+    try {
+      if (favorites.includes(packageId)) {  
+        await axios.delete(`${process.env.NEXT_PUBLIC_API_URL}/favorites`, {
+          params: { userId: livreurId, packageId },
+        })
+        setFavorites(favorites.filter((id) => id !== packageId))
+      } else {
+        await axios.post(`${process.env.NEXT_PUBLIC_API_URL}/favorites`, {
+          userId: livreurId,
+          packageId,
+        })
+        setFavorites([...favorites, packageId])
+      }
+    } catch (err) {
+      console.error("Erreur lors de la mise à jour des favoris", err)
+    }
+  }
+
+
 
   const fetchPackages = async () => {
     setRefreshing(true)
@@ -361,15 +404,42 @@ export default function LivreurDashboard() {
               {(viewMode === "list" || viewMode === "split") && (
                 <div className={viewMode === "split" ? "lg:w-1/2" : "w-full"}>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    {packages.map((pkg) => (
+                    {[...packages]
+                      .sort((a, b) => {
+                        const aFav = favorites.includes(a.id) ? 1 : 0
+                        const bFav = favorites.includes(b.id) ? 1 : 0
+                        return bFav - aFav
+                      })
+                      .map((pkg) => (
                       <div
                         key={pkg.id}
                         className="border rounded-lg overflow-hidden shadow-sm bg-white flex flex-col h-full hover:shadow-md transition-shadow"
                       >
                         <div className="relative h-40 bg-gray-100">
+                          <button
+                            onClick={() => toggleFavorite(pkg.id)}
+                            className="absolute bottom-2 right-2 bg-white rounded-full p-1 shadow-md hover:bg-gray-100"
+                            aria-label="Favori"
+                          >
+                            <svg
+                              xmlns="http://www.w3.org/2000/svg"
+                              className={`h-5 w-5 ${favorites.includes(pkg.id) ? "text-yellow-400" : "text-gray-400"}`}
+                              fill={favorites.includes(pkg.id) ? "currentColor" : "none"}
+                              viewBox="0 0 24 24"
+                              stroke="currentColor"
+                              strokeWidth={2}
+                            >
+                              <path
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                                d="M11.049 2.927c.3-.921 1.603-.921 1.902 0l2.145 6.584a1 1 0 00.95.69h6.918c.969 0 1.371 1.24.588 1.81l-5.6 4.065a1 1 0 00-.364 1.118l2.145 6.584c.3.921-.755 1.688-1.538 1.118l-5.6-4.065a1 1 0 00-1.176 0l-5.6 4.065c-.783.57-1.838-.197-1.538-1.118l2.145-6.584a1 1 0 00-.364-1.118l-5.6-4.065c-.783-.57-.38-1.81.588-1.81h6.918a1 1 0 00.95-.69l2.145-6.584z"
+                              />
+                            </svg>
+                          </button>
+
                           {pkg.advertisementPhoto ? (
                             <img
-                              src={`http://localhost:3001/uploads/${pkg.advertisementPhoto}`}
+                              src={`${process.env.NEXT_PUBLIC_API_URL}/uploads/${pkg.advertisementPhoto}`}
                               alt={pkg.packageName}
                               className="object-cover w-full h-full"
                             />

@@ -12,6 +12,7 @@ import { Advertisement } from 'src/advertisements/entities/advertisement.entity'
 import { Localisation } from 'src/localisation/entities/localisation.entity';
 import { User } from 'src/users/entities/user.entity';
 import { TransferHistory } from 'src/transfer-history/entities/transfer-history.entity';
+import { Favorite } from 'src/favorites/entities/favorite.entity';
 
 @Entity()
 export class Package {
@@ -68,4 +69,8 @@ export class Package {
     const { advertisement, ...rest } = this;
     return rest;
   }
+
+  @OneToMany(() => Favorite, (favorite) => favorite.package)
+  favorites: Favorite[];
+
 }

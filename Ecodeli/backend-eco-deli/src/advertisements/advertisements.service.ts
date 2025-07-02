@@ -139,11 +139,19 @@ export class AdvertisementsService {
 
   async updatePrice(id: number, newPrice: number): Promise<Advertisement> {
     this.validateId(id);
+
     const ad = await this.adRepo.findOne({ where: { id } });
     if (!ad) throw new NotFoundException('Annonce introuvable');
+
+    if (ad.isPriceLocked) {
+      throw new BadRequestException("Une négociation a déjà été acceptée pour cette annonce.");
+    }
+
     ad.advertisementPrice = newPrice;
+    ad.isPriceLocked = true;
     return this.adRepo.save(ad);
   }
+
 
   async remove(id: number): Promise<void> {
     this.validateId(id);

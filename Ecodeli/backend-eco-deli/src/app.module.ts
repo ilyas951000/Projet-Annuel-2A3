@@ -38,6 +38,7 @@ import { TransferModule } from './payments/transfer.module';
 import { LivreurRequirementsModule } from './livreur-requirements/livreur-requirements.module';
 import { VirementModule } from './virement/virement.module'; // ✅ correct
 import { NewsModule } from './news/news.module';
+import { FavoritesModule } from './favorites/favorites.module';
 
 
 
@@ -101,6 +102,7 @@ import { NewsModule } from './news/news.module';
     LivreurRequirementsModule, // ✅ ajouté ici
     VirementModule,
     NewsModule,
+    FavoritesModule,
   ],
   controllers: [AppController],
   providers: [AppService, ChatGateway], // ✅ ajouté ici
