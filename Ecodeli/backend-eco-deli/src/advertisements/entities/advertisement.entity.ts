@@ -48,6 +48,9 @@ export class Advertisement {
     @Column({ default: false })
     isPriceLocked: boolean;
 
+    @Column({ default: false })
+    isPaid?: boolean;
+
     @Column({ default: 'null' })
     advertisementType: 'client' | 'chariot';
 

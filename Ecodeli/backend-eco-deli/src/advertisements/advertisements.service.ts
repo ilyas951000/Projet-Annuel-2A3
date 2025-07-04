@@ -12,7 +12,7 @@ import { Package } from 'src/packages/entities/package.entity';
 import { Localisation } from 'src/localisation/entities/localisation.entity';
 import fetch from 'node-fetch'; // N'oublie pas d'installer node-fetch si ce n'est pas déjà fait
 import { Report } from 'src/reports/entities/report.entity';
-
+import { randomBytes } from 'crypto';
 
 @Injectable()
 export class AdvertisementsService {
@@ -71,6 +71,7 @@ export class AdvertisementsService {
           pkg.packageWeight = pkgDto.weight ?? 0;
           pkg.deliveryStatus = 'en attente';
           pkg.prioritaire = pkgDto.prioritaire === true;
+          pkg.transferCode = randomBytes(4).toString('hex').toUpperCase();
 
 
           const rawLocs = Array.isArray(pkgDto.localisations) ? pkgDto.localisations : [];
@@ -252,5 +253,18 @@ export class AdvertisementsService {
 
     return this.addComputedStatus(ads);
   }
+
+  async findUnpaidAdvertisementByClient(clientId: number): Promise<Advertisement[]> {
+    return this.adRepo.createQueryBuilder('ad')
+      .leftJoinAndSelect('ad.packages', 'package')
+      .where('ad.usersId = :clientId', { clientId })
+      .andWhere('ad.isPaid = false')
+      .groupBy('ad.id')
+      .addGroupBy('package.id')
+      .getMany();
+  }
+
+
+
 
 }

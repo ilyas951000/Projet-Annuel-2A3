@@ -90,7 +90,7 @@ export class PackagesService {
   }): Promise<{ transferCode: string }> {
     const fullAddress = `${address}, ${postalCode} ${city}, France`;
 
-    const { lat, lng } = await geocodeAddress(fullAddress); // 📍 appel à ton utilitaire OpenCage
+    const { lat, lng } = await geocodeAddress(fullAddress);
 
     const transferCode = Math.random().toString(36).substring(2, 8).toUpperCase();
 
@@ -146,13 +146,13 @@ export class PackagesService {
   }
 
 
-  async findUnpaidPackagesByClient(clientId: number): Promise<Package[]> {
+  /*async findUnpaidPackagesByClient(clientId: number): Promise<Package[]> {
     return this.packageRepository.createQueryBuilder('package')
       .leftJoin('package.advertisement', 'ad')
       .where('ad.usersId = :clientId', { clientId })
       .andWhere('package.isPaid = false OR package.isPaid = 0')
       .getMany();
-  }
+  }*/
 
   async getPendingTransfersForUser(userId: number | string): Promise<Package[]> {
     const parsedId = typeof userId === 'string' ? parseInt(userId, 10) : userId;
@@ -254,13 +254,16 @@ export class PackagesService {
     const user = await this.userRepository.findOne({ where: { id: userId } });
     if (!user) throw new NotFoundException('Utilisateur non trouvé');
 
-    if (!pkg.users) pkg.users = [];
-    if (!pkg.users.some(u => u.id === user.id)) pkg.users.push(user);
+    pkg.users = [user];
 
     pkg.isPaid = false;
+    pkg.deliveryStatus = 'en cours';
+
     await this.packageRepository.save(pkg);
+
     return { message: 'Colis pris en charge avec succès.' };
   }
+
 
   async findDeliveriesByUser(userId: number): Promise<Package[]> {
     return this.packageRepository.createQueryBuilder('p')
@@ -375,7 +378,6 @@ export class PackagesService {
     await this.packageRepository.save(pkg);
     await this.transferRepository.save(transfer);
 
-    // 🎯 Appel de la répartition des paiements si tout est prêt
     const clientId = pkg.advertisement?.usersId;
     const totalAmount = pkg.advertisement?.advertisementPrice;
 
@@ -422,16 +424,35 @@ export class PackagesService {
       throw new NotFoundException('Colis introuvable');
     }
 
-    pkg.deliveryStatus = 'en transit';
+    pkg.deliveryStatus = 'en cours';
 
-    // 🔄 Remplacement du livreur
     const toCourier = await this.userRepository.findOne({ where: { id: toCourierId } });
     if (!toCourier) throw new NotFoundException('Livreur introuvable');
 
-    pkg.users = [toCourier]; // overwrite
+    pkg.users = [toCourier]; 
     await this.packageRepository.save(pkg);
     return this.transferRepository.save(transfer);
   }
+
+
+  async confirmDeliveryWithCode(packageId: number, code: string) {
+    const pkg = await this.packageRepository.findOneBy({ id: packageId });
+
+    if (!pkg) {
+      throw new NotFoundException('Colis introuvable');
+    }
+
+    if (pkg.transferCode !== code) {
+      throw new BadRequestException('Code de livraison invalide.');
+    }
+
+    pkg.deliveryStatus = 'livré';
+    await this.packageRepository.save(pkg);
+
+    return { message: 'Colis livré avec succès.' };
+  }
+
+
 
 
 }

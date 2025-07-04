@@ -10,7 +10,7 @@ const PrestataireRegister: React.FC = () => {
   useEffect(() => {
     const fetchRoles = async () => {
       try {
-        const res = await fetch('http://127.0.0.1:3001/prestataire-roles');
+        const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/prestataire-roles`);
         const data = await res.json();
         setRoles(data);
       } catch (err) {
@@ -43,7 +43,7 @@ const PrestataireRegister: React.FC = () => {
     }
 
     try {
-      const res = await fetch('http://127.0.0.1:3001/auth/register', {
+      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/auth/register`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(data),

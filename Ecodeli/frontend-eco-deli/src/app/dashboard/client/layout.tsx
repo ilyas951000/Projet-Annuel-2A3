@@ -128,7 +128,7 @@ export default function ClientLayout({ children }: { children: React.ReactNode }
                     { title: "Mes Annonces", link: "/dashboard/client/announcements", dataTour: "mes-annonces" },
                     { title: "Le Suivi de mes livraisons", link: "/dashboard/client/suivi_livraison", dataTour: "suivi-livraison" },
                     { title: "Les annonces des autres...", link: "/dashboard/client/otherAnnouncements", dataTour: "autres-annonces" },
-                    { title: "Payer mes livraisons", link: "/dashboard/client/payementpackage", dataTour: "payer-livraisons" },
+                    
                   ]}
                 />
                 <NavItem
@@ -148,8 +148,10 @@ export default function ClientLayout({ children }: { children: React.ReactNode }
                   dataTour="payements"
                   forceOpen={forceOpenMenus["payements"]}
                   subLinks={[
+                    { title: "Effectuer paiement", link: "/dashboard/client/payementpackage", dataTour: "payementpackage" },
                     { title: "Mon Wallet", link: "/dashboard/client/wallet", dataTour: "wallet" },
                     { title: "Validation des payements", link: "/dashboard/client/historyannonce", dataTour: "validation-payement" },
+                    { title: "Vos gains", link: "/dashboard/client/earnings", dataTour: "earnings" },
                   ]}
                 />
                 <NavItem title="Abonnement" link="/dashboard/client/subscription" dataTour="abonnement" />

@@ -178,6 +178,8 @@ export default function ChatPage() {
       setShowModal(false);
       setNegociationPrice("");
       scrollToBottom();
+      window.location.reload();
+
     }
   };
 

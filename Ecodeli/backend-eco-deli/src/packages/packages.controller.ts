@@ -85,10 +85,11 @@ export class PackagesController {
     return this.packagesService.findDeliveredPackagesByUser(+userId);
   }
 
+  /*
   @Get('client/:clientId')
   findUnpaidByClient(@Param('clientId') clientId: string) {
     return this.packagesService.findUnpaidPackagesByClient(+clientId);
-  }
+  }*/
 
   @Get('user/:userId')
   findPackagesByUser(@Param('userId') userId: number) {
@@ -114,42 +115,26 @@ export class PackagesController {
     return this.packagesService.findByAdvertisementId(+adId);
   }
 
-  /**
-   * 📦 Transfert d’un colis d’un livreur à un autre
-   */
   @Post(':id/transfer')
   async transferPackage(@Param('id') id: string, @Body() body: any) {
     const packageId = parseInt(id, 10);
     if (isNaN(packageId)) throw new BadRequestException('ID du colis invalide');
 
-    const { fromCourierId, toCourierId, address, postalCode, city } = body;
-
-    if (!fromCourierId || !toCourierId || !address || !postalCode || !city) {
-      throw new BadRequestException('Champs manquants pour le transfert');
-    }
-
-    const transferCode = uuidv4().split('-')[0];
-
-    // 👉 Géocodage ici
-    const { lat, lng } = await geocodeAddress(`${address}, ${postalCode} ${city}, France`);
-
-    await this.packagesService.createTransfer({
+    const result = await this.packagesService.transferPackage({
       packageId,
-      fromCourierId,
-      toCourierId,
-      address,
-      postalCode,
-      city,
-      transferCode,
-      latitude: lat,
-      longitude: lng,
+      fromCourierId: body.fromCourierId,
+      toCourierId: body.toCourierId,
+      address: body.address,
+      postalCode: body.postalCode,
+      city: body.city,
     });
 
     return {
       message: 'Transfert enregistré',
-      transferCode,
+      transferCode: result.transferCode,
     };
   }
+
 
   /**
    * 🔎 Récupérer le livreur assigné à un colis
@@ -195,4 +180,21 @@ export class PackagesController {
     if (isNaN(packageId)) throw new BadRequestException('ID du colis invalide');
     return this.packagesService.findOne(packageId);
   }
+
+
+  @Patch(':id/deliver')
+  @UseGuards(JwtAuthGuard)
+  async markAsDeliveredWithCode(
+    @Param('id') id: string,
+    @Body() body: { code: string },
+  ) {
+    const packageId = parseInt(id, 10);
+    if (isNaN(packageId)) {
+      throw new BadRequestException('ID du colis invalide');
+    }
+
+    return this.packagesService.confirmDeliveryWithCode(packageId, body.code);
+  }
+
+
 }

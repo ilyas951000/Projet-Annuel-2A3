@@ -76,6 +76,7 @@ export default function LivreurDashboard() {
   const [maxDistanceKm, setMaxDistanceKm] = useState<number>(5)
   const [refreshing, setRefreshing] = useState(false)
   const [favorites, setFavorites] = useState<number[]>([])
+  
 
 
   useEffect(() => {
@@ -89,7 +90,7 @@ export default function LivreurDashboard() {
 
     const fetchCurrentUser = async () => {
       try {
-        const res = await axios.get("http://127.0.0.1:3001/auth/me", {
+        const res = await axios.get(`${process.env.NEXT_PUBLIC_API_URL}/auth/me`, {
           headers: { Authorization: `Bearer ${token}` },
         })
         if (res.data?.userId) {
@@ -157,17 +158,17 @@ export default function LivreurDashboard() {
   const fetchPackages = async () => {
     setRefreshing(true)
     try {
-      const url = "http://127.0.0.1:3001/packages/available"
+      const url = `${process.env.NEXT_PUBLIC_API_URL}/packages/available`
       const response = await axios.get<IPackage[]>(url)
       const pkgs = response.data
 
-      const movementRes = await axios.get(`http://127.0.0.1:3001/movements/active?userId=${livreurId}`)
+      const movementRes = await axios.get(`${process.env.NEXT_PUBLIC_API_URL}/movements/active?userId=${livreurId}`)
       const movement = movementRes.data
 
       const updated = await Promise.all(
         pkgs.map(async (pkg) => {
           try {
-            const locRes = await axios.get(`http://127.0.0.1:3001/localisation/package/${pkg.id}`)
+            const locRes = await axios.get(`${process.env.NEXT_PUBLIC_API_URL}/localisation/package/${pkg.id}`)
             const loc = locRes.data
 
             const distanceFromStart =
@@ -243,7 +244,7 @@ export default function LivreurDashboard() {
       return
     }
     try {
-      await axios.post(`http://127.0.0.1:3001/packages/${packageId}/take`, {
+      await axios.post(`${process.env.NEXT_PUBLIC_API_URL}/packages/${packageId}/take`, {
         userId: livreurId,
       })
       alert("Colis pris en charge !")

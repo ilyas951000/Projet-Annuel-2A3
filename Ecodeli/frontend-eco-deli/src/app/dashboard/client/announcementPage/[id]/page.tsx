@@ -73,6 +73,7 @@ export default function AnnouncementPage() {
   const pkg = ad.packages[0]
   const loc = pkg?.localisations[0]
 
+
   return (
     <div className="p-10 max-w-5xl mx-auto space-y-8">
       <div className="flex items-start gap-6">
@@ -127,49 +128,57 @@ export default function AnnouncementPage() {
         ))}
       </div>
 
-      <div className="grid md:grid-cols-2 gap-6">
-        <div>
-          <h2 className="text-lg font-semibold mb-3 flex items-center">
-            <Package className="w-5 h-5 mr-2 text-green-500" />
-            Détails du colis
-          </h2>
-          <div className="space-y-2 text-sm text-gray-700">
-            <p>
-              <strong>Objet:</strong> {pkg.packageName}
-            </p>
-            <p>
-              <strong>Quantité:</strong> {pkg.packageQuantity}
-            </p>
-            <p>
-              <strong>Dimensions:</strong> {pkg.packageDimension}
-            </p>
-            <p>
-              <strong>Poids:</strong> {pkg.packageWeight} kg
-            </p>
-          </div>
-        </div>
+      <div className="space-y-8">
+        {ad.packages.map((pkg) => (
+          <div
+            key={pkg.id}
+            className="grid md:grid-cols-2 gap-6 border p-4 rounded-lg shadow-sm"
+          >
+            <div>
+              <h2 className="text-lg font-semibold mb-3 flex items-center">
+                <Package className="w-5 h-5 mr-2 text-green-500" />
+                Détails du colis
+              </h2>
+              <div className="space-y-2 text-sm text-gray-700">
+                <p>
+                  <strong>Objet:</strong> {pkg.packageName}
+                </p>
+                <p>
+                  <strong>Quantité:</strong> {pkg.packageQuantity}
+                </p>
+                <p>
+                  <strong>Dimensions:</strong> {pkg.packageDimension}
+                </p>
+                <p>
+                  <strong>Poids:</strong> {pkg.packageWeight} kg
+                </p>
+              </div>
+            </div>
 
-        <div>
-          <h2 className="text-lg font-semibold mb-3 flex items-center">
-            <Truck className="w-5 h-5 mr-2 text-blue-500" />
-            Itinéraire de livraison
-          </h2>
-          <div className="space-y-4 text-sm text-gray-700">
             <div>
-              <p className="font-medium text-green-600">Point de départ</p>
-              <p>
-                {loc.currentStreet}, {loc.currentCity} {loc.currentPostalCode}
-              </p>
-            </div>
-            <div>
-              <p className="font-medium text-blue-600">Destination</p>
-              <p>
-                {loc.destinationStreet}, {loc.destinationCity} {loc.destinationPostalCode}
-              </p>
+              <h2 className="text-lg font-semibold mb-3 flex items-center">
+                <Truck className="w-5 h-5 mr-2 text-blue-500" />
+                Itinéraire de livraison
+              </h2>
+              <div className="space-y-4 text-sm text-gray-700">
+                {pkg.localisations.map((loc, i) => (
+                  <div key={i}>
+                    <p className="font-medium text-green-600">Point de départ</p>
+                    <p>
+                      {loc.currentStreet}, {loc.currentCity} {loc.currentPostalCode}
+                    </p>
+                    <p className="font-medium text-blue-600 mt-2">Destination</p>
+                    <p>
+                      {loc.destinationStreet}, {loc.destinationCity} {loc.destinationPostalCode}
+                    </p>
+                  </div>
+                ))}
+              </div>
             </div>
           </div>
-        </div>
+        ))}
       </div>
+
 
       {ad.additionalInformation && (
         <div>

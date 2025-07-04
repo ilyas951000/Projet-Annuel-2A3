@@ -40,6 +40,9 @@ export class Package {
   @Column({ nullable: true, default: 'en attente' })
   deliveryStatus?: string;
 
+  @Column({ nullable: true })
+  transferCode: string;
+
   @ManyToMany(() => User)
   @JoinTable({
     name: 'deliverPackage',

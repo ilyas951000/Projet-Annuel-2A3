@@ -127,13 +127,11 @@ export class AdvertisementsController {
     return this.advertisementsService.create(createAdvertisementDto);
   }
 
-  // ✅ Récupérer une annonce par ID
   @Get(':id')
   async findOne(@Param('id', ParseIntPipe) id: number) {
     return this.advertisementsService.findOne(id);
   }
 
-  // ✅ Mise à jour d'une annonce
   @Patch(':id')
   @UseGuards(JwtAuthGuard)
   async update(
@@ -144,13 +142,11 @@ export class AdvertisementsController {
     return this.advertisementsService.update(id, updateDto);
   }
 
-  // ✅ Supprimer une annonce
   @Delete(':id')
   async remove(@Param('id') id: number) {
     return this.advertisementsService.remove(+id);
   }
 
-  // ✅ Mise à jour du prix
   @Patch(':id/update-price')
   async updatePrice(
     @Param('id', ParseIntPipe) id: number,
@@ -165,5 +161,8 @@ export class AdvertisementsController {
     return this.advertisementsService.findAllChariotDrops();
   }
 
-  
+  @Get('client/:clientId')
+  findUnpaidByClient(@Param('clientId') clientId: string) {
+    return this.advertisementsService.findUnpaidAdvertisementByClient(+clientId);
+  }
 }

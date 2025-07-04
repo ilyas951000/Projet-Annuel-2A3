@@ -25,7 +25,7 @@ export default function PlanningPage() {
     }
     const fetchCurrentUser = async () => {
       try {
-        const res = await axios.get('http://127.0.0.1:3001/auth/me', {
+        const res = await axios.get(`${process.env.NEXT_PUBLIC_API_URL}/auth/me`, {
           headers: { Authorization: `Bearer ${token}` },
         });
         console.log('Réponse de auth/me:', res.data);
@@ -52,7 +52,7 @@ export default function PlanningPage() {
     const token = getToken();
     try {
       const response = await axios.get(
-        `http://127.0.0.1:3001/courier/${courierId}/schedule`,
+        `${process.env.NEXT_PUBLIC_API_URL}/courier/${courierId}/schedule`,
         { headers: { Authorization: `Bearer ${token}` } }
       );
       console.log('Créneaux récupérés:', response.data);
@@ -87,7 +87,7 @@ export default function PlanningPage() {
     
     try {
       const res = await axios.post(
-        `http://127.0.0.1:3001/courier/${courierId}/schedule`,
+        `${process.env.NEXT_PUBLIC_API_URL}/courier/${courierId}/schedule`,
         payload,
         { headers: { Authorization: `Bearer ${token}` } }
       );
@@ -109,7 +109,7 @@ export default function PlanningPage() {
       try {
         console.log(`Suppression du créneau avec id ${event.id}`);
         const res = await axios.delete(
-          `http://127.0.0.1:3001/courier/${courierId}/schedule/${event.id}`,
+          `${process.env.NEXT_PUBLIC_API_URL}/courier/${courierId}/schedule/${event.id}`,
           { headers: { Authorization: `Bearer ${token}` } }
         );
         console.log('Réponse DELETE créneau:', res.data);

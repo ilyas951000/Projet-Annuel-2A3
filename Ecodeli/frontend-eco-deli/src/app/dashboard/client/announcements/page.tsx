@@ -37,6 +37,7 @@ interface PackageType {
   packageQuantity: number
   packageDimension: string
   localisations: Localisation[]
+  transferCode?: string
 }
 
 interface Ad {
@@ -313,7 +314,7 @@ export default function Dashboard() {
         item: obj.item,
         dimension: obj.dimension,
         weight: obj.weight,
-        prioritaire: isPriority, // ✅ ajoute ça
+        prioritaire: isPriority,
         localisations: [
           {
             currentStreet,
@@ -602,6 +603,11 @@ export default function Dashboard() {
                                 <Info className="w-4 h-4 mr-2 text-green-500" />
                                 Informations complémentaires
                               </h4>
+                              {ad.packages?.[0]?.transferCode && (
+                                <p className="text-sm text-gray-600 bg-gray-50 p-3 rounded-lg">
+                                  Code de transfert : {ad.packages[0].transferCode}
+                                </p>
+                              )}
                               <p className="text-sm text-gray-600 bg-gray-50 p-3 rounded-lg">
                                 {ad.additionalInformation}
                               </p>

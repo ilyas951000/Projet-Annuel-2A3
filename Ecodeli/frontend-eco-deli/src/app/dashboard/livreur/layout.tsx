@@ -46,7 +46,7 @@ export default function ClientLayout({ children }: { children: React.ReactNode }
                 <NavItem title="Historique De Mes Livraisons" link="/dashboard/livreur/history" />
                 <NavItem title="Mes Déplacements" link="/dashboard/livreur/movements" />
                 <NavItem title="Mes disponibilités" link="/dashboard/livreur/planning" />
-                <NavItem title="Mes documents" link="/dashboard/livreur/documents" />
+                <NavItem title="Mes mouvements" link="/dashboard/livreur/movements" />
                 <NavItem title="Profil / Compte" link="/compte" />
               </ul>
 
