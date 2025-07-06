@@ -238,21 +238,27 @@ export default function LivreurDashboard() {
     }
   }
 
-  const handleTakePackage = async (packageId: number) => {
+  const handleTakeAllPackages = async (packageGroup: IPackage[]) => {
     if (!livreurId) {
-      alert("Utilisateur non connecté.")
-      return
+      alert("Utilisateur non connecté.");
+      return;
     }
+
+    const packageIds = packageGroup.map((pkg) => pkg.id);
+
     try {
-      await axios.post(`${process.env.NEXT_PUBLIC_API_URL}/packages/${packageId}/take`, {
+      await axios.post(`${process.env.NEXT_PUBLIC_API_URL}/packages/take-multiple`, {
         userId: livreurId,
-      })
-      alert("Colis pris en charge !")
-      fetchPackages()
+        packageIds,
+      });
+
+      alert("Tous les colis ont été pris en charge !");
+      fetchPackages();
     } catch (error: any) {
-      alert("Erreur : " + (error.response?.data?.message || error.message))
+      alert("Erreur : " + (error.response?.data?.message || error.message));
     }
-  }
+  };
+
 
   const formatDate = (dateString?: string) => {
     if (!dateString) return ""
@@ -405,43 +411,32 @@ export default function LivreurDashboard() {
               {(viewMode === "list" || viewMode === "split") && (
                 <div className={viewMode === "split" ? "lg:w-1/2" : "w-full"}>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    {[...packages]
-                      .sort((a, b) => {
-                        const aFav = favorites.includes(a.id) ? 1 : 0
-                        const bFav = favorites.includes(b.id) ? 1 : 0
-                        return bFav - aFav
-                      })
-                      .map((pkg) => (
+                    {Object.entries(
+                      packages.reduce((groups, pkg) => {
+                        const advId = pkg.advertisementId ?? pkg.id // fallback
+                        if (!groups[advId]) groups[advId] = []
+                        groups[advId].push(pkg)
+                        return groups
+                      }, {} as Record<number, IPackage[]>)
+                    ).map(([advertisementId, group]) => (
                       <div
-                        key={pkg.id}
-                        className="border rounded-lg overflow-hidden shadow-sm bg-white flex flex-col h-full hover:shadow-md transition-shadow"
+                        key={advertisementId}
+                        className="border rounded-lg overflow-hidden shadow-sm bg-white flex flex-col hover:shadow-md transition-shadow"
                       >
+                        {/* Affiche l’image et info de l’annonce (prendre le 1er colis comme référence) */}
                         <div className="relative h-40 bg-gray-100">
+                          {/* Favori bouton pour le premier colis */}
                           <button
-                            onClick={() => toggleFavorite(pkg.id)}
+                            onClick={() => toggleFavorite(group[0].id)}
                             className="absolute bottom-2 right-2 bg-white rounded-full p-1 shadow-md hover:bg-gray-100"
-                            aria-label="Favori"
                           >
-                            <svg
-                              xmlns="http://www.w3.org/2000/svg"
-                              className={`h-5 w-5 ${favorites.includes(pkg.id) ? "text-yellow-400" : "text-gray-400"}`}
-                              fill={favorites.includes(pkg.id) ? "currentColor" : "none"}
-                              viewBox="0 0 24 24"
-                              stroke="currentColor"
-                              strokeWidth={2}
-                            >
-                              <path
-                                strokeLinecap="round"
-                                strokeLinejoin="round"
-                                d="M11.049 2.927c.3-.921 1.603-.921 1.902 0l2.145 6.584a1 1 0 00.95.69h6.918c.969 0 1.371 1.24.588 1.81l-5.6 4.065a1 1 0 00-.364 1.118l2.145 6.584c.3.921-.755 1.688-1.538 1.118l-5.6-4.065a1 1 0 00-1.176 0l-5.6 4.065c-.783.57-1.838-.197-1.538-1.118l2.145-6.584a1 1 0 00-.364-1.118l-5.6-4.065c-.783-.57-.38-1.81.588-1.81h6.918a1 1 0 00.95-.69l2.145-6.584z"
-                              />
-                            </svg>
+                            {/* SVG étoile ici */}
                           </button>
 
-                          {pkg.advertisementPhoto ? (
+                          {group[0].advertisementPhoto ? (
                             <img
-                              src={`${process.env.NEXT_PUBLIC_API_URL}/uploads/${pkg.advertisementPhoto}`}
-                              alt={pkg.packageName}
+                              src={`${process.env.NEXT_PUBLIC_API_URL}/uploads/${group[0].advertisementPhoto}`}
+                              alt={group[0].packageName}
                               className="object-cover w-full h-full"
                             />
                           ) : (
@@ -450,96 +445,77 @@ export default function LivreurDashboard() {
                             </div>
                           )}
 
-                          {pkg.advertisementPrice !== undefined && (
+                          {group[0].advertisementPrice !== undefined && (
                             <span className="absolute top-3 right-3 bg-green-600 text-white text-xs font-medium px-2.5 py-1 rounded">
-                              {pkg.advertisementPrice.toFixed(2)} €
+                              {group[0].advertisementPrice.toFixed(2)} €
                             </span>
                           )}
 
-                          {pkg.advertisementId && (
+                          {group[0].advertisementId && (
                             <span className="absolute top-3 left-3 bg-white/80 text-gray-700 text-xs font-medium px-2.5 py-1 rounded border border-gray-200">
-                              Annonce #{pkg.advertisementId}
+                              Annonce #{group[0].advertisementId}
                             </span>
                           )}
                         </div>
 
-                        <div className="p-4 pb-2">
-                          <h3 className="text-lg font-medium">{pkg.packageName}</h3>
+                        <div className="p-4 space-y-4">
+                          {group.map((pkg,index) => (
+                            <div key={pkg.id} className="border-t pt-4">
+                              <h3 className="text-md font-medium">
+                                Colis {pkg.id}</h3>
+                              <h3 className="text-md font-medium">  Nom du coli n°{index + 1}  de l'annonce : {pkg.packageName}
+                              </h3>
 
-                          <div className="flex flex-wrap gap-2 mt-2">
-                            <span className="inline-flex items-center gap-1 bg-gray-100 text-gray-800 text-xs font-medium px-2.5 py-1 rounded">
-                              <Weight className="h-3 w-3" />
-                              {pkg.packageWeight} kg
-                            </span>
-                            <span className="inline-flex items-center gap-1 bg-gray-100 text-gray-800 text-xs font-medium px-2.5 py-1 rounded">
-                              <Box className="h-3 w-3" />
-                              {pkg.packageDimension}
-                            </span>
-                          </div>
-                        </div>
 
-                        <div className="px-4 pb-4 flex-grow">
-                          <div className="space-y-3 text-sm">
-                            <p className="line-clamp-2 text-gray-500">{pkg.packageDescription}</p>
+                              <div className="flex flex-wrap gap-2 mt-1">
+                                <span className="inline-flex items-center gap-1 bg-gray-100 text-gray-800 text-xs font-medium px-2.5 py-1 rounded">
+                                  <Weight className="h-3 w-3" />
+                                  {pkg.packageWeight} kg
+                                </span>
+                                <span className="inline-flex items-center gap-1 bg-gray-100 text-gray-800 text-xs font-medium px-2.5 py-1 rounded">
+                                  <Box className="h-3 w-3" />
+                                  {pkg.packageDimension}
+                                </span>
+                              </div>
 
-                            <div className="grid grid-cols-[20px_1fr] gap-x-2 items-start">
-                              <Home className="h-4 w-4 text-gray-400 mt-0.5" />
-                              <div>
-                                <p className="font-medium">Départ</p>
-                                <p className="text-gray-500 line-clamp-1">{pkg.senderAddress}</p>
-                                <p className="text-gray-500">
-                                  {pkg.senderCity} {pkg.senderPostalCode}
-                                </p>
+                              <div className="mt-2 text-sm text-gray-600">
+                                <p><strong>Départ:</strong> {pkg.senderAddress} - {pkg.senderCity} {pkg.senderPostalCode}</p>
+                                <p><strong>Arrivée:</strong> {pkg.recipientAddress} - {pkg.recipientCity} {pkg.recipientPostalCode}</p>
+                                {pkg.distanceFromStart !== undefined && pkg.distanceToEnd !== undefined && (
+                                  <p className="mt-1 text-xs text-gray-500">
+                                    <Navigation className="inline h-3 w-3 mr-1" />
+                                    {pkg.distanceFromStart.toFixed(1)} km du départ, {pkg.distanceToEnd.toFixed(1)} km de l’arrivée
+                                  </p>
+                                )}
                               </div>
                             </div>
+                          ))}
 
-                            <div className="grid grid-cols-[20px_1fr] gap-x-2 items-start">
-                              <MapPin className="h-4 w-4 text-gray-400 mt-0.5" />
-                              <div>
-                                <p className="font-medium">Arrivée</p>
-                                <p className="text-gray-500 line-clamp-1">{pkg.recipientAddress}</p>
-                                <p className="text-gray-500">
-                                  {pkg.recipientCity} {pkg.recipientPostalCode}
-                                </p>
-                              </div>
-                            </div>
+                          {/* Bouton unique pour le groupe d'annonce */}
+                          <div className="pt-4 border-t mt-2 flex gap-2">
+                            <button
+                              onClick={() => handleTakeAllPackages(group)}
+                              className="flex-1 flex items-center justify-center gap-2 px-4 py-1 bg-blue-600 text-white rounded-md hover:bg-blue-700 text-sm"
+                            >
+                              <TruckIcon className="h-4 w-4" />
+                              Prendre les colis
+                            </button>
 
-                            {pkg.distanceFromStart !== undefined && pkg.distanceToEnd !== undefined && (
-                              <div className="mt-3 p-2 bg-slate-50 rounded-md border">
-                                <div className="flex items-center gap-2 text-xs">
-                                  <Navigation className="h-3 w-3 text-slate-500" />
-                                  <span>
-                                    <span className="font-medium">{pkg.distanceFromStart.toFixed(1)} km</span> du
-                                    départ, <span className="font-medium">{pkg.distanceToEnd.toFixed(1)} km</span> de
-                                    l'arrivée
-                                  </span>
-                                </div>
-                              </div>
+                            {group[0].clientId && (
+                              <Link
+                                href={`/dashboard/livreur/chat/${group[0].clientId}?packageId=${group[0].id}`}
+                                className="flex items-center justify-center gap-2 px-4 py-1 border border-gray-300 text-gray-700 rounded-md hover:bg-gray-50 text-sm"
+                              >
+                                <MessageCircle className="h-4 w-4" />
+                                Contacter
+                              </Link>
                             )}
                           </div>
                         </div>
 
-                        <div className="px-4 pb-4 pt-0 flex gap-2">
-                          <button
-                            onClick={() => handleTakePackage(pkg.id)}
-                            className="flex-1 flex items-center justify-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors"
-                          >
-                            <TruckIcon className="h-4 w-4" />
-                            Prendre
-                          </button>
-
-                          {pkg.clientId && (
-                            <Link
-                              href={`/dashboard/livreur/chat/${pkg.clientId}?packageId=${pkg.id}`}
-                              className="flex items-center justify-center gap-2 px-4 py-2 border border-gray-300 text-gray-700 rounded-md hover:bg-gray-50 transition-colors"
-                            >
-                              <MessageCircle className="h-4 w-4" />
-                              Contacter
-                            </Link>
-                          )}
-                        </div>
                       </div>
                     ))}
+
                   </div>
                 </div>
               )}

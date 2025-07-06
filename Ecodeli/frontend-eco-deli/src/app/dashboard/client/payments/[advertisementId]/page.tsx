@@ -30,8 +30,9 @@ export default function ClientPackagePaymentPage() {
 function CheckoutForm() {
   const stripe = useStripe()
   const elements = useElements()
-  const { packageId } = useParams()
   const router = useRouter()
+  const { advertisementId } = useParams()
+
 
   const [subscription, setSubscription] = useState<any>(null)
   const [discountedFee, setDiscountedFee] = useState<number>(0)
@@ -75,30 +76,46 @@ function CheckoutForm() {
         if (subRes.ok) {
           setSubscription(subData)
         }
+        console.log("ID brut :", advertisementId);
+console.log("Type :", typeof advertisementId);
 
-        const packageRes = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/packages/${packageId}`, {
+        const advertisementRes = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/advertisements/${advertisementId}`, {
           headers: { Authorization: `Bearer ${token}` },
         })
-        const packageData = await packageRes.json()
-        if (!packageRes.ok || !packageData.advertisementId) throw new Error("Colis introuvable.")
-        setPackageInfo(packageData)
+        console.log("📡 API Response Status:", advertisementRes.status)
+        const advertisementData = await advertisementRes.json()
+        if (!advertisementRes.ok || !advertisementData.id)
+        throw new Error("Annonce introuvable.")
+        setPackageInfo(advertisementData)
+        console.log("📄 advertisementData:", advertisementData)
 
-        const delivererRes = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/packages/${packageId}/deliverer`, {
+        const delivererRes = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/advertisements/${advertisementId}/deliverer`, {
           headers: { Authorization: `Bearer ${token}` },
         })
         const delivererData = await delivererRes.json()
-        if (!delivererRes.ok || !delivererData.userId) throw new Error("Livreur introuvable.")
-        setProviderId(delivererData.userId)
+        if (!delivererRes.ok || !Array.isArray(delivererData.userIds) || delivererData.userIds.length === 0) {
+          throw new Error("Livreur introuvable.");
+        }
 
-        const adRes = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/advertisements/${packageData.advertisementId}`)
-        const adData = await adRes.json()
-        if (!adRes.ok || adData.advertisementPrice == null) throw new Error("Prix introuvable.")
-        const base = parseFloat(adData.advertisementPrice)
+        setProviderId(delivererData.userIds[0]); // ou un autre choix selon ton besoin
 
+
+        //const adRes = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/advertisements/${advertisementData.advertisementId}`)
+        //const adData = await adRes.json()
+        
+        //if (!adRes.ok || adData.advertisementPrice == null) throw new Error("Prix introuvable.")
+        //const base = parseFloat(adData.advertisementPrice)
+        const totalWeight = advertisementData.packages.reduce((sum, pkg) => {
+            return sum + parseFloat(pkg.packageWeight || 0)
+          }, 0)
+          setBaseAmount(totalWeight)
+        const base = totalWeight
         const baseFee = parseFloat((base * 0.2).toFixed(2)) // 20%
         let feeToUse = baseFee
         let discount = 0
         let amountToPay = base + baseFee
+        
+        
 
         // Cas Premium
         if (subData?.subscriptionTitle === "Premium") {
@@ -128,7 +145,7 @@ function CheckoutForm() {
           feeToUse = baseFee - baseReduction
 
           // 5% supplémentaire si colis XS ou S
-          if (packageData?.packageDimension === "xs" || packageData?.packageDimension === "s") {
+          if (advertisementData?.packageDimension === "xs" || advertisementData?.packageDimension === "s") {
             const extraDiscount = (base + feeToUse) * 0.05
             discount += extraDiscount
             amountToPay = base + feeToUse - extraDiscount
@@ -138,7 +155,7 @@ function CheckoutForm() {
         }
 
         // Vérifie si le colis est prioritaire
-        if (packageData?.prioritaire) {
+        if (advertisementData?.prioritaire) {
           let surchargeApplied = false;
 
           if (!subData?.subscriptionTitle) {
@@ -179,7 +196,7 @@ function CheckoutForm() {
     }
 
     fetchData()
-  }, [packageId])
+  }, [advertisementId])
 
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -191,7 +208,7 @@ function CheckoutForm() {
       setError("Stripe non prêt.")
       return
     }
-    if (!clientId || !providerId || !packageId || !amount) {
+    if (!clientId || !providerId || !advertisementId || !amount) {
       setError("Informations incomplètes.")
       return
     }
@@ -205,7 +222,7 @@ function CheckoutForm() {
           clientId,
           providerId,
           amount,
-          packageId,
+          advertisementId,
           fee: parseFloat((amount - baseAmount).toFixed(2)),
         }),
       })
@@ -228,7 +245,7 @@ function CheckoutForm() {
         setSuccess(true)
         elements.getElement(CardElement)?.clear()
 
-        await fetch(`${process.env.NEXT_PUBLIC_API_URL}/packages/${packageId}/paid`, {
+        await fetch(`${process.env.NEXT_PUBLIC_API_URL}/advertisements/${advertisementId}/paid`, {
           method: "PATCH",
           headers: { "Content-Type": "application/json" },
         })
@@ -260,7 +277,7 @@ function CheckoutForm() {
         <div className="bg-gradient-to-r from-green-500 to-green-600 p-6 text-white">
           <h1 className="text-2xl font-bold flex items-center">
             <CreditCard className="w-6 h-6 mr-3" />
-            Paiement du colis #{packageId}
+            Paiement de l'annonce #{advertisementId}
           </h1>
           <p className="mt-2 text-green-100">Complétez votre paiement pour finaliser l'envoi de votre colis.</p>
         </div>
@@ -291,11 +308,19 @@ function CheckoutForm() {
               <div className="bg-gray-50 p-4 rounded-lg mb-6 flex items-start">
                 <Package className="w-5 h-5 text-gray-500 mr-3 mt-0.5 flex-shrink-0" />
                 <div>
-                  <h3 className="font-medium text-gray-900">Détails du colis</h3>
-                  <p className="text-gray-600 text-sm">
-                    {packageInfo?.packageName || `Colis #${packageId}`}
-                    {packageInfo?.packageWeight && ` - ${packageInfo.packageWeight} kg`}
-                  </p>
+                  <h3 className="font-medium text-gray-900 mb-2">Colis associés</h3>
+                    <ul className="text-sm text-gray-700 space-y-1">
+                      {packageInfo?.packages?.map((pkg, index) => (
+                        <li key={pkg.id || index}>
+                          <p>Nom du colis: {pkg.packageName || "Sans nom"} (x{pkg.packageQuantity})</p>
+                          <p>{pkg.packageWeight} kg</p>
+                        </li>
+                      ))}
+                    </ul>
+                    <div className="mt-2 font-medium text-gray-900">
+                      Total Poid : {packageInfo?.packages?.reduce((sum, pkg) => sum + parseFloat(pkg.packageWeight || 0), 0).toFixed(2)} kg
+                    </div>
+
                 </div>
               </div>
 

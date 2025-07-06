@@ -54,6 +54,9 @@ export class Advertisement {
     @Column({ default: 'null' })
     advertisementType: 'client' | 'chariot';
 
+    @Column({ default: false })
+    transferCode?: boolean;
+
 
     @ManyToOne(() => User, (user) => user.advertisements, { onDelete: 'SET NULL' })
     @JoinColumn({ name: 'usersId' }) 

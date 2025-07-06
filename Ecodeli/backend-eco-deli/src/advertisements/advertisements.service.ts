@@ -60,6 +60,7 @@ export class AdvertisementsService {
   async create(dto: CreateAdvertisementDto): Promise<Advertisement> {
     const { packages: pkgDtos, ...adProps } = dto;
     const ad = this.adRepo.create(adProps);
+    const sharedTransferCode = randomBytes(4).toString('hex').toUpperCase();
 
     if (Array.isArray(pkgDtos)) {
       ad.packages = await Promise.all(
@@ -71,7 +72,7 @@ export class AdvertisementsService {
           pkg.packageWeight = pkgDto.weight ?? 0;
           pkg.deliveryStatus = 'en attente';
           pkg.prioritaire = pkgDto.prioritaire === true;
-          pkg.transferCode = randomBytes(4).toString('hex').toUpperCase();
+          pkg.transferCode = sharedTransferCode;
 
 
           const rawLocs = Array.isArray(pkgDto.localisations) ? pkgDto.localisations : [];
@@ -122,14 +123,19 @@ export class AdvertisementsService {
   }
 
   async findOne(id: number): Promise<Advertisement> {
+    console.log("🔎 Recherche annonce id:", id);
     this.validateId(id);
+
     const ad = await this.adRepo.findOne({
       where: { id },
-      relations: ['packages', 'packages.localisations','users'],
+      relations: ['packages', 'packages.localisations', 'users'],
     });
+
     if (!ad) throw new NotFoundException('Annonce non trouvée');
+
     return this.addComputedStatus(ad);
   }
+
 
   async update(id: number, updateDto: UpdateAdvertisementDto): Promise<Advertisement> {
     this.validateId(id);
@@ -262,6 +268,38 @@ export class AdvertisementsService {
       .groupBy('ad.id')
       .addGroupBy('package.id')
       .getMany();
+  }
+
+  async markAsPaid(id: number) {
+    const pkg = await this.adRepo.findOne({ where: { id } });
+    if (!pkg) throw new NotFoundException('Colis non trouvé');
+    pkg.isPaid = true;
+    await this.adRepo.save(pkg);
+    return { message: 'Colis marqué comme payé.' };
+  }
+
+
+  async getAllDeliverersForAdvertisement(advertisementId: number): Promise<{ userIds: number[] }> {
+    const advertisement = await this.adRepo.findOne({
+      where: { id: advertisementId },
+      relations: ['packages', 'packages.users'],
+    });
+
+    if (!advertisement) {
+      throw new NotFoundException('Annonce non trouvée');
+    }
+
+    // Extraire tous les livreurs de tous les colis
+    const allUsers = advertisement.packages.flatMap(pkg => pkg.users || []);
+
+    if (allUsers.length === 0) {
+      throw new NotFoundException('Aucun livreur trouvé pour cette annonce.');
+    }
+
+    // Supprimer les doublons par ID
+    const uniqueUserIds = [...new Set(allUsers.map(user => user.id))];
+
+    return { userIds: uniqueUserIds };
   }
 
 

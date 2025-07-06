@@ -54,11 +54,15 @@ export class PackagesController {
     return this.packagesService.findAvailablePackages();
   }
 
-  @Post(':id/take')
-  takePackage(@Param('id') id: string, @Body('userId') userId: number) {
-    const packageId = parseInt(id, 10);
-    if (isNaN(packageId)) throw new BadRequestException('ID du colis invalide');
-    return this.packagesService.takePackage(packageId, userId);
+  @Post('take-multiple')
+  async takeMultiplePackages(
+    @Body('packageIds') packageIds: number[],
+    @Body('userId') userId: number,
+  ) {
+    if (!Array.isArray(packageIds) || packageIds.length === 0) {
+      throw new BadRequestException('Liste des colis invalide ou vide');
+    }
+    return this.packagesService.takeMultiplePackages(packageIds, userId);
   }
 
   @Get('mydeliveries')
@@ -73,23 +77,20 @@ export class PackagesController {
     return this.packagesService.updateStatus(packageId, status);
   }
 
+  /*
   @Patch(':id/paid')
   markAsPaid(@Param('id') id: string) {
     const packageId = parseInt(id, 10);
     if (isNaN(packageId)) throw new BadRequestException('ID du colis invalide');
     return this.packagesService.markAsPaid(packageId);
-  }
+  }*/
 
   @Get('history')
   findDeliveredPackagesByUser(@Query('userId') userId: string) {
     return this.packagesService.findDeliveredPackagesByUser(+userId);
   }
 
-  /*
-  @Get('client/:clientId')
-  findUnpaidByClient(@Param('clientId') clientId: string) {
-    return this.packagesService.findUnpaidPackagesByClient(+clientId);
-  }*/
+
 
   @Get('user/:userId')
   findPackagesByUser(@Param('userId') userId: number) {
@@ -127,6 +128,7 @@ export class PackagesController {
       address: body.address,
       postalCode: body.postalCode,
       city: body.city,
+      transferCode: body.transferCode,
     });
 
     return {
@@ -195,6 +197,11 @@ export class PackagesController {
 
     return this.packagesService.confirmDeliveryWithCode(packageId, body.code);
   }
+
+
+  
+
+
 
 
 }

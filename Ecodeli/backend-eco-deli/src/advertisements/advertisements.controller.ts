@@ -126,11 +126,15 @@ export class AdvertisementsController {
 
     return this.advertisementsService.create(createAdvertisementDto);
   }
+  
 
   @Get(':id')
   async findOne(@Param('id', ParseIntPipe) id: number) {
+    console.log("📥 ID reçu dans findOne:", id); // debug
     return this.advertisementsService.findOne(id);
   }
+
+  
 
   @Patch(':id')
   @UseGuards(JwtAuthGuard)
@@ -165,4 +169,20 @@ export class AdvertisementsController {
   findUnpaidByClient(@Param('clientId') clientId: string) {
     return this.advertisementsService.findUnpaidAdvertisementByClient(+clientId);
   }
+
+  @Patch(':id/paid')
+  markAsPaid(@Param('id') id: string) {
+    const packageId = parseInt(id, 10);
+    if (isNaN(packageId)) throw new BadRequestException('ID du colis invalide');
+    return this.advertisementsService.markAsPaid(packageId);
+  }
+
+  @Get(':id/deliverer')
+  getDelivererForPackage(@Param('id') id: string) {
+    const packageId = parseInt(id, 10);
+    if (isNaN(packageId)) throw new BadRequestException('ID du colis invalide');
+    return this.advertisementsService.getAllDeliverersForAdvertisement(packageId);
+  }
+
+  
 }
