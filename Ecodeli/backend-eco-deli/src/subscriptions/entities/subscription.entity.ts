@@ -33,7 +33,11 @@ export class Subscription {
   @Column({ default: false })
   hasUsedFreeShipping: boolean;
 
+  @Column({ default: 0 })
+  assuranceCovered: number;
 
-  @ManyToOne(() => User, (user) => user.subscription, { nullable: false, eager: true })
-  users: User;
+
+  @ManyToOne(() => User, (user) => user.subscription, { eager: false }) 
+user: User;
+
 }

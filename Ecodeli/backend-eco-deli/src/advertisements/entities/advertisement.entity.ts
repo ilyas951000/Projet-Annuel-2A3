@@ -45,8 +45,17 @@ export class Advertisement {
     @Column({ nullable: true })
     usersId: number;
 
+    @Column({ default: false })
+    isPriceLocked: boolean;
+
+    @Column({ default: false })
+    isPaid?: boolean;
+
     @Column({ default: 'null' })
     advertisementType: 'client' | 'chariot';
+
+    @Column({ default: false })
+    transferCode?: boolean;
 
 
     @ManyToOne(() => User, (user) => user.advertisements, { onDelete: 'SET NULL' })

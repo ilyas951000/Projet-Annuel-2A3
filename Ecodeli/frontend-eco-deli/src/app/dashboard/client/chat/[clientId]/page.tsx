@@ -1,9 +1,10 @@
 "use client"
 
 import type React from "react"
-
+import { useRouter } from "next/navigation";
 import { useEffect, useState, useRef } from "react"
 import { useParams, useSearchParams } from "next/navigation"
+
 import Link from "next/link"
 import { io, type Socket } from "socket.io-client"
 import { Send, ArrowLeft, ExternalLink, AlertCircle, Check, X, Clock, Package } from "lucide-react"
@@ -34,6 +35,8 @@ interface IUser {
 let socket: Socket
 
 export default function ChatPage() {
+  const [isPriceLocked, setIsPriceLocked] = useState<boolean>(false);
+  const router = useRouter();
   const { clientId } = useParams()
   const searchParams = useSearchParams()
   const packageIdFromQuery = searchParams.get("packageId")
@@ -122,27 +125,39 @@ export default function ChatPage() {
       try {
         const url = `${process.env.NEXT_PUBLIC_API_URL}/messages/conversation?from=${userId}&to=${clientId}${
           packageIdFromQuery ? `&packageId=${packageIdFromQuery}` : ""
-        }`
+        }`;
 
-        const res = await fetch(url)
-        const data = await res.json()
-        if (!res.ok) throw new Error(data.message || "Erreur de chargement.")
-        setMessages(data)
-        scrollToBottom()
+        const res = await fetch(url);
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.message || "Erreur de chargement.");
+        setMessages(data);
+        scrollToBottom();
 
         const lastPkgId =
           [...data].reverse().find((msg: IMessage) => msg.packageId)?.packageId ||
-          (packageIdFromQuery ? Number.parseInt(packageIdFromQuery, 10) : null)
+          (packageIdFromQuery ? Number.parseInt(packageIdFromQuery, 10) : null);
 
         if (lastPkgId) {
-          const pkgRes = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/packages/${lastPkgId}`)
-          const pkgData = await pkgRes.json()
-          if (pkgRes.ok) setPackageInfo(pkgData)
+          const pkgRes = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/packages/${lastPkgId}`);
+          const pkgData = await pkgRes.json();
+          if (pkgRes.ok) {
+            setPackageInfo(pkgData);
+
+            if (pkgData.advertisementId) {
+              const adRes = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/advertisements/${pkgData.advertisementId}`);
+              const adData = await adRes.json();
+
+              if (adRes.ok && typeof adData.isPriceLocked === "boolean") {
+                setIsPriceLocked(adData.isPriceLocked);
+              }
+            }
+          }
         }
       } catch (err: any) {
-        setError(err.message || "Erreur inattendue.")
+        setError(err.message || "Erreur inattendue.");
       }
-    }
+    };
+
 
     fetchMessages()
 
@@ -224,11 +239,18 @@ export default function ChatPage() {
       const confirmMsg = await res.json()
       socket.emit("sendMessage", confirmMsg)
       setMessages((prev) => [...prev, confirmMsg])
-      setRespondedMessageIds((prev) => [...prev, msg.id]) // cache l'affichage des boutons
+      setRespondedMessageIds((prev) => [...prev, msg.id])
+
+      if (accept) {
+        window.location.reload();
+
+      }
+
     } catch (err: any) {
       setError(err.message || "Erreur lors de la réponse à la négociation.")
     }
   }
+
 
   const formatTime = (timestamp: string) => {
     const date = new Date(timestamp)
@@ -285,13 +307,14 @@ export default function ChatPage() {
         </div>
 
         {packageInfo?.advertisementId && (
-          <Link
-            href={`/annonces/${packageInfo.advertisementId}`}
+          <button
+            onClick={() => router.push(`/dashboard/client/announcementPage/${packageInfo.advertisementId}`)}
             className="inline-flex items-center text-sm font-medium text-green-600 hover:text-green-700"
           >
             <ExternalLink className="w-4 h-4 mr-1" />
             Voir l'annonce
-          </Link>
+          </button>
+
         )}
       </div>
 
@@ -344,20 +367,32 @@ export default function ChatPage() {
                           <div className="mt-3 pt-2 border-t border-gray-200 flex justify-between gap-2">
                             <button
                               onClick={() => handleNegotiationResponse(false, msg, amount)}
-                              className="flex items-center justify-center px-3 py-1 bg-white text-red-600 rounded text-sm font-medium hover:bg-red-50 transition-colors"
+                              disabled={isPriceLocked}
+                              className={`flex items-center justify-center px-3 py-1 rounded text-sm font-medium transition-colors
+                                ${isPriceLocked
+                                  ? "bg-gray-300 text-gray-500 cursor-not-allowed"
+                                  : "bg-white text-red-600 hover:bg-red-50"
+                                }`}
                             >
                               <X className="w-3 h-3 mr-1" />
                               Refuser
                             </button>
+
                             <button
                               onClick={() => handleNegotiationResponse(true, msg, amount)}
-                              className="flex items-center justify-center px-3 py-1 bg-white text-green-600 rounded text-sm font-medium hover:bg-green-50 transition-colors"
+                              disabled={isPriceLocked}
+                              className={`flex items-center justify-center px-3 py-1 rounded text-sm font-medium transition-colors
+                                ${isPriceLocked
+                                  ? "bg-gray-300 text-gray-500 cursor-not-allowed"
+                                  : "bg-white text-green-600 hover:bg-green-50"
+                                }`}
                             >
                               <Check className="w-3 h-3 mr-1" />
                               Accepter
                             </button>
                           </div>
                         )}
+
 
                         <div
                           className={`flex items-center mt-1 text-xs ${isFromMe ? "text-green-100" : "text-gray-400"}`}

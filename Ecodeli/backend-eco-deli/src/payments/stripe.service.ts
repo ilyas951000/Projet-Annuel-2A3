@@ -303,7 +303,7 @@ async payoutToProvider(providerId: number, amount: number) {
     }
 
     const subscription = client.subscription?.[0];
-
+    console.log("🔍 Recherche colis avec ID:", packageId);
     const packageEntity = await this.packageRepo.findOneBy({ id: packageId });
     if (!packageEntity) throw new Error('Colis introuvable');
 
@@ -374,21 +374,22 @@ async payoutToProvider(providerId: number, amount: number) {
       }
     }
 
-    const finalTotal = parseFloat((basePrice + serviceFee).toFixed(2));
 
     const paymentIntent = await this.stripe.paymentIntents.create({
-      amount: Math.round(finalTotal * 100),
+      amount, // 💰 déjà en centimes
       currency: 'eur',
       payment_method_types: ['card'],
       metadata: {
         clientId: String(clientId),
         providerId: String(providerId),
         ...(packageId && { packageId: String(packageId) }),
-        platformFee: serviceFee.toFixed(2),
+        platformFee: serviceFee?.toFixed(2) ?? '0.00',
       },
     });
 
-    const amountToTransfer = serviceFee ? finalTotal - serviceFee : finalTotal;
+
+    const amountToTransfer = serviceFee ? (amount / 100) - serviceFee : amount / 100;
+
 
     await this.transferRepo.save({
       provider,
@@ -522,9 +523,25 @@ async payoutToProvider(providerId: number, amount: number) {
 
 
 
-  async createSubscriptionCheckoutSession(userId: number, priceId: string, subscriptionPlan: string) {
+  async createSubscriptionCheckoutSession(
+    userId: number,
+    priceId: string,
+    subscriptionPlan: string,
+    platform: string = 'web' // 👈 ajouté ici
+  ) {
     const user = await this.userRepo.findOneBy({ id: userId });
     if (!user) throw new Error('Utilisateur introuvable');
+
+    const isMobile = platform === 'android';
+
+    const successUrl = isMobile
+      ? 'myapp://subscription-success?session_id={CHECKOUT_SESSION_ID}'
+      : 'http://localhost:3000/dashboard/client/subscription/success?session_id={CHECKOUT_SESSION_ID}';
+
+    const cancelUrl = isMobile
+      ? 'myapp://subscription-cancelled'
+      : 'http://localhost:3000/subscription/cancel';
+
 
     const session = await this.stripe.checkout.sessions.create({
       mode: 'subscription',
@@ -532,20 +549,21 @@ async payoutToProvider(providerId: number, amount: number) {
       customer_email: user.email,
       line_items: [
         {
-          price: priceId, // Le prix configuré sur Stripe, pas le productId
+          price: priceId,
           quantity: 1,
         },
       ],
-      success_url: `http://localhost:3000/dashboard/client/subscription/success?session_id={CHECKOUT_SESSION_ID}`,
-      cancel_url: `http://localhost:3000/subscription/cancel`,
+      success_url: successUrl,
+      cancel_url: cancelUrl,
       metadata: {
         userId: user.id.toString(),
-        subscriptionPlan, // 👈 starter_plan / premium_plan
+        subscriptionPlan,
       },
     });
 
     return { url: session.url };
   }
+
 
 
 
@@ -582,92 +600,126 @@ async payoutToProvider(providerId: number, amount: number) {
 
     const user = await this.userRepo.findOne({
       where: { email },
-      relations: ['subscription'],
+          select: ['id', 'email', 'userFirstName', 'userLastName', 'userSubscription'],
     });
 
+
     if (user) {
+      const freeSubscription = this.subscriptionRepo.create({
+        subscriptionTitle: 'Free',
+        packageInsurance: false,
+        shippingDiscount: 0,
+        priorityShipping: 0,
+        permanentDiscount: 0,
+        priorityShippingUsed: 0,
+        lastPriorityReset: new Date(),
+        supplement3000: false,
+        hasUsedFreeShipping: false,
+        assuranceCovered: 0,
+        user: user, // ✅ correct field name
+      });
+
+      await this.subscriptionRepo.save(freeSubscription);
+
+      user.activeSubscription = freeSubscription; // ✅ correct field
       user.userSubscription = 0;
-
-      // ✅ Supprime l’entrée de la table `subscription`
-      if (user.subscription) {
-        await this.subscriptionRepo.remove(user.subscription);
-      }
-
       await this.userRepo.save(user);
     }
 
-    return { message: 'Abonnement annulé.' };
+    return { message: 'Abonnement annulé et passé à Free.' };
   }
+
+
 
 
   async handleUnifiedWebhook(raw: { headers: any; body: any }) {
-    const sig = raw.headers['stripe-signature'];
-    const endpointSecret = process.env.STRIPE_WEBHOOK_SECRET;
+  const sig = raw.headers['stripe-signature'];
+  const endpointSecret = process.env.STRIPE_WEBHOOK_SECRET;
 
-    if (!endpointSecret) {
-      throw new Error('❌ STRIPE_WEBHOOK_SECRET non défini dans .env');
-    }
-
-    let event: Stripe.Event;
-    try {
-      event = this.stripe.webhooks.constructEvent(raw.body, sig, endpointSecret);
-    } catch (err: any) {
-      console.error('⚠️ Signature Stripe invalide :', err.message);
-      throw new Error(`Webhook Error: ${err.message}`);
-    }
-
-    const eventType = event.type;
-    console.log(`📦 Webhook Stripe reçu : ${eventType}`);
-
-    // ✅ Cas 1 : abonnement réussi
-    if (eventType === 'checkout.session.completed') {
-      const session = event.data.object as Stripe.Checkout.Session;
-      const email = session.customer_email;
-      const plan = session.metadata?.subscriptionPlan;
-
-      if (!email || !plan) return { received: true };
-
-      const user = await this.userRepo.findOne({ where: { email }, relations: ['subscription'] });
-      if (!user) return { received: true };
-
-      switch (plan) {
-        case 'starter_plan':
-          user.userSubscription = 1;
-          break;
-        case 'premium_plan':
-          user.userSubscription = 2;
-          break;
-        default:
-          user.userSubscription = 0;
-          break;
-      }
-
-      await this.userRepo.save(user);
-
-      const newSub = this.subscriptionRepo.create({
-        subscriptionTitle: plan === 'starter_plan' ? 'Starter' : 'Premium',
-        packageInsurance: true,
-        shippingDiscount: plan === 'premium_plan' ? 9 : 5,
-        priorityShipping: plan === 'premium_plan' ? 1 : 0,
-        permanentDiscount: plan === 'premium_plan' ? 5 : 5,
-        supplement3000: plan === 'premium_plan',
-        hasUsedFreeShipping: false,
-        users: user,
-      });
-
-      await this.subscriptionRepo.save(newSub);
-      console.log(`✅ Subscription enregistrée pour ${email}`);
-    }
-
-    // ✅ Cas 2 : paiement normal (non abonnement)
-    else if (eventType === 'payment_intent.succeeded') {
-      const paymentIntent = event.data.object as Stripe.PaymentIntent;
-      console.log(`✅ Paiement simple réussi : ${paymentIntent.id}`);
-      // tu peux ajouter une logique si nécessaire ici
-    }
-
-    return { received: true };
+  if (!endpointSecret) {
+    console.error('❌ STRIPE_WEBHOOK_SECRET non défini');
+    throw new Error('❌ STRIPE_WEBHOOK_SECRET non défini dans .env');
   }
+
+  let event: Stripe.Event;
+  try {
+    event = this.stripe.webhooks.constructEvent(raw.body, sig, endpointSecret);
+  } catch (err: any) {
+    console.error('⚠️ Signature Stripe invalide :', err.message);
+    throw new Error(`Webhook Error: ${err.message}`);
+  }
+
+  const eventType = event.type;
+  console.log(`📦 Webhook Stripe reçu : ${eventType}`);
+
+  // ✅ Cas 1 : abonnement réussi
+  if (eventType === 'checkout.session.completed') {
+    const session = event.data.object as Stripe.Checkout.Session;
+    const email = session.customer_email;
+    const plan = session.metadata?.subscriptionPlan;
+
+    console.log('🔍 Email Stripe reçu :', email);
+    console.log('🔍 Plan reçu :', plan);
+
+    if (!email || !plan) {
+      console.warn('❌ Email ou plan manquant dans la session Stripe');
+      return { received: true };
+    }
+
+    const user = await this.userRepo.findOne({ where: { email }, relations: ['subscription'] });
+    if (!user) {
+      console.warn('❌ Utilisateur introuvable pour email :', email);
+      return { received: true };
+    }
+
+    console.log('👤 Utilisateur trouvé :', user.id);
+
+    switch (plan) {
+      case 'starter_plan':
+        user.userSubscription = 1;
+        break;
+      case 'premium_plan':
+        user.userSubscription = 2;
+        break;
+      default:
+        user.userSubscription = 0;
+        break;
+    }
+
+    await this.userRepo.save(user);
+    console.log('✅ user.userSubscription mis à jour :', user.userSubscription);
+
+    const newSub = this.subscriptionRepo.create({
+      subscriptionTitle: plan === 'starter_plan' ? 'Starter' : 'Premium',
+      packageInsurance: true,
+      shippingDiscount: plan === 'premium_plan' ? 9 : 5,
+      priorityShipping: plan === 'premium_plan' ? 1 : 0,
+      permanentDiscount: plan === 'premium_plan' ? 5 : 5,
+      supplement3000: plan === 'premium_plan',
+      hasUsedFreeShipping: false,
+      user: user,
+    });
+
+    const savedSub = await this.subscriptionRepo.save(newSub);
+    console.log('✅ Nouvelle subscription créée :', savedSub.id);
+
+    user.activeSubscription = savedSub;
+
+    const updatedUser = await this.userRepo.save(user);
+    console.log('📌 user.activeSubscriptionId mis à jour :', updatedUser.activeSubscription?.id);
+
+    console.log(`✅ Subscription enregistrée ET activée pour ${email}`);
+  }
+
+  // ✅ Cas 2 : paiement simple
+  else if (eventType === 'payment_intent.succeeded') {
+    const paymentIntent = event.data.object as Stripe.PaymentIntent;
+    console.log(`✅ Paiement simple réussi : ${paymentIntent.id}`);
+  }
+
+  return { received: true };
+}
+
 
 
 
@@ -719,7 +771,7 @@ async payoutToProvider(providerId: number, amount: number) {
         permanentDiscount: plan === 'premium_plan' ? 5 : 5,
         supplement3000: plan === 'premium_plan',
         hasUsedFreeShipping: false,
-        users: user,
+        user: user,
       });
 
       await this.subscriptionRepo.save(newSub);

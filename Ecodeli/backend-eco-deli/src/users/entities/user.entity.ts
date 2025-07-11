@@ -6,6 +6,7 @@ import { Document } from "src/documents/entities/document.entity";
 import { CompanyDetail } from "src/company-detail/entities/company-detail.entity";
 import { ContractElement } from "src/contract-element/entities/contract-element.entity";
 import { PrestataireRole } from 'src/prestataire-roles/entities/prestataire-role.entity';
+import { Favorite } from "src/favorites/entities/favorite.entity";
 
 @Entity('user')
 export class User {
@@ -24,10 +25,8 @@ export class User {
   @Column()
   password: string;
 
-  @Column()
-  userRole: string;
 
-  @Column({ default: 'client' })
+  @Column()
   userStatus: string;
 
   @Column()
@@ -51,18 +50,22 @@ export class User {
 
 
   @ManyToOne(() => PrestataireRole, (role) => role.users, { nullable: true })
-  @JoinColumn()
+  @JoinColumn({ name: 'prestataireRoleId' })
   prestataireRole: PrestataireRole;
-  
-  @RelationId((user: User) => user.prestataireRole)
+
+  @Column({ nullable: true })
   prestataireRoleId: number;
+
 
 
   @Column({ nullable: true })
   stripeAccountId?: string;
 
-  @OneToMany(() => Subscription, (subscription) => subscription.users)
+  @OneToMany(() => Subscription, (subscription) => subscription.user)
   subscription: Subscription[];
+
+  @ManyToOne(() => Subscription, { nullable: true, eager: true })
+  activeSubscription: Subscription;
 
   @OneToMany(() => Advertisement, (advertisement) => advertisement.users)
   advertisements: Advertisement[];
@@ -73,4 +76,8 @@ export class User {
 
   @OneToMany(() => CompanyDetail, (advertisement) => advertisement.user)
   companyDetail: CompanyDetail[]; 
+
+  @OneToMany(() => Favorite, (favorite) => favorite.user)
+  favorites: Favorite[];
+
 }

@@ -4,7 +4,7 @@ import {
   BadRequestException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { In, Repository } from 'typeorm';
 
 import { CreatePackageDto } from './dto/create-package.dto';
 import { UpdatePackageDto } from './dto/update-package.dto';
@@ -80,6 +80,7 @@ export class PackagesService {
     address,
     postalCode,
     city,
+    transferCode,
   }: {
     packageId: number;
     fromCourierId: number;
@@ -87,12 +88,15 @@ export class PackagesService {
     address: string;
     postalCode: string;
     city: string;
+    transferCode?: string; 
   }): Promise<{ transferCode: string }> {
     const fullAddress = `${address}, ${postalCode} ${city}, France`;
 
-    const { lat, lng } = await geocodeAddress(fullAddress); // 📍 appel à ton utilitaire OpenCage
+    const { lat, lng } = await geocodeAddress(fullAddress);
 
-    const transferCode = Math.random().toString(36).substring(2, 8).toUpperCase();
+    const finalTransferCode = transferCode || Math.random().toString(36).substring(2, 8).toUpperCase();
+
+
 
     const newTransfer = this.transferRepository.create({
       packageId,
@@ -101,16 +105,16 @@ export class PackagesService {
       address,
       postalCode,
       city,
-      transferCode,
       isConfirmed: false,
       latitude: lat,
       longitude: lng,
+      transferCode: finalTransferCode,
     });
 
     await this.transferRepository.save(newTransfer);
 
 
-    return { transferCode };
+    return { transferCode: finalTransferCode };
   }
 
   async getMyDeliveries(userId: number) {
@@ -247,20 +251,27 @@ export class PackagesService {
     return packages.map(pkg => ({ ...pkg, clientId: pkg.advertisement?.usersId || null }));
   }
 
-  async takePackage(packageId: number, userId: number) {
-    const pkg = await this.packageRepository.findOne({ where: { id: packageId }, relations: ['users'] });
-    if (!pkg) throw new NotFoundException('Colis non trouvé');
-
+  async takeMultiplePackages(packageIds: number[], userId: number) {
     const user = await this.userRepository.findOne({ where: { id: userId } });
     if (!user) throw new NotFoundException('Utilisateur non trouvé');
 
-    if (!pkg.users) pkg.users = [];
-    if (!pkg.users.some(u => u.id === user.id)) pkg.users.push(user);
+    const packages = await this.packageRepository.find({
+      where: { id: In(packageIds) },
+      relations: ['users'],
+    });
 
-    pkg.isPaid = false;
-    await this.packageRepository.save(pkg);
-    return { message: 'Colis pris en charge avec succès.' };
+    for (const pkg of packages) {
+      pkg.users = [user];
+      pkg.isPaid = false;
+      pkg.deliveryStatus = 'en cours';
+    }
+
+    await this.packageRepository.save(packages);
+
+    return { message: 'Tous les colis ont été pris en charge avec succès.' };
   }
+
+
 
   async findDeliveriesByUser(userId: number): Promise<Package[]> {
     return this.packageRepository.createQueryBuilder('p')
@@ -299,9 +310,9 @@ export class PackagesService {
     address: string;
     postalCode: string;
     city: string;
-    transferCode: string;
     latitude: number;
     longitude: number;
+    transferCode?: string;
   }) {
     const pkg = await this.packageRepository.findOne({
       where: { id: data.packageId },
@@ -309,6 +320,7 @@ export class PackagesService {
     });
 
     if (!pkg) throw new NotFoundException('Colis introuvable');
+    const transferCode = data.transferCode || Math.random().toString(36).substring(2, 8).toUpperCase();
 
     const fromCourier = await this.userRepository.findOneBy({ id: data.fromCourierId });
     const toCourier = await this.userRepository.findOneBy({ id: data.toCourierId });
@@ -323,68 +335,75 @@ export class PackagesService {
     const lat = data.latitude;
     const lng = data.longitude;
 
-    const localisation = pkg.localisations?.[0];
-    if (!localisation ||
-        !localisation.currentLatitude ||
-        !localisation.destinationLatitude ||
-        !localisation.currentLongitude ||
-        !localisation.destinationLongitude
-    ) {
-      throw new NotFoundException('Coordonnées de localisation incomplètes');
-    }
-
-    const totalDistance = calculateDistance(
-      localisation.currentLatitude,
-      localisation.currentLongitude,
-      localisation.destinationLatitude,
-      localisation.destinationLongitude
-    );
-
-    const previousTransfers = await this.transferRepository.find({
-      where: { packageId: data.packageId },
-      order: { transferDate: 'ASC' },
+    // 🔁 Récupérer tous les colis liés à la même annonce
+    const allPackages = await this.packageRepository.find({
+      where: { advertisementId: pkg.advertisement?.id },
+      relations: ['localisations', 'advertisement'],
     });
 
-    let startLat = localisation.currentLatitude;
-    let startLng = localisation.currentLongitude;
-    let cumulativeProgress = 0;
+    for (const item of allPackages) {
+      const localisation = item.localisations?.[0];
+      if (!localisation) continue;
 
-    if (previousTransfers.length > 0) {
-      const lastTransfer = previousTransfers[previousTransfers.length - 1];
-      startLat = lastTransfer.latitude;
-      startLng = lastTransfer.longitude;
-      cumulativeProgress = previousTransfers.reduce((sum, t) => sum + (t.livreur1Progress || 0), 0);
+      const totalDistance = calculateDistance(
+        localisation.currentLatitude,
+        localisation.currentLongitude,
+        localisation.destinationLatitude,
+        localisation.destinationLongitude
+      );
+
+      const previousTransfers = await this.transferRepository.find({
+        where: { packageId: item.id },
+        order: { transferDate: 'ASC' },
+      });
+
+      let startLat = localisation.currentLatitude;
+      let startLng = localisation.currentLongitude;
+      let cumulativeProgress = 0;
+
+      if (previousTransfers.length > 0) {
+        const lastTransfer = previousTransfers[previousTransfers.length - 1];
+        startLat = lastTransfer.latitude;
+        startLng = lastTransfer.longitude;
+        cumulativeProgress = previousTransfers.reduce((sum, t) => sum + (t.livreur1Progress || 0), 0);
+      }
+
+      const segmentDistance = calculateDistance(startLat, startLng, lat, lng);
+      const segmentProgress = Math.round((segmentDistance / totalDistance) * 100);
+
+      const livreur1Progress = segmentProgress;
+      const livreur2Progress = Math.max(0, 100 - (cumulativeProgress + segmentProgress));
+
+      const transfer = this.transferRepository.create({
+        packageId: item.id,
+        fromCourierId: data.fromCourierId,
+        toCourierId: data.toCourierId,
+        address: data.address,
+        postalCode: data.postalCode,
+        city: data.city,
+        transferCode,
+        isConfirmed: false,
+        latitude: lat,
+        longitude: lng,
+        livreur1Progress,
+        livreur2Progress,
+      });
+
+      item.deliveryStatus = 'transféré';
+      await this.packageRepository.save(item);
+      await this.transferRepository.save(transfer);
+
+      const clientId = item.advertisement?.usersId;
+      const totalAmount = item.advertisement?.advertisementPrice;
+
+      if (clientId && totalAmount) {
+        await this.transferService.distributePayment(item.id, totalAmount, clientId);
+      }
     }
 
-    const segmentDistance = calculateDistance(startLat, startLng, lat, lng);
-    const segmentProgress = Math.round((segmentDistance / totalDistance) * 100);
-
-    const livreur1Progress = segmentProgress;
-    const livreur2Progress = Math.max(0, 100 - (cumulativeProgress + segmentProgress));
-
-    const transfer = this.transferRepository.create({
-      ...data,
-      latitude: lat,
-      longitude: lng,
-      isConfirmed: false,
-      livreur1Progress,
-      livreur2Progress,
-    });
-
-    pkg.deliveryStatus = 'transféré';
-    await this.packageRepository.save(pkg);
-    await this.transferRepository.save(transfer);
-
-    // 🎯 Appel de la répartition des paiements si tout est prêt
-    const clientId = pkg.advertisement?.usersId;
-    const totalAmount = pkg.advertisement?.advertisementPrice;
-
-    if (clientId && totalAmount) {
-      await this.transferService.distributePayment(pkg.id, totalAmount, clientId);
-    }
-
-    return transfer;
+    return { transferCode };
   }
+
 
 
   async findByUser(userId: number): Promise<Package[]> {
@@ -398,40 +417,84 @@ export class PackagesService {
 
 
   async confirmTransfer(packageId: number, toCourierId: number, code: string) {
-    const transfer = await this.transferRepository.findOne({
+    // Chercher tous les transferts non confirmés avec ce code et ce destinataire
+    const matchingTransfers = await this.transferRepository.find({
       where: {
-        packageId,
         toCourierId,
         transferCode: code,
         isConfirmed: false,
       },
+      relations: ['package'],
     });
 
-    if (!transfer) {
-      throw new BadRequestException('Code invalide ou transfert introuvable');
+    if (!matchingTransfers.length) {
+      throw new BadRequestException('Aucun transfert correspondant au code fourni');
     }
 
-    transfer.isConfirmed = true;
+    // Confirmer tous les transferts et mettre à jour les colis
+    for (const transfer of matchingTransfers) {
+      transfer.isConfirmed = true;
 
+      const pkg = await this.packageRepository.findOne({
+        where: { id: transfer.packageId },
+        relations: ['users'],
+      });
+
+      if (pkg) {
+        pkg.deliveryStatus = 'en cours';
+        const toCourier = await this.userRepository.findOne({ where: { id: toCourierId } });
+        if (toCourier) {
+          pkg.users = [toCourier];
+          await this.packageRepository.save(pkg);
+        }
+      }
+
+      await this.transferRepository.save(transfer);
+    }
+
+    return { message: `${matchingTransfers.length} colis confirmés.` };
+  }
+
+
+
+  async confirmDeliveryWithCode(packageId: number, code: string) {
     const pkg = await this.packageRepository.findOne({
       where: { id: packageId },
-      relations: ['users'],
+      relations: ['advertisement'], // pour s'assurer que l'advertisementId est chargé
     });
 
     if (!pkg) {
       throw new NotFoundException('Colis introuvable');
     }
 
-    pkg.deliveryStatus = 'en transit';
+    if (pkg.transferCode !== code) {
+      throw new BadRequestException('Code de livraison invalide.');
+    }
 
-    // 🔄 Remplacement du livreur
-    const toCourier = await this.userRepository.findOne({ where: { id: toCourierId } });
-    if (!toCourier) throw new NotFoundException('Livreur introuvable');
+    const advertisementId = pkg.advertisementId;
 
-    pkg.users = [toCourier]; // overwrite
-    await this.packageRepository.save(pkg);
-    return this.transferRepository.save(transfer);
+    if (!advertisementId) {
+      // Si le colis n'est pas lié à une annonce, on ne met à jour que lui
+      pkg.deliveryStatus = 'livré';
+      await this.packageRepository.save(pkg);
+      return { message: 'Colis livré avec succès.' };
+    }
+
+    // Mettre à jour tous les colis liés à cette annonce
+    await this.packageRepository.update(
+      { advertisementId: advertisementId },
+      { deliveryStatus: 'livré' }
+    );
+
+    return { message: 'Tous les colis de cette annonce ont été livrés avec succès.' };
   }
+
+  
+
+  
+
+
+
 
 
 }

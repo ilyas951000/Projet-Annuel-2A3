@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import axios from 'axios';
 
-import { getCurrentTargetYear } from '../../../utils/currentTime';
+import { getCurrentTargetYear } from '../../utils/currentTime';
 
 // Autres imports nécessaires...
 

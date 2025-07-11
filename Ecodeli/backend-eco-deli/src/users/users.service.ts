@@ -16,8 +16,13 @@ export class UsersService {
     const user = new User();
     user.userFirstName = createUserDto.userFirstName;
     user.userLastName = createUserDto.userLastName;
+    user.email = createUserDto.email;
+    user.password = createUserDto.password;
+    user.userAddress = createUserDto.userAddress;
+    user.userStatus = createUserDto.userStatus;
     return this.usersRepository.save(user);
   }
+
 
   async findAll(): Promise<User[]> {
     return this.usersRepository.find();

@@ -16,7 +16,7 @@ import { Report } from 'src/reports/entities/report.entity'
       Localisation, 
       Report,    
     ]),
-    MulterModule.register({ dest: './uploads' }), 
+    MulterModule.register({ dest: './uploads' }),
   ],
   controllers: [AdvertisementsController],
   providers: [AdvertisementsService],

@@ -12,7 +12,7 @@ import { Package } from 'src/packages/entities/package.entity';
 import { Localisation } from 'src/localisation/entities/localisation.entity';
 import fetch from 'node-fetch'; // N'oublie pas d'installer node-fetch si ce n'est pas déjà fait
 import { Report } from 'src/reports/entities/report.entity';
-
+import { randomBytes } from 'crypto';
 
 @Injectable()
 export class AdvertisementsService {
@@ -60,6 +60,7 @@ export class AdvertisementsService {
   async create(dto: CreateAdvertisementDto): Promise<Advertisement> {
     const { packages: pkgDtos, ...adProps } = dto;
     const ad = this.adRepo.create(adProps);
+    const sharedTransferCode = randomBytes(4).toString('hex').toUpperCase();
 
     if (Array.isArray(pkgDtos)) {
       ad.packages = await Promise.all(
@@ -71,6 +72,7 @@ export class AdvertisementsService {
           pkg.packageWeight = pkgDto.weight ?? 0;
           pkg.deliveryStatus = 'en attente';
           pkg.prioritaire = pkgDto.prioritaire === true;
+          pkg.transferCode = sharedTransferCode;
 
 
           const rawLocs = Array.isArray(pkgDto.localisations) ? pkgDto.localisations : [];
@@ -130,6 +132,7 @@ export class AdvertisementsService {
     return this.addComputedStatus(ad);
   }
 
+
   async update(id: number, updateDto: UpdateAdvertisementDto): Promise<Advertisement> {
     this.validateId(id);
     const ad = await this.findOne(id);
@@ -139,11 +142,19 @@ export class AdvertisementsService {
 
   async updatePrice(id: number, newPrice: number): Promise<Advertisement> {
     this.validateId(id);
+
     const ad = await this.adRepo.findOne({ where: { id } });
     if (!ad) throw new NotFoundException('Annonce introuvable');
+
+    if (ad.isPriceLocked) {
+      throw new BadRequestException("Une négociation a déjà été acceptée pour cette annonce.");
+    }
+
     ad.advertisementPrice = newPrice;
+    ad.isPriceLocked = true;
     return this.adRepo.save(ad);
   }
+
 
   async remove(id: number): Promise<void> {
     this.validateId(id);
@@ -244,5 +255,50 @@ export class AdvertisementsService {
 
     return this.addComputedStatus(ads);
   }
+
+  async findUnpaidAdvertisementByClient(clientId: number): Promise<Advertisement[]> {
+    return this.adRepo.createQueryBuilder('ad')
+      .leftJoinAndSelect('ad.packages', 'package')
+      .where('ad.usersId = :clientId', { clientId })
+      .andWhere('ad.isPaid = false')
+      .groupBy('ad.id')
+      .addGroupBy('package.id')
+      .getMany();
+  }
+
+  async markAsPaid(id: number) {
+    const pkg = await this.adRepo.findOne({ where: { id } });
+    if (!pkg) throw new NotFoundException('Colis non trouvé');
+    pkg.isPaid = true;
+    await this.adRepo.save(pkg);
+    return { message: 'Colis marqué comme payé.' };
+  }
+
+
+  async getAllDeliverersForAdvertisement(advertisementId: number): Promise<{ userIds: number[] }> {
+    const advertisement = await this.adRepo.findOne({
+      where: { id: advertisementId },
+      relations: ['packages', 'packages.users'],
+    });
+
+    if (!advertisement) {
+      throw new NotFoundException('Annonce non trouvée');
+    }
+
+    // Extraire tous les livreurs de tous les colis
+    const allUsers = advertisement.packages.flatMap(pkg => pkg.users || []);
+
+    if (allUsers.length === 0) {
+      throw new NotFoundException('Aucun livreur trouvé pour cette annonce.');
+    }
+
+    // Supprimer les doublons par ID
+    const uniqueUserIds = [...new Set(allUsers.map(user => user.id))];
+
+    return { userIds: uniqueUserIds };
+  }
+
+
+
 
 }

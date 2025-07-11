@@ -1,5 +1,6 @@
 import {
   Controller,
+  Logger,
   Get,
   Post,
   Param,
@@ -7,14 +8,18 @@ import {
   Req,
   UseGuards,
   UnauthorizedException,
+  Query,
 } from '@nestjs/common';
 import { TransferService } from './transfer.service';
 import { AuthGuard } from '@nestjs/passport'; // pour sécuriser avec JWT
 import { Request } from 'express'; // pour typer `req` correctement
 import { User } from 'src/users/entities/user.entity'; // assure-toi de cet import
 
+
 @Controller('payments/provider')
 export class TransferController {
+  private readonly logger = new Logger(TransferController.name);
+
   constructor(private readonly transferService: TransferService) {}
 
   // ✅ Get balance du provider (livreur)
@@ -48,6 +53,26 @@ export class TransferController {
   getTotalRevenue() {
     return this.transferService.getTotalRevenue();
   }
+  @Get('admin/monthly-revenue')
+getMonthlyRevenue(
+  @Query('month') month: number,
+  @Query('year') year: number,
+) {
+  return this.transferService.getMonthlyRevenue(month, year);
+}
+
+
+  @Get('admin/monthly-transfers')
+  getMonthlyTransfers(
+    @Query('month') month: number,
+    @Query('year') year: number,
+  ) {
+    return this.transferService.getMonthlyTransfersAmount(month, year);
+  }
+
+  
+
+
 
 
   // ✅ Le livreur demande un virement vers son compte

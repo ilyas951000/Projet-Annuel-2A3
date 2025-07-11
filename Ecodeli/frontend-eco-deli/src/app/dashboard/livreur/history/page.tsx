@@ -35,7 +35,7 @@ export default function DeliveryHistory() {
     }
     const fetchCurrentUser = async () => {
       try {
-        const res = await axios.get('http://127.0.0.1:3001/auth/me', {
+        const res = await axios.get(`${process.env.NEXT_PUBLIC_API_URL}/auth/me`, {
           headers: { Authorization: `Bearer ${token}` },
         });
         if (res.data && res.data.userId) {
@@ -61,7 +61,7 @@ export default function DeliveryHistory() {
 
   const fetchHistory = async () => {
     try {
-      const response = await axios.get('http://127.0.0.1:3001/packages/history', {
+      const response = await axios.get(`${process.env.NEXT_PUBLIC_API_URL}/packages/history`, {
         params: { userId: livreurId },
       });
       setHistory(response.data);
@@ -74,7 +74,7 @@ export default function DeliveryHistory() {
   const getClientIdFromAdvertisement = async (advertisementId: number): Promise<number | null> => {
     try {
       const token = localStorage.getItem('token');
-      const res = await axios.get(`http://127.0.0.1:3001/advertisements/${advertisementId}`, {
+      const res = await axios.get(`${process.env.NEXT_PUBLIC_API_URL}/advertisements/${advertisementId}`, {
         headers: { Authorization: `Bearer ${token}` },
       });
       return res.data?.usersId || null;

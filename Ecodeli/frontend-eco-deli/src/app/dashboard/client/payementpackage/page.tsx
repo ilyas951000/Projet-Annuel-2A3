@@ -22,6 +22,7 @@ interface PackageType {
   packageRequirements?: string
   isPaid: boolean
   localisations?: Localisation[]
+  advertisementId: number 
 }
 
 export default function ClientPackagesPage() {
@@ -100,10 +101,19 @@ export default function ClientPackagesPage() {
         </div>
       ) : (
         <div className="space-y-6">
-          {packages.map((pkg) => {
-            const loc = pkg.localisations?.[0]
+          {Array.from(
+            packages.reduce((acc, pkg) => {
+              if (!acc.has(pkg.advertisementId)) {
+                acc.set(pkg.advertisementId, []);
+              }
+              acc.get(pkg.advertisementId)!.push(pkg);
+              return acc;
+            }, new Map<number, PackageType[]>())
+          ).map(([advertisementId, pkgGroup]) => {
+            const firstLoc = pkgGroup[0].localisations?.[0];
+
             return (
-              <div key={pkg.id} className="bg-white rounded-xl shadow-sm overflow-hidden">
+              <div key={advertisementId} className="bg-white rounded-xl shadow-sm overflow-hidden">
                 <div className="p-6">
                   <div className="flex items-start justify-between mb-6">
                     <div className="flex items-center gap-3">
@@ -111,8 +121,7 @@ export default function ClientPackagesPage() {
                         <Package className="w-6 h-6 text-green-600" />
                       </div>
                       <div>
-                        <h2 className="text-xl font-bold text-gray-900">{pkg.packageName}</h2>
-                        <p className="text-sm text-gray-500">Colis #{pkg.id}</p>
+                        <p className="text-sm text-gray-500">Annonce #{advertisementId}</p>
                       </div>
                     </div>
                     <div className="flex items-center gap-2">
@@ -122,43 +131,60 @@ export default function ClientPackagesPage() {
                     </div>
                   </div>
 
-                  <div className={`grid grid-cols-1 ${loc ? "lg:grid-cols-2" : ""} gap-8`}>
-                    {/* Détails du colis */}
+                  <div className={`grid grid-cols-1 ${firstLoc ? "lg:grid-cols-2" : ""} gap-8`}>
+                    {/* Détails de TOUS les colis dans l'annonce */}
                     <div>
                       <h4 className="font-medium text-gray-900 mb-4 flex items-center">
                         <Package className="w-4 h-4 mr-2 text-green-500" />
-                        Détails du colis
+                        Colis dans cette annonce
                       </h4>
-                      <div className="bg-gray-50 p-4 rounded-lg space-y-3">
-                        <div className="grid grid-cols-2 gap-4">
-                          <div>
-                            <span className="text-gray-500 text-sm">Poids:</span>
-                            <p className="font-medium">{pkg.packageWeight} kg</p>
+                      <div className="space-y-4">
+                        {pkgGroup.map((pkg) => (
+                          <div key={pkg.id} className="bg-gray-50 p-4 rounded-lg space-y-2 border">
+                            <p className="text-gray-700 font-semibold">Colis #{pkg.id} – {pkg.packageName}</p>
+                            <div className="grid grid-cols-2 gap-4">
+                              <div>
+                                <span className="text-gray-500 text-sm">Poids:</span>
+                                <p className="font-medium">{pkg.packageWeight} kg</p>
+                              </div>
+                              <div>
+                                <span className="text-gray-500 text-sm">Dimensions:</span>
+                                <p className="font-medium">{pkg.packageDimension}</p>
+                              </div>
+                            </div>
+
+                            {pkg.packageDescription && (
+                              <div>
+                                <span className="text-gray-500 text-sm">Description:</span>
+                                <p className="text-sm text-gray-800">{pkg.packageDescription}</p>
+                              </div>
+                            )}
+
+                            {pkg.packageRequirements && (
+                              <div>
+                                <span className="text-gray-500 text-sm">Exigences:</span>
+                                <p className="text-sm text-gray-800">{pkg.packageRequirements}</p>
+                              </div>
+                            )}
                           </div>
-                          <div>
-                            <span className="text-gray-500 text-sm">Dimensions:</span>
-                            <p className="font-medium">{pkg.packageDimension}</p>
-                          </div>
+                        ))}
+
+                        {/* ✅ Bouton unique en dehors de la boucle */}
+                        <div className="mt-6 flex justify-end">
+                          <Link
+                            href={`/dashboard/client/payments/${pkgGroup[0].advertisementId}`}
+                            className="inline-flex items-center px-6 py-3 bg-green-600 hover:bg-green-700 text-white font-medium rounded-lg transition-colors shadow-sm"
+                          >
+                            <span className="mr-2">💳</span>
+                            Payer ce colis
+                          </Link>
                         </div>
 
-                        {pkg.packageDescription && (
-                          <div>
-                            <span className="text-gray-500 text-sm">Description:</span>
-                            <p className="font-medium mt-1 text-gray-800">{pkg.packageDescription}</p>
-                          </div>
-                        )}
-
-                        {pkg.packageRequirements && (
-                          <div>
-                            <span className="text-gray-500 text-sm">Exigences:</span>
-                            <p className="font-medium mt-1 text-gray-800">{pkg.packageRequirements}</p>
-                          </div>
-                        )}
                       </div>
                     </div>
 
-                    {/* Itinéraire de livraison */}
-                    {loc && (
+                    {/* Itinéraire commun à l’annonce */}
+                    {firstLoc && (
                       <div>
                         <h4 className="font-medium text-gray-900 mb-4 flex items-center">
                           <Truck className="w-4 h-4 mr-2 text-green-500" />
@@ -172,9 +198,9 @@ export default function ClientPackagesPage() {
                             <div>
                               <p className="font-medium text-gray-900">Point de départ</p>
                               <p className="text-gray-600 text-sm">
-                                {loc.currentStreet}
+                                {firstLoc.currentStreet}
                                 <br />
-                                {loc.currentCity} {loc.currentPostalCode}
+                                {firstLoc.currentCity} {firstLoc.currentPostalCode}
                               </p>
                             </div>
                           </div>
@@ -188,9 +214,9 @@ export default function ClientPackagesPage() {
                             <div>
                               <p className="font-medium text-gray-900">Destination</p>
                               <p className="text-gray-600 text-sm">
-                                {loc.destinationStreet}
+                                {firstLoc.destinationStreet}
                                 <br />
-                                {loc.destinationCity} {loc.destinationPostalCode}
+                                {firstLoc.destinationCity} {firstLoc.destinationPostalCode}
                               </p>
                             </div>
                           </div>
@@ -198,36 +224,11 @@ export default function ClientPackagesPage() {
                       </div>
                     )}
                   </div>
-
-                  {/* Résumé rapide pour mobile */}
-                  {loc && (
-                    <div className="mt-6 lg:hidden">
-                      <div className="bg-blue-50 p-4 rounded-lg">
-                        <div className="flex items-center text-sm text-blue-700 mb-2">
-                          <MapPin className="w-4 h-4 mr-1" />
-                          <span className="font-medium">Trajet:</span>
-                        </div>
-                        <p className="text-sm text-blue-800">
-                          {loc.currentCity} → {loc.destinationCity}
-                        </p>
-                      </div>
-                    </div>
-                  )}
-
-                  {/* Bouton de paiement */}
-                  <div className="mt-6 flex justify-end">
-                    <Link
-                      href={`/dashboard/client/payments/${pkg.id}`}
-                      className="inline-flex items-center px-6 py-3 bg-green-600 hover:bg-green-700 text-white font-medium rounded-lg transition-colors shadow-sm"
-                    >
-                      <span className="mr-2">💳</span>
-                      Procéder au paiement
-                    </Link>
-                  </div>
                 </div>
               </div>
-            )
+            );
           })}
+
         </div>
       )}
     </div>

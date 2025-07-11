@@ -1,5 +1,5 @@
 "use client"
-
+import { useRouter } from 'next/navigation';
 import { useEffect, useState } from "react"
 import Link from "next/link"
 import { motion, AnimatePresence } from "framer-motion"
@@ -35,6 +35,8 @@ export default function LivreurConversationsPage() {
   const [livreurId, setLivreurId] = useState<number | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [searchTerm, setSearchTerm] = useState("")
+  const router = useRouter();
+
 
   useEffect(() => {
     const fetchConversations = async () => {
@@ -267,13 +269,13 @@ export default function LivreurConversationsPage() {
 
                   {conv.advertisementId && (
                     <div className="border-t border-gray-100 bg-gray-50 px-4 py-2 text-right">
-                      <Link
-                        href={`/annonces/${conv.advertisementId}`}
-                        className="text-green-600 hover:text-green-700 text-sm font-medium inline-flex items-center"
+                      <button
+                        onClick={() => router.push(`/dashboard/client/announcementPage/${conv.advertisementId}`)}
+                        className="inline-flex items-center px-3 py-2 text-sm bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors"
                       >
                         <ExternalLink className="w-4 h-4 mr-1" />
                         Voir l'annonce complète
-                      </Link>
+                      </button>
                     </div>
                   )}
                 </motion.div>

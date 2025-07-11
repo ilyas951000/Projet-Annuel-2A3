@@ -43,4 +43,9 @@ export class PrestataireRolesService {
 
     return role;
   }
+
+  async findAll() {
+    return await this.roleRepo.find();
+  }
+
 }

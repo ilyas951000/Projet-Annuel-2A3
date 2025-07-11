@@ -443,6 +443,15 @@ export default function DeliveryTracking() {
                           )}
                         </div>
                       </div>
+                      <div className="mt-6 flex justify-end">
+                        <button
+                          onClick={() => router.push(`/dashboard/client/announcementPage/${ad.id}`)}
+                          className="inline-flex items-center px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors shadow-sm mr-3"
+                        >
+                          🔍 Voir plus de détails
+                        </button>
+                      </div>
+
 
                       {/* Nouveau bouton signaler */}
                       <div className="mt-6 flex justify-end">

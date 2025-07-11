@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react"
 import { Loader2 } from "lucide-react"
+import { getCurrentMonth, getCurrentTargetYear } from "../../../utils/currentTime" // adapte le chemin selon ton projet
 
 type Overview = {
   totalRevenue: number
@@ -30,7 +31,97 @@ export default function AdminFinancePage() {
   const [totalPlatformFees, setTotalPlatformFees] = useState<number>(0)
   const [transfers, setTransfers] = useState<Transfer[]>([])
   const [loading, setLoading] = useState(true)
-  const [totalTransfersAmount, setTotalTransfersAmount] = useState<number>(0)
+  const currentMonth = getCurrentMonth()
+  const currentYear = getCurrentTargetYear()
+
+
+  const MonthlyRevenue = () => {
+    const [selectedMonth, setSelectedMonth] = useState(new Date().getMonth() + 1)
+    const [selectedYear, setSelectedYear] = useState(new Date().getFullYear())
+    const [revenue, setRevenue] = useState<number>(0)
+    const [monthlyFees, setMonthlyFees] = useState<number>(0)
+    const [monthlyTransfers, setMonthlyTransfers] = useState<number>(0)
+
+    const months = [
+      "Janvier", "Février", "Mars", "Avril", "Mai", "Juin",
+      "Juillet", "Août", "Septembre", "Octobre", "Novembre", "Décembre"
+    ]
+
+    useEffect(() => {
+  const token = localStorage.getItem("token");
+  const headers = {
+    Authorization: `Bearer ${token}`,
+  };
+
+  fetch(`${process.env.NEXT_PUBLIC_API_URL}/payments/provider/admin/monthly-revenue?month=${selectedMonth}&year=${selectedYear}`, { headers })
+    .then(res => res.json())
+    .then(data => {
+      setRevenue(data.totalRevenue ?? 0);
+      setMonthlyTransfers(data.totalTransfers ?? 0);
+      setMonthlyFees((data.totalFees ?? 0) + (data.subscriptionRevenue ?? 0));
+    })
+    .catch(err => {
+      console.error("Erreur chargement revenu mensuel:", err);
+    });
+}, [selectedMonth, selectedYear]);
+
+
+    
+        
+
+    return (
+      <div className="p-6 max-w-6xl mx-auto space-y-4">
+        <h2 className="text-xl font-bold">Résumé du mois de {months[selectedMonth - 1]} {selectedYear}</h2>
+
+        <div className="flex gap-4 mb-4">
+          <select
+            value={selectedMonth}
+            onChange={e => setSelectedMonth(Number(e.target.value))}
+            className="p-2 border rounded"
+          >
+            {months.map((name, idx) => {
+              const monthValue = idx + 1;
+              const isDisabled =
+                selectedYear === currentYear && monthValue > currentMonth;
+
+              return (
+                <option key={monthValue} value={monthValue} disabled={isDisabled}>
+                  {name}
+                </option>
+              );
+            })}
+          </select>
+
+
+          <input
+            type="number"
+            value={selectedYear}
+            min={2000}
+            max={currentYear}
+            onChange={e => {
+              const newYear = Number(e.target.value)
+              if (newYear <= currentYear) {
+                setSelectedYear(newYear)
+
+                // Si année en cours et mois sélectionné > mois actuel → réajuste
+                if (newYear === currentYear && selectedMonth > currentMonth) {
+                  setSelectedMonth(currentMonth)
+                }
+              }
+            }}
+            className="p-2 border rounded"
+          />
+
+        </div>
+
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+          <StatCard title="Revenus mensuels" value={revenue} />
+          <StatCard title="Frais de plateforme + Abonnements (mois)" value={monthlyFees} />
+          <StatCard title="Virements envoyés (mois)" value={monthlyTransfers} />
+        </div>
+      </div>
+    )
+  }
 
   useEffect(() => {
     const token = localStorage.getItem("token")
@@ -92,14 +183,14 @@ export default function AdminFinancePage() {
     <div className="max-w-6xl mx-auto p-6 space-y-8">
       <h1 className="text-3xl font-bold">Tableau de bord financier</h1>
 
-      {/* Résumé */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
         <StatCard title="Revenus totaux" value={overview?.totalRevenue ?? 0} />
         <StatCard title="Frais de plateforme + Abonnements" value={totalPlatformFees} />
         <StatCard title="Virements envoyés" value={overview?.totalTransfers ?? 0} />
       </div>
 
-      {/* Frais de plateforme */}
+      <MonthlyRevenue />
+
       <section>
         <h2 className="text-xl font-semibold mb-2">Frais de plateforme</h2>
         <div className="overflow-x-auto border rounded-lg">
@@ -132,7 +223,6 @@ export default function AdminFinancePage() {
         </div>
       </section>
 
-      {/* Virements */}
       <section>
         <h2 className="text-xl font-semibold mb-2">Virements prestataires</h2>
         <div className="overflow-x-auto border rounded-lg">

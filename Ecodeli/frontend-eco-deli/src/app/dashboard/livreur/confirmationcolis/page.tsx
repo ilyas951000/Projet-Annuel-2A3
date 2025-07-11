@@ -34,7 +34,7 @@ export default function TransferValidation() {
     const fetchCurrentUser = async () => {
       try {
         console.log("Envoi de la requête GET /auth/me...");
-        const res = await axios.get("http://127.0.0.1:3001/auth/me", {
+        const res = await axios.get(`${process.env.NEXT_PUBLIC_API_URL}/auth/me`, {
           headers: { Authorization: `Bearer ${token}` },
         });
 
@@ -78,7 +78,7 @@ export default function TransferValidation() {
 
     try {
         console.log("✅ Requête GET /packages/pending-transfers avec userId =", livreurId);
-        const res = await axios.get("http://127.0.0.1:3001/packages/pending-transfers", {
+        const res = await axios.get(`${process.env.NEXT_PUBLIC_API_URL}/packages/pending-transfers`, {
         params: { userId: Number(livreurId) },
         });
         console.log("✅ Colis reçus :", res.data);
@@ -99,7 +99,7 @@ export default function TransferValidation() {
 
     try {
       console.log(`Tentative de validation du colis ${packageId} avec code ${code}`);
-      await axios.post(`http://127.0.0.1:3001/packages/${packageId}/confirm-transfer`, {
+      await axios.post(`${process.env.NEXT_PUBLIC_API_URL}/packages/${packageId}/confirm-transfer`, {
         toCourierId: livreurId,
         code,
       });
