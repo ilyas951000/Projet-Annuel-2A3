@@ -63,12 +63,14 @@ export default function SubscriptionPage() {
 
   const handleSubscribe = async (priceId: string, plan: string) => {
     try {
-      const res = await axios.post(`${process.env.NEXT_PUBLIC_API_URL}/payments/subscription-checkout`, {
+      const payload  = await axios.post(`${process.env.NEXT_PUBLIC_API_URL}/payments/subscription-checkout`, {
         userId,
         priceId,
         plan,
+        platform: 'web',
       })
-      window.location.href = res.data.url
+       console.log('📤 Données envoyées au backend :', payload); 
+      //window.location.href = res.data.url
     } catch (err) {
       alert("Erreur lors de la souscription")
     }
