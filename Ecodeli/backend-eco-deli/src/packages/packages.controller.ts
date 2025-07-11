@@ -77,13 +77,13 @@ export class PackagesController {
     return this.packagesService.updateStatus(packageId, status);
   }
 
-  /*
+  
   @Patch(':id/paid')
   markAsPaid(@Param('id') id: string) {
     const packageId = parseInt(id, 10);
     if (isNaN(packageId)) throw new BadRequestException('ID du colis invalide');
     return this.packagesService.markAsPaid(packageId);
-  }*/
+  }
 
   @Get('history')
   findDeliveredPackagesByUser(@Query('userId') userId: string) {
@@ -96,6 +96,12 @@ export class PackagesController {
   findPackagesByUser(@Param('userId') userId: number) {
     return this.packagesService.findByUser(userId); // ✅
   }
+  
+  @Get('client/:clientId')
+  findUnpaidByClient(@Param('clientId') clientId: string) {
+    return this.packagesService.findUnpaidPackagesByClient(+clientId);
+  }
+  
 
   @Patch(':id')
   update(@Param('id') id: string, @Body() updatePackageDto: UpdatePackageDto) {

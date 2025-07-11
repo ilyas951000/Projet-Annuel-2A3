@@ -61,8 +61,11 @@ export class User {
   @Column({ nullable: true })
   stripeAccountId?: string;
 
-  @OneToMany(() => Subscription, (subscription) => subscription.users)
+  @OneToMany(() => Subscription, (subscription) => subscription.user)
   subscription: Subscription[];
+
+  @ManyToOne(() => Subscription, { nullable: true, eager: true })
+  activeSubscription: Subscription;
 
   @OneToMany(() => Advertisement, (advertisement) => advertisement.users)
   advertisements: Advertisement[];

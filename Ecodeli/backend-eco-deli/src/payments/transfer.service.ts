@@ -59,17 +59,86 @@ async getTotalRevenue(): Promise<number> {
     .getRawOne();
 
   const subscriptions = await this.subscriptionRepo.find();
-  const subscriptionRevenue = subscriptions.reduce((sum, sub) => {
-    if (sub.subscriptionTitle === 'Premium') return sum + 19.99;
-    if (sub.subscriptionTitle === 'Starter') return sum + 9.99;
-    return sum;
-  }, 0);
+  const subscriptionRevenue = subscriptions.length > 0
+  ? subscriptions.reduce((sum, sub) => {
+      if (sub.subscriptionTitle === 'Premium') return sum + 19.99;
+      if (sub.subscriptionTitle === 'Starter') return sum + 9.99;
+      return sum;
+    }, 0)
+  : 0;
 
-  const transfersAmount = parseFloat(totalTransfers.total) || 0;
-  const feesAmount = parseFloat(totalFees.total) || 0;
+  const transfersAmount = parseFloat(totalTransfers?.total ?? '0');
+  const feesAmount = parseFloat(totalFees?.total ?? '0');
+
 
   return transfersAmount + feesAmount + subscriptionRevenue;
 }
+
+  async getMonthlyRevenue(month: number, year: number): Promise<{
+    totalRevenue: number;
+    totalTransfers: number;
+    totalFees: number;
+    subscriptionRevenue: number;
+  }> {
+
+    const startDate = new Date(year, month - 1, 1); // début du mois
+    const endDate = new Date(year, month, 0, 23, 59, 59); // fin du mois
+
+    const totalTransfers = await this.transferRepo
+      .createQueryBuilder('transfer')
+      .select('SUM(transfer.amount)', 'total')
+      .where('transfer.requestedAt BETWEEN :start AND :end', { start: startDate, end: endDate })
+      .getRawOne();
+
+    const totalFees = await this.platformFeeRepo
+      .createQueryBuilder('fee')
+      .select('SUM(fee.amount)', 'total')
+      .where('fee.createdAt BETWEEN :start AND :end', { start: startDate, end: endDate })
+      .getRawOne();
+
+    const subscriptions = await this.subscriptionRepo
+      .createQueryBuilder('sub')
+      .where('sub.lastPriorityReset IS NOT NULL')
+      .andWhere('sub.lastPriorityReset BETWEEN :start AND :end', {
+        start: startDate,
+        end: endDate,
+      })
+      .getMany();
+
+
+    const subscriptionRevenue = subscriptions.reduce((sum, sub) => {
+      if (sub.subscriptionTitle === 'Premium') return sum + 19.99;
+      if (sub.subscriptionTitle === 'Starter') return sum + 9.99;
+      return sum;
+    }, 0);
+
+    const transfersAmount = parseFloat(totalTransfers.total) || 0;
+    const feesAmount = parseFloat(totalFees.total) || 0;
+
+    return {
+      totalRevenue: transfersAmount + feesAmount + subscriptionRevenue,
+      totalTransfers: transfersAmount,
+      totalFees: feesAmount,
+      subscriptionRevenue,
+    };
+
+  }
+  
+  async getMonthlyTransfersAmount(month: number, year: number): Promise<number> {
+    const startDate = new Date(year, month - 1, 1);
+    const endDate = new Date(year, month, 0, 23, 59, 59);
+
+    const result = await this.transferRepo
+      .createQueryBuilder('transfer')
+      .select('SUM(transfer.amount)', 'total')
+      .where('transfer.requestedAt BETWEEN :start AND :end', { start: startDate, end: endDate })
+      .getRawOne();
+
+    return parseFloat(result?.total ?? '0');
+  }
+  
+
+
 
 async getTotalTransfersAmount(): Promise<number> {
   const result = await this.transferRepo

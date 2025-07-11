@@ -123,16 +123,12 @@ export class AdvertisementsService {
   }
 
   async findOne(id: number): Promise<Advertisement> {
-    console.log("🔎 Recherche annonce id:", id);
     this.validateId(id);
-
     const ad = await this.adRepo.findOne({
       where: { id },
-      relations: ['packages', 'packages.localisations', 'users'],
+      relations: ['packages', 'packages.localisations','users'],
     });
-
     if (!ad) throw new NotFoundException('Annonce non trouvée');
-
     return this.addComputedStatus(ad);
   }
 

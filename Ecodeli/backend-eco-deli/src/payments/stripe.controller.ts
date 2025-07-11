@@ -68,18 +68,21 @@ async onboardStripe(@Req() req) {
 
 
 
-  @Post('intent')
-  createIntent(
-    @Body() body: { clientId: number; providerId: number; amount: number; packageId?: number; fee: number }
-  ) {
-    return this.stripeService.createPaymentIntent(
-      body.clientId,
-      body.providerId,
-      body.amount,
-      body.packageId,
-      body.fee // 👈 ajoute ceci
-    );
-  }
+ @Post('intent')
+async createIntent(
+  @Body() body: { clientId: number; providerId: number; amount: number; packageId?: number | string; fee: number }
+) {
+  const packageId = body.packageId ? Number(body.packageId) : undefined;
+  return this.stripeService.createPaymentIntent(
+    body.clientId,
+    body.providerId,
+    body.amount,
+    packageId,
+    body.fee
+  );
+}
+
+
 
 
 

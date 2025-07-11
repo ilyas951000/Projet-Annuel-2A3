@@ -74,6 +74,7 @@ export class AuthController {
       valid: req.user.valid,
       userSubscription: req.user.userSubscription,
       prestataireRoleId: req.user.prestataireRoleId,
+      email: req.user.email,
     };
   }
 

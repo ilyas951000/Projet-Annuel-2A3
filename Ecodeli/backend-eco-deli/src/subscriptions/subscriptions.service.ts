@@ -28,7 +28,7 @@ export class SubscriptionsService {
       priorityShipping: createDto.priorityShipping,
       permanentDiscount: createDto.permanentDiscount,
       supplement3000: createDto.supplement3000,
-      users: user,
+      user: user,
     });
 
     return await this.subscriptionRepo.save(subscription);
@@ -40,8 +40,9 @@ export class SubscriptionsService {
 
   async findByUserId(userId: number): Promise<Subscription> {
     const subscription = await this.subscriptionRepo.findOne({
-      where: { users: { id: userId } },
+      where: { user: { id: userId } },
       relations: ['users'],
+      order: { id: 'DESC' },
     });
 
     if (!subscription) {

@@ -150,13 +150,13 @@ export class PackagesService {
   }
 
 
-  /*async findUnpaidPackagesByClient(clientId: number): Promise<Package[]> {
+  async findUnpaidPackagesByClient(clientId: number): Promise<Package[]> {
     return this.packageRepository.createQueryBuilder('package')
       .leftJoin('package.advertisement', 'ad')
       .where('ad.usersId = :clientId', { clientId })
       .andWhere('package.isPaid = false OR package.isPaid = 0')
       .getMany();
-  }*/
+  }
 
   async getPendingTransfersForUser(userId: number | string): Promise<Package[]> {
     const parsedId = typeof userId === 'string' ? parseInt(userId, 10) : userId;
@@ -213,13 +213,13 @@ export class PackagesService {
     );
   }
 
-  /*async markAsPaid(id: number) {
+  async markAsPaid(id: number) {
     const pkg = await this.packageRepository.findOne({ where: { id } });
     if (!pkg) throw new NotFoundException('Colis non trouvé');
     pkg.isPaid = true;
     await this.packageRepository.save(pkg);
     return { message: 'Colis marqué comme payé.' };
-  }*/
+  }
 
   findAll() {
     return this.packageRepository.find();
