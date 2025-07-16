@@ -15,7 +15,7 @@ export default function AdminNewsPage() {
 
   const fetchNews = async () => {
     try {
-      const res = await fetch('http://localhost:3001/news');
+      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/news`);
       const data = await res.json();
       setNewsList(data);
     } catch (err) {
@@ -26,7 +26,7 @@ export default function AdminNewsPage() {
   const deleteNews = async (id: number) => {
     const token = localStorage.getItem('token');
     try {
-      const res = await fetch(`http://localhost:3001/news/${id}`, {
+      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/news/${id}`, {
         method: 'DELETE',
         headers: { Authorization: `Bearer ${token}` },
       });

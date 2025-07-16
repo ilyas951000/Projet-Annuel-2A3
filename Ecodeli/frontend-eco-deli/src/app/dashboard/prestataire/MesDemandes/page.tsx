@@ -76,6 +76,7 @@ export default function MesDemandes() {
       <ul className="space-y-6">
         {interventions.map((d) => (
           <li key={d.id} className="p-4 border rounded bg-white shadow">
+            <p><strong>id intervention :</strong> {d.id}</p>
             <p><strong>Type :</strong> {d.type}</p>
             <p><strong>Client ID :</strong> {d.clientId ?? 'N/A'}</p>
             <p><strong>Prix proposé :</strong> {d.prix} €</p>
@@ -86,14 +87,21 @@ export default function MesDemandes() {
             </p>
 
             {d.statut === 'accepte' && (
-              <>
-                {d.transfer?.status === 'completed' ? (
-                  <p className="text-green-600 font-medium mt-2">✅ Client a payé</p>
-                ) : (
-                  <p className="text-orange-600 font-medium mt-2">⏳ En attente de paiement</p>
-                )}
-              </>
-            )}
+  <>
+              {d.transfer?.status === 'completed' && (
+                <p className="text-green-600 font-medium mt-2"> Client a payé</p>
+              )}
+
+              {d.transfer?.status === 'pending' && (
+                <p className="text-orange-500 font-medium mt-2"> Paiement à valider </p>
+              )}
+
+              {!d.transfer?.status && (
+                <p className="text-gray-500 font-medium mt-2"> Statut de paiement inconnu</p>
+              )}
+            </>
+          )}
+
 
             {d.statut === 'en_attente' && (
               <div className="flex gap-2 mt-4">

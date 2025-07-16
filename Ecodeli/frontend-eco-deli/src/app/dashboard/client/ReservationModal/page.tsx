@@ -31,7 +31,7 @@ export default function ReservationModal({ providerId, clientId, prestationType,
             clientId,
             type: prestationType,
             prix: parseFloat(prix),
-            commentaireClient: message, // ✅ bon champ
+            commentaireClient: description,
         }),
       });
 

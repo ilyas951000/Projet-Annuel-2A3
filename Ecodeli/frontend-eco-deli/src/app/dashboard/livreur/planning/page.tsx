@@ -2,7 +2,9 @@
 
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
+import 'react-big-calendar/lib/css/react-big-calendar.css';
 import { Calendar, momentLocalizer } from 'react-big-calendar';
+
 import moment from 'moment';
 import 'react-big-calendar/lib/css/react-big-calendar.css';
 
@@ -49,27 +51,43 @@ export default function PlanningPage() {
 
   // Récupère les créneaux depuis le backend
   const fetchSchedules = async (courierId: number) => {
-    const token = getToken();
-    try {
-      const response = await axios.get(
-        `${process.env.NEXT_PUBLIC_API_URL}/courier/${courierId}/schedule`,
-        { headers: { Authorization: `Bearer ${token}` } }
-      );
-      console.log('Créneaux récupérés:', response.data);
-      const formatted = response.data.map((s: any) => ({
-        id: s.id,
-        title: s.scheduleDescription,
-        start: new Date(s.scheduleStart),
-        end: new Date(s.scheduleEnd),
-      }));
-      setEvents(formatted);
-    } catch (error: any) {
-      console.error('Erreur lors de la récupération du planning:', 
-        error.response ? JSON.stringify(error.response.data) : error.message
-      );
-      setMessage('Erreur lors de la récupération du planning.');
-    }
-  };
+  const token = getToken();
+  try {
+    // ✅ Appels à la fois aux schedules et aux bookings prestataire
+    const [schedulesRes, bookingsRes] = await Promise.all([
+      axios.get(`${process.env.NEXT_PUBLIC_API_URL}/courier/${courierId}/schedule`, {
+        headers: { Authorization: `Bearer ${token}` },
+      }),
+      axios.get(`${process.env.NEXT_PUBLIC_API_URL}/booking-prestataire/schedules/status`, {
+        headers: { Authorization: `Bearer ${token}` },
+      }),
+    ]);
+
+    // ✅ Création d’une map pour associer chaque schedule à son status
+    const statusMap = new Map<number, string>();
+    bookingsRes.data.forEach((b: { scheduleId: number; status: string }) => {
+      statusMap.set(b.scheduleId, b.status);
+    });
+
+    // ✅ Ajout des informations de status à chaque event
+    const formatted = schedulesRes.data.map((s: any) => ({
+      id: s.id,
+      title: s.scheduleDescription,
+      start: new Date(s.scheduleStart),
+      end: new Date(s.scheduleEnd),
+      status: statusMap.get(s.id) || 'disponible',
+      isBooked: statusMap.has(s.id),
+    }));
+
+    setEvents(formatted);
+  } catch (error: any) {
+    console.error('Erreur lors de la récupération du planning:', 
+      error.response ? JSON.stringify(error.response.data) : error.message
+    );
+    setMessage('Erreur lors de la récupération du planning.');
+  }
+};
+
 
   // Ajout d'un créneau
   const handleSelectSlot = async ({ start, end }: { start: Date; end: Date }) => {
@@ -142,9 +160,34 @@ export default function PlanningPage() {
         startAccessor="start"
         endAccessor="end"
         style={{ height: 600 }}
+        views={['month', 'week', 'day', 'agenda']} // 👈 à ajouter
+        defaultView="month"                        // 👈 à ajouter
         onSelectSlot={handleSelectSlot}
         onSelectEvent={handleSelectEvent}
+        toolbar={true}
+        eventPropGetter={(event: any): React.HTMLAttributes<HTMLElement> => {
+    if (event.status === 'réservé') {
+      return {
+        style: {
+          backgroundColor: '#999',
+          opacity: 0.6,
+          cursor: 'not-allowed',
+        },
+      };
+    }
+    if (event.status === 'en attente') {
+      return {
+        style: {
+          backgroundColor: '#ddd',
+          opacity: 0.6,
+          cursor: 'not-allowed',
+        },
+      };
+    }
+    return {};
+  }}
       />
+
       <p className="mt-4 text-sm">
         Pour ajouter un créneau, sélectionnez une plage horaire dans le calendrier et saisissez une description.
         Pour supprimer, cliquez sur l’événement.

@@ -41,7 +41,7 @@ export class SubscriptionsService {
   async findByUserId(userId: number): Promise<Subscription> {
     const subscription = await this.subscriptionRepo.findOne({
       where: { user: { id: userId } },
-      relations: ['users'],
+      relations: ['user'],
       order: { id: 'DESC' },
     });
 

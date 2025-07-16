@@ -3,6 +3,8 @@ import { useState, useEffect } from "react"
 import axios from "axios"
 import Link from "next/link"
 import dynamic from "next/dynamic"
+import { useRouter } from "next/navigation"
+
 import {
   Package,
   MapPin,
@@ -76,7 +78,21 @@ export default function LivreurDashboard() {
   const [maxDistanceKm, setMaxDistanceKm] = useState<number>(5)
   const [refreshing, setRefreshing] = useState(false)
   const [favorites, setFavorites] = useState<number[]>([])
+  const router = useRouter()
+  const [currentPage, setCurrentPage] = useState(1)
+  const [itemsPerPage, setItemsPerPage] = useState(4)
+  const [searchTerm, setSearchTerm] = useState("")
+  const [searchDeparture, setSearchDeparture] = useState("")
+  const [searchArrival, setSearchArrival] = useState("")
+  const [dateStartFilter, setDateStartFilter] = useState<string>("")
+  const [dateEndFilter, setDateEndFilter] = useState<string>("")
   
+
+
+
+
+
+    
 
 
   useEffect(() => {
@@ -152,6 +168,22 @@ export default function LivreurDashboard() {
       console.error("Erreur lors de la mise à jour des favoris", err)
     }
   }
+  const fetchAdvertisement = async (advertisementId: number) => {
+    try {
+      const res = await axios.get(`${process.env.NEXT_PUBLIC_API_URL}/advertisements/${advertisementId}`);
+      return {
+        advertisementBeginning: res.data.advertisementBeginning,
+        advertisementEnd: res.data.advertisementEnd,
+      };
+    } catch (error) {
+      console.error(`Erreur lors de la récupération de l'annonce ${advertisementId}`, error);
+      return {
+        advertisementBeginning: "",
+        advertisementEnd: "",
+      };
+
+    }
+  };
 
 
 
@@ -168,31 +200,37 @@ export default function LivreurDashboard() {
       const updated = await Promise.all(
         pkgs.map(async (pkg) => {
           try {
-            const locRes = await axios.get(`${process.env.NEXT_PUBLIC_API_URL}/localisation/package/${pkg.id}`)
-            const loc = locRes.data
+            const locRes = await axios.get(`${process.env.NEXT_PUBLIC_API_URL}/localisation/package/${pkg.id}`);
+            const loc = locRes.data;
 
-            const distanceFromStart =
-              loc?.currentLatitude && loc?.currentLongitude
-                ? calculateDistance(
-                    movement.originLatitude,
-                    movement.originLongitude,
-                    loc.currentLatitude,
-                    loc.currentLongitude,
-                  )
-                : undefined
+            let advertisementInfo = { advertisementBeginning: undefined, advertisementEnd: undefined }
 
-            const distanceToEnd =
-              loc?.destinationLatitude && loc?.destinationLongitude
-                ? calculateDistance(
-                    movement.destinationLatitude,
-                    movement.destinationLongitude,
-                    loc.destinationLatitude,
-                    loc.destinationLongitude,
-                  )
-                : undefined
+
+            if (pkg.advertisementId) {
+              advertisementInfo = await fetchAdvertisement(pkg.advertisementId);
+            }
+
+            const distanceFromStart = loc?.currentLatitude && loc?.currentLongitude
+              ? calculateDistance(
+                  movement.originLatitude,
+                  movement.originLongitude,
+                  loc.currentLatitude,
+                  loc.currentLongitude
+                )
+              : undefined;
+
+            const distanceToEnd = loc?.destinationLatitude && loc?.destinationLongitude
+              ? calculateDistance(
+                  movement.destinationLatitude,
+                  movement.destinationLongitude,
+                  loc.destinationLatitude,
+                  loc.destinationLongitude
+                )
+              : undefined;
 
             return {
               ...pkg,
+              ...advertisementInfo,
               distanceFromStart,
               distanceToEnd,
               currentLatitude: loc.currentLatitude,
@@ -201,21 +239,22 @@ export default function LivreurDashboard() {
               destinationLongitude: loc.destinationLongitude,
               advertisementPhoto: loc.advertisementPhoto,
               advertisementPrice: loc.advertisementPrice,
-              advertisementBeginning: loc.advertisementBeginning,
-              advertisementEnd: loc.advertisementEnd,
               currentCity: loc.currentCity,
               destinationCity: loc.destinationCity,
               senderPostalCode: loc.currentPostalCode,
               recipientPostalCode: loc.destinationPostalCode,
               senderCity: loc.currentCity,
               recipientCity: loc.destinationCity,
-            }
+              senderAddress: loc.currentStreet,
+              recipientAddress: loc.destinationStreet,
+            };
           } catch (err) {
-            console.error("Erreur localisation colis", err)
-            return pkg
+            console.error("Erreur localisation colis", err);
+            return pkg;
           }
-        }),
-      )
+        })
+      );
+
 
       let filtered = updated
 
@@ -224,8 +263,9 @@ export default function LivreurDashboard() {
       } else if (filter === "onRoute") {
         filtered = updated.filter(
           (pkg) =>
-            (pkg.distanceFromStart ?? Number.POSITIVE_INFINITY) <= 10 &&
-            (pkg.distanceToEnd ?? Number.POSITIVE_INFINITY) <= 10,
+            (pkg.distanceFromStart ?? Number.POSITIVE_INFINITY) <= 30 &&
+            (pkg.distanceToEnd ?? Number.POSITIVE_INFINITY) <= 30
+
         )
       }
 
@@ -267,6 +307,49 @@ export default function LivreurDashboard() {
   }
 
   if (!mounted) return null
+    const groupedPackages = Object.entries(
+    packages.reduce((groups, pkg) => {
+      const advId = pkg.advertisementId ?? pkg.id
+      if (!groups[advId]) groups[advId] = []
+      groups[advId].push(pkg)
+      return groups
+    }, {} as Record<number, IPackage[]>)
+  )
+
+  
+  const filteredGroups = groupedPackages.filter(([_, group]) =>
+  group.some((pkg) => {
+    const nameMatch = pkg.packageName?.toLowerCase().includes(searchTerm.toLowerCase())
+    const departureMatch = pkg.currentCity?.toLowerCase().includes(searchDeparture.toLowerCase())
+    const arrivalMatch = pkg.destinationCity?.toLowerCase().includes(searchArrival.toLowerCase())
+
+    const adBegin = pkg.advertisementBeginning ? new Date(pkg.advertisementBeginning) : null
+    const adEnd = pkg.advertisementEnd ? new Date(pkg.advertisementEnd) : null
+    const userStart = dateStartFilter ? new Date(dateStartFilter) : null
+    const userEnd = dateEndFilter ? new Date(dateEndFilter) : null
+
+    const isWithinDateRange =
+      (!userStart || (adBegin && adBegin >= userStart)) &&
+      (!userEnd || (adEnd && adEnd <= userEnd))
+
+    return (
+      (!searchTerm || nameMatch) &&
+      (!searchDeparture || departureMatch) &&
+      (!searchArrival || arrivalMatch) &&
+      isWithinDateRange
+    )
+  })
+)
+
+
+
+const totalPages = Math.ceil(filteredGroups.length / itemsPerPage)
+const paginatedGroups = filteredGroups.slice(
+  (currentPage - 1) * itemsPerPage,
+  currentPage * itemsPerPage
+)
+
+
 
   return (
     <div className="container mx-auto px-4 py-8 max-w-7xl">
@@ -406,19 +489,116 @@ export default function LivreurDashboard() {
                   <PackageMap packages={packages} />
                 </div>
               )}
+              
 
               {/* Liste des colis */}
               {(viewMode === "list" || viewMode === "split") && (
                 <div className={viewMode === "split" ? "lg:w-1/2" : "w-full"}>
+                  
+                  <div className="mb-6 grid grid-cols-1 md:grid-cols-4 gap-4">
+                    {/* Date de début */} 
+<div>
+  <label htmlFor="dateStartFilter" className="block text-sm font-medium text-gray-700">Début après</label>
+  <input
+    id="dateStartFilter"
+    type="date"
+    value={dateStartFilter}
+    onChange={(e) => {
+      setDateStartFilter(e.target.value)
+      setCurrentPage(1)
+    }}
+    className="mt-1 block w-full border border-gray-300 rounded-md px-3 py-1 text-sm"
+  />
+</div>
+
+{/* Date de fin */} 
+<div>
+  <label htmlFor="dateEndFilter" className="block text-sm font-medium text-gray-700">Fin avant</label>
+  <input
+    id="dateEndFilter"
+    type="date"
+    value={dateEndFilter}
+    onChange={(e) => {
+      setDateEndFilter(e.target.value)
+      setCurrentPage(1)
+    }}
+    className="mt-1 block w-full border border-gray-300 rounded-md px-3 py-1 text-sm"
+  />
+</div>
+
+  {/* Nom du colis */}
+  <div>
+    <label htmlFor="searchName" className="block text-sm font-medium text-gray-700">Nom du colis</label>
+    <input
+      id="searchName"
+      type="text"
+      placeholder="Ex: vélo"
+      value={searchTerm}
+      onChange={(e) => {
+        setSearchTerm(e.target.value)
+        setCurrentPage(1)
+      }}
+      className="mt-1 block w-full border border-gray-300 rounded-md px-3 py-1 text-sm"
+    />
+  </div>
+<br />
+  {/* Ville de départ */}
+  <div>
+    <label htmlFor="searchDeparture" className="block text-sm font-medium text-gray-700">Ville de départ</label>
+    <input
+      id="searchDeparture"
+      type="text"
+      placeholder="Ex: Paris"
+      value={searchDeparture}
+      onChange={(e) => {
+        setSearchDeparture(e.target.value)
+        setCurrentPage(1)
+      }}
+      className="mt-1 block w-full border border-gray-300 rounded-md px-3 py-1 text-sm"
+    />
+  </div>
+
+  {/* Ville d’arrivée */}
+  <div>
+    <label htmlFor="searchArrival" className="block text-sm font-medium text-gray-700">Ville d’arrivée</label>
+    <input
+      id="searchArrival"
+      type="text"
+      placeholder="Ex: Marseille"
+      value={searchArrival}
+      onChange={(e) => {
+        setSearchArrival(e.target.value)
+        setCurrentPage(1)
+      }}
+      className="mt-1 block w-full border border-gray-300 rounded-md px-3 py-1 text-sm"
+    />
+  </div>
+
+  {/* Choix du nombre par page */}
+  <div>
+    <label htmlFor="itemsPerPage" className="block text-sm font-medium text-gray-700">Colis par page</label>
+    <select
+      id="itemsPerPage"
+      value={itemsPerPage}
+      onChange={(e) => {
+        setItemsPerPage(Number(e.target.value))
+        setCurrentPage(1)
+      }}
+      className="mt-1 block w-full border border-gray-300 rounded-md px-3 py-1 text-sm"
+    >
+      {[4, 8, 12, 18].map((n) => (
+        <option key={n} value={n}>{n}</option>
+      ))}
+    </select>
+  </div>
+</div>
+
+
+
+
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    {Object.entries(
-                      packages.reduce((groups, pkg) => {
-                        const advId = pkg.advertisementId ?? pkg.id // fallback
-                        if (!groups[advId]) groups[advId] = []
-                        groups[advId].push(pkg)
-                        return groups
-                      }, {} as Record<number, IPackage[]>)
-                    ).map(([advertisementId, group]) => (
+                    
+                    {paginatedGroups.map(([advertisementId, group]) => (
                       <div
                         key={advertisementId}
                         className="border rounded-lg overflow-hidden shadow-sm bg-white flex flex-col hover:shadow-md transition-shadow"
@@ -459,13 +639,12 @@ export default function LivreurDashboard() {
                         </div>
 
                         <div className="p-4 space-y-4">
-                          {group.map((pkg,index) => (
+                          {group.map((pkg, index) => (
                             <div key={pkg.id} className="border-t pt-4">
+                              <h3 className="text-md font-medium">Colis {pkg.id}</h3>
                               <h3 className="text-md font-medium">
-                                Colis {pkg.id}</h3>
-                              <h3 className="text-md font-medium">  Nom du coli n°{index + 1}  de l'annonce : {pkg.packageName}
+                                Nom du colis n°{index + 1} de l'annonce : {pkg.packageName}
                               </h3>
-
 
                               <div className="flex flex-wrap gap-2 mt-1">
                                 <span className="inline-flex items-center gap-1 bg-gray-100 text-gray-800 text-xs font-medium px-2.5 py-1 rounded">
@@ -479,12 +658,19 @@ export default function LivreurDashboard() {
                               </div>
 
                               <div className="mt-2 text-sm text-gray-600">
-                                <p><strong>Départ:</strong> {pkg.senderAddress} - {pkg.senderCity} {pkg.senderPostalCode}</p>
-                                <p><strong>Arrivée:</strong> {pkg.recipientAddress} - {pkg.recipientCity} {pkg.recipientPostalCode}</p>
+                                <p>
+                                  <strong>Départ:</strong> {pkg.senderAddress} - {pkg.senderCity}{" "}
+                                  {pkg.senderPostalCode}
+                                </p>
+                                <p>
+                                  <strong>Arrivée:</strong> {pkg.recipientAddress} - {pkg.recipientCity}{" "}
+                                  {pkg.recipientPostalCode}
+                                </p>
                                 {pkg.distanceFromStart !== undefined && pkg.distanceToEnd !== undefined && (
                                   <p className="mt-1 text-xs text-gray-500">
                                     <Navigation className="inline h-3 w-3 mr-1" />
-                                    {pkg.distanceFromStart.toFixed(1)} km du départ, {pkg.distanceToEnd.toFixed(1)} km de l’arrivée
+                                    {pkg.distanceFromStart.toFixed(1)} km du départ,{" "}
+                                    {pkg.distanceToEnd.toFixed(1)} km de l’arrivée
                                   </p>
                                 )}
                               </div>
@@ -511,12 +697,59 @@ export default function LivreurDashboard() {
                               </Link>
                             )}
                           </div>
+
+                          <button
+                            onClick={() => router.push(`/dashboard/livreur/announcementPage/${advertisementId}`)}
+                            className="flex items-center justify-center gap-2 px-4 py-1 border border-gray-300 text-gray-700 rounded-md hover:bg-gray-50 text-sm"
+                          >
+                            Voir détail
+                          </button>
+                          <div className="text-sm text-gray-500">
+                            {group[0].advertisementBeginning && (
+                              <p><strong>Début dispo :</strong> {formatDate(group[0].advertisementBeginning)}</p>
+                            )}
+                            {group[0].advertisementEnd && (
+                              <p><strong>Fin dispo :</strong> {formatDate(group[0].advertisementEnd)}</p>
+                            )}
+                          </div>
                         </div>
+                        
 
                       </div>
+                      
                     ))}
 
+                    
+
                   </div>
+                  <div className="mt-6 flex justify-center gap-2">
+  <button
+    onClick={() => setCurrentPage((prev) => Math.max(prev - 1, 1))}
+    disabled={currentPage === 1}
+    className="px-3 py-1 border rounded-md text-sm hover:bg-gray-100 disabled:opacity-50"
+  >
+    Précédent
+  </button>
+  {[...Array(totalPages)].map((_, i) => (
+    <button
+      key={i}
+      onClick={() => setCurrentPage(i + 1)}
+      className={`px-3 py-1 border rounded-md text-sm ${
+        currentPage === i + 1 ? "bg-blue-600 text-white" : "hover:bg-gray-100"
+      }`}
+    >
+      {i + 1}
+    </button>
+  ))}
+  <button
+    onClick={() => setCurrentPage((prev) => Math.min(prev + 1, totalPages))}
+    disabled={currentPage === totalPages}
+    className="px-3 py-1 border rounded-md text-sm hover:bg-gray-100 disabled:opacity-50"
+  >
+    Suivant
+  </button>
+</div>
+
                 </div>
               )}
             </div>

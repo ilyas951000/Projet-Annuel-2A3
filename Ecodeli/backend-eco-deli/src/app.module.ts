@@ -39,6 +39,8 @@ import { LivreurRequirementsModule } from './livreur-requirements/livreur-requir
 import { VirementModule } from './virement/virement.module'; // ✅ correct
 import { NewsModule } from './news/news.module';
 import { FavoritesModule } from './favorites/favorites.module';
+import { BookingModule } from './booking/booking.module';
+import { BookingPrestataireModule } from './booking-prestataire/booking-prestataire.module';
 
 
 
@@ -103,6 +105,8 @@ import { FavoritesModule } from './favorites/favorites.module';
     VirementModule,
     NewsModule,
     FavoritesModule,
+    BookingModule,
+    BookingPrestataireModule,
   ],
   controllers: [AppController],
   providers: [AppService, ChatGateway], // ✅ ajouté ici

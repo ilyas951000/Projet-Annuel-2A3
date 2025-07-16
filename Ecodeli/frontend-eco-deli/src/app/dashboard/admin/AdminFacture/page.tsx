@@ -32,7 +32,7 @@ export default function AdminInvoices() {
     const fetchInvoices = async () => {
       try {
         const token = localStorage.getItem("token");
-        const res = await fetch("http://localhost:3001/invoices", {
+        const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/invoices`, {
           headers: {
             Authorization: `Bearer ${token}`,
           },
@@ -96,7 +96,7 @@ export default function AdminInvoices() {
 
   const downloadPdf = async (invoiceId: number) => {
     try {
-      const res = await fetch(`http://localhost:3001/invoices/pdf/${invoiceId}`, {
+      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/invoices/pdf/${invoiceId}`, {
         headers: {
           Authorization: `Bearer ${localStorage.getItem("token")}`,
         },

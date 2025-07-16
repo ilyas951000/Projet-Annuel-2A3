@@ -24,7 +24,7 @@ export default function AdminVirements() {
     const fetchVirements = async () => {
       try {
         const token = localStorage.getItem("token");
-        const res = await fetch("http://localhost:3001/virements", {
+        const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/virements`, {
           headers: {
             Authorization: `Bearer ${token}`,
           },
@@ -47,7 +47,7 @@ export default function AdminVirements() {
   const updateStatus = async (id: number, status: 'accepte' | 'refuse') => {
     try {
       const token = localStorage.getItem("token");
-      const res = await fetch(`http://localhost:3001/virements/${id}/status`, {
+      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/virements/${id}/status`, {
         method: 'PATCH',
         headers: {
           'Content-Type': 'application/json',

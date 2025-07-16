@@ -9,6 +9,11 @@ export default function ClientLayout({ children }: { children: React.ReactNode }
   const [darkMode, setDarkMode] = useState(false)
   const [sidebarOpen, setSidebarOpen] = useState(false)
 
+  const handleLogout = () => {
+    localStorage.removeItem("token") 
+    window.location.href = "/../../connexion" 
+  }
+
   return (
     <div className={`${darkMode ? "dark" : ""}`}>
       <div className="flex h-screen bg-gray-100 dark:bg-gray-900 relative">
@@ -44,9 +49,13 @@ export default function ClientLayout({ children }: { children: React.ReactNode }
                 <NavItem title="Les Colis Disponible" link="/dashboard//livreur/available" />
                 <NavItem title="Mes Livraisons en Cours" link="/dashboard/livreur/mydeliveries" />
                 <NavItem title="Historique De Mes Livraisons" link="/dashboard/livreur/history" />
+                <NavItem title="accept colis planning" link="/dashboard/livreur/acceptColisPlanning" />
                 <NavItem title="Mes Déplacements" link="/dashboard/livreur/movements" />
                 <NavItem title="Mes disponibilités" link="/dashboard/livreur/planning" />
                 <NavItem title="Mes mouvements" link="/dashboard/livreur/movements" />
+                <NavItem title="Les messages" link="/dashboard/livreur/livreurMessagesPage" />
+                <NavItem title="Mes gains" link="/dashboard/livreur/wallet" />
+                <NavItem title="News" link="/dashboard/livreur/news" />
                 <NavItem title="Profil / Compte" link="/compte" />
               </ul>
 
@@ -58,11 +67,22 @@ export default function ClientLayout({ children }: { children: React.ReactNode }
             </nav>
           </div>
 
-          <div className="flex items-center space-x-3 mt-10">
-            <User className="w-5 h-5 text-gray-500 dark:text-gray-300" />
-            <span className="text-gray-700 dark:text-gray-300">Mon compte</span>
-            <Settings className="w-5 h-5 text-gray-500 dark:text-gray-300 cursor-pointer" />
+          <div className="flex flex-col mt-10 space-y-2">
+            <div className="flex items-center space-x-3">
+              <User className="w-5 h-5 text-gray-500 dark:text-gray-300" />
+              <span className="text-gray-700 dark:text-gray-300">Mon compte</span>
+              <Settings className="w-5 h-5 text-gray-500 dark:text-gray-300 cursor-pointer" />
+            </div>
+
+            <button
+                onClick={handleLogout}
+                className="w-full bg-green-600 text-black font-semibold px-4 py-2 rounded-lg hover:bg-green-700 transition"
+              >
+                Déconnexion
+              </button>
+
           </div>
+
         </aside>
 
         <main className="flex-1 p-5 md:p-10 overflow-auto w-full">
@@ -102,11 +122,13 @@ export default function ClientLayout({ children }: { children: React.ReactNode }
 
 function NavItem({ title, link }: { title: string; link: string }) {
   return (
-    <li className="flex items-center space-x-2 text-gray-700 dark:text-gray-300 hover:text-green-500 cursor-pointer p-2 rounded-md">
-      <PlusCircle className="w-4 h-4" />
-      <Link href={link}>
+    <Link href={link} className="block">
+      <li className="flex items-center space-x-2 text-gray-700 dark:text-gray-300 hover:text-green-500 cursor-pointer p-2 rounded-md">
+        <PlusCircle className="w-4 h-4" />
         <span>{title}</span>
-      </Link>
-    </li>
+      </li>
+    </Link>
   )
 }
+
+

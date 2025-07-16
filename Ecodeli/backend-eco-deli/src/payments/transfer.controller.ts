@@ -9,6 +9,7 @@ import {
   UseGuards,
   UnauthorizedException,
   Query,
+  Patch,
 } from '@nestjs/common';
 import { TransferService } from './transfer.service';
 import { AuthGuard } from '@nestjs/passport'; // pour sécuriser avec JWT
@@ -83,4 +84,22 @@ getMonthlyRevenue(
   ) {
     return this.transferService.requestTransfer(+id, amount);
   }
+
+  @UseGuards(AuthGuard('jwt')) 
+  @Patch(':transferId/status')
+  async updateTransferStatus(
+    @Param('transferId') transferId: string,
+  ) {
+    return this.transferService.updateStatusToPendingValidation(+transferId);
+  }
+
+
+  @UseGuards(AuthGuard('jwt'))
+  @Patch(':transferId/complete')
+  async completeTransfer(@Param('transferId') transferId: string) {
+    return this.transferService.markTransferAsCompleted(+transferId);
+  }
+
+
+
 }

@@ -144,6 +144,7 @@ export default function PlanningPage() {
         style={{ height: 600 }}
         onSelectSlot={handleSelectSlot}
         onSelectEvent={handleSelectEvent}
+        toolbar={true}
       />
       <p className="mt-4 text-sm">
         Pour ajouter un créneau, sélectionnez une plage horaire dans le calendrier et saisissez une description.

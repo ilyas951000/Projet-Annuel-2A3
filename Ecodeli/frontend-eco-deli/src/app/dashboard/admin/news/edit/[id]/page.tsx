@@ -10,7 +10,7 @@ export default function EditNews() {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    fetch(`http://localhost:3001/news/${id}`)
+    fetch(`${process.env.NEXT_PUBLIC_API_URL}/news/${id}`)
       .then(res => res.json())
       .then(data => {
         setTitle(data.title);
@@ -22,7 +22,7 @@ export default function EditNews() {
   const submit = async () => {
     const token = localStorage.getItem('token');
     try {
-      const res = await fetch(`http://localhost:3001/news/${id}`, {
+      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/news/${id}`, {
         method: 'PATCH',
         headers: {
           'Content-Type': 'application/json',

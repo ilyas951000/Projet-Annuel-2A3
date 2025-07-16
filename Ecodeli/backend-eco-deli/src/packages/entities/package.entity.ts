@@ -37,8 +37,8 @@ export class Package {
   @Column({ nullable: true })
   packageDimension?: string;
 
-  @Column({ nullable: true, default: 'en attente' })
-  deliveryStatus?: string;
+  @Column({default: 'en attente' })
+  deliveryStatus: string;
 
   @Column({ nullable: true })
   transferCode: string;

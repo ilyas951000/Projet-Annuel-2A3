@@ -63,14 +63,14 @@ export default function BoxesPage() {
 
   useEffect(() => {
     const fetchLocalsAndBoxes = async () => {
-      const res = await fetch("http://localhost:3001/locals")
+      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/locals`)
       const localsData: Local[] = await res.json()
       setLocals(localsData)
       setSelectedLocalId(localsData[0]?.id || null)
 
       const map: Record<number, Box[]> = {}
       for (const local of localsData) {
-        const resBoxes = await fetch(`http://localhost:3001/boxes/by-local/${local.id}`)
+        const resBoxes = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/boxes/by-local/${local.id}`)
         const boxes = await resBoxes.json()
         map[local.id] = Array.isArray(boxes) ? boxes : []
       }
@@ -84,7 +84,7 @@ export default function BoxesPage() {
 
     const fetchHistory = async () => {
       try {
-        const res = await fetch(`http://localhost:3001/reservations/user/${clientId}`)
+        const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/reservations/user/${clientId}`)
         const history = await res.json()
         if (Array.isArray(history)) {
           setReservationHistory(history)
@@ -100,7 +100,7 @@ export default function BoxesPage() {
 
     const fetchPackages = async () => {
       try {
-        const res = await fetch(`http://localhost:3001/packages/user/${clientId}`)
+        const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/packages/user/${clientId}`)
         const data = await res.json()
         if (Array.isArray(data)) setPackages(data)
       } catch (error) {
@@ -121,7 +121,7 @@ export default function BoxesPage() {
       return
     }
 
-    const res = await fetch(`http://localhost:3001/reservations`, {
+    const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/reservations`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
@@ -143,7 +143,7 @@ export default function BoxesPage() {
   }
 
   const handleCancel = async (reservationId: number) => {
-    const res = await fetch(`http://localhost:3001/reservations/${reservationId}/cancel`, {
+    const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/reservations/${reservationId}/cancel`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ userId: clientId }),
@@ -189,12 +189,15 @@ export default function BoxesPage() {
                 <div key={box.id} className="p-4 bg-white shadow rounded border">
                   <p className="font-semibold">Box #{box.id}</p>
                   <p className="text-sm text-gray-600">Taille : {box.size}</p>
-                  <button
-                    className="mt-2 w-full bg-green-500 text-white py-1 rounded"
-                    onClick={() => setSelectedBox(box)}
-                  >
-                    Réserver
-                  </button>
+                  <p className="text-sm text-gray-600">Status box : {box.status}</p>
+                    <button
+                      className={`mt-2 w-full py-1 rounded text-white ${box.status === "reserved" ? "bg-gray-400 cursor-not-allowed" : "bg-green-500"}`}
+                      onClick={() => box.status !== "reserved" && setSelectedBox(box)}
+                      disabled={box.status === "reserved"}
+                    >
+                      {box.status === "reserved" ? "Réservée" : "Réserver"}
+                    </button>
+
                 </div>
               ))
             ) : (

@@ -80,7 +80,7 @@ export default function RateProviderPage() {
       setRating(5);
       setComment('');
     } catch (err: any) {
-      console.error('❌ Erreur d’envoi:', err.response?.data || err.message);
+      console.error('Erreur d’envoi:', err.response?.data || err.message);
       setMessage('Erreur lors de l’envoi de la note.');
     } finally {
       setIsSubmitting(false);
@@ -88,23 +88,34 @@ export default function RateProviderPage() {
   };
 
   return (
-    <div className="max-w-xl mx-auto p-6">
-      <h1 className="text-2xl font-bold mb-6">Noter ce prestataire</h1>
+    <div className="max-w-2xl mx-auto mt-10 p-6 bg-white rounded-2xl shadow-xl">
+      <h1 className="text-3xl font-bold text-blue-700 mb-6 text-center">Noter ce prestataire</h1>
 
       {message && (
-        <div className="mb-4 text-sm text-blue-700 font-medium">{message}</div>
+        <div
+          className={`mb-6 px-4 py-3 rounded-lg text-sm font-medium ${
+            message.includes('succès')
+              ? 'bg-green-100 text-green-800 border border-green-200'
+              : 'bg-red-100 text-red-800 border border-red-200'
+          }`}
+        >
+          {message}
+        </div>
       )}
 
-      <form onSubmit={handleSubmit} className="space-y-4">
+      <form onSubmit={handleSubmit} className="space-y-6">
+        {/* Note */}
         <div>
-          <label className="block mb-1 font-medium">Note</label>
+          <label className="block mb-2 font-semibold text-gray-700 flex items-center gap-2">
+            <span>Note attribuée</span>
+          </label>
           <select
             value={rating}
-            onChange={e => setRating(Number(e.target.value))}
-            className="border rounded p-2 w-full"
+            onChange={(e) => setRating(Number(e.target.value))}
+            className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none"
             required
           >
-            {[1, 2, 3, 4, 5].map(n => (
+            {[1, 2, 3, 4, 5].map((n) => (
               <option key={n} value={n}>
                 {n} étoile{n > 1 ? 's' : ''}
               </option>
@@ -112,24 +123,32 @@ export default function RateProviderPage() {
           </select>
         </div>
 
+        {/* Commentaire */}
         <div>
-          <label className="block mb-1 font-medium">Commentaire</label>
+          <label className="block mb-2 font-semibold text-gray-700 flex items-center gap-2">
+            Votre commentaire (optionnel)
+          </label>
           <textarea
             value={comment}
-            onChange={e => setComment(e.target.value)}
-            className="border rounded p-2 w-full"
-            rows={4}
+            onChange={(e) => setComment(e.target.value)}
+            placeholder="Exprimez votre retour d'expérience..."
+            className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none"
+            rows={5}
           />
         </div>
 
-        <button
-          type="submit"
-          disabled={!clientId || !token || isSubmitting}
-          className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 disabled:bg-gray-400"
-        >
-          {isSubmitting ? 'Envoi...' : 'Envoyer'}
-        </button>
+        {/* Bouton de soumission */}
+        <div className="text-end">
+          <button
+            type="submit"
+            disabled={!clientId || !token || isSubmitting}
+            className="inline-flex items-center px-6 py-2 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-lg transition disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            {isSubmitting ? 'Envoi...' : 'Envoyer l’évaluation'}
+          </button>
+        </div>
       </form>
     </div>
   );
+
 }

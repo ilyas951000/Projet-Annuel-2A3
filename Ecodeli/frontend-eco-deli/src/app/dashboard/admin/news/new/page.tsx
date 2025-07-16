@@ -16,7 +16,7 @@ export default function CreateNews() {
     }
 
     try {
-      const res = await fetch('http://localhost:3001/news', {
+      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/news`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

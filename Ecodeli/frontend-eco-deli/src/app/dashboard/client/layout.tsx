@@ -22,7 +22,6 @@ export default function ClientLayout({ children }: { children: React.ReactNode }
   const [targetRect, setTargetRect] = useState<DOMRect | null>(null)
   const [forceOpenMenus, setForceOpenMenus] = useState<{ [key: string]: boolean }>({})
   const submenuTriggers: { [key: string]: string } = {
-  '[data-tour="mes-annonces"]': "annonces-livraison",
   '[data-tour="suivi-livraison"]': "annonces-livraison",
   '[data-tour="autres-annonces"]': "annonces-livraison",
   '[data-tour="payer-livraisons"]': "annonces-livraison",
@@ -35,13 +34,13 @@ export default function ClientLayout({ children }: { children: React.ReactNode }
 
   const steps = [
     { selector: '[data-tour="annonces-livraison"]', text: "Voici Les Annonces de livraison" },
-    { selector: '[data-tour="mes-annonces"]', text: "Voici vos propres annonces" },
     { selector: '[data-tour="suivi-livraison"]', text: "Voici le suivi de vos livraisons" },
     { selector: '[data-tour="autres-annonces"]', text: "Consultez les annonces disponibles autour de vous" },
     { selector: '[data-tour="payer-livraisons"]', text: "Ici vous pouvez payer vos livraisons" },
     { selector: '[data-tour="prestations"]', text: "Accédez à vos prestations" },
     { selector: '[data-tour="mes-reservations"]', text: "Voici vos réservations de prestations" },
     { selector: '[data-tour="les-prestataires"]', text: "Voici la liste des prestataires disponibles" },
+    { selector: '[data-tour="listLivreur"]', text: "Voici la liste des livreurs" },
     { selector: '[data-tour="boxes"]', text: "Gérez vos boxes" },
     { selector: '[data-tour="messages"]', text: "Voici vos messages" },
     { selector: '[data-tour="wallet"]', text: "Votre portefeuille" },
@@ -54,6 +53,12 @@ export default function ClientLayout({ children }: { children: React.ReactNode }
   ]
 
   const currentStep = tutorialActive ? steps[stepIndex] : null
+
+  const handleLogout = () => {
+    localStorage.removeItem("token") 
+    window.location.href = "/../../connexion" // 
+  }
+
 
 
   useEffect(() => {
@@ -125,7 +130,6 @@ export default function ClientLayout({ children }: { children: React.ReactNode }
                   dataTour="annonces-livraison"
                   forceOpen={forceOpenMenus["annonces-livraison"]}
                   subLinks={[
-                    { title: "Mes Annonces", link: "/dashboard/client/announcements", dataTour: "mes-annonces" },
                     { title: "Le Suivi de mes livraisons", link: "/dashboard/client/suivi_livraison", dataTour: "suivi-livraison" },
                     { title: "Les annonces des autres...", link: "/dashboard/client/otherAnnouncements", dataTour: "autres-annonces" },
                     
@@ -141,6 +145,7 @@ export default function ClientLayout({ children }: { children: React.ReactNode }
                   ]}
 
                 />
+                <NavItem title="Liste des livreurs" link="/dashboard/client/listLivreur" dataTour="listLivreur" />
                 <NavItem title="Les Boxes" link="/dashboard/client/boxes" dataTour="boxes" />
                 <NavItem title="Mes Messages" link="/dashboard/client/clientMessagesPage" dataTour="messages" />
                 <NavItem
@@ -163,11 +168,22 @@ export default function ClientLayout({ children }: { children: React.ReactNode }
             </nav>
           </div>
 
-          <div className="flex items-center space-x-3 mt-10">
-            <User className="w-5 h-5 text-gray-500 dark:text-gray-300" />
-            <span className="text-gray-700 dark:text-gray-300">Mon compte</span>
-            <Settings className="w-5 h-5 text-gray-500 dark:text-gray-300 cursor-pointer" />
+          <div className="flex flex-col mt-10 space-y-2">
+            <div className="flex items-center space-x-3">
+              <User className="w-5 h-5 text-gray-500 dark:text-gray-300" />
+              <span className="text-gray-700 dark:text-gray-300">Mon compte</span>
+              <Settings className="w-5 h-5 text-gray-500 dark:text-gray-300 cursor-pointer" />
+            </div>
+
+            <button
+              onClick={handleLogout}
+              className="w-full bg-green-600 text-black font-semibold px-4 py-2 rounded-lg hover:bg-green-700 transition"
+            >
+              Déconnexion
+            </button>
+
           </div>
+
         </aside>
 
         <main className="flex-1 p-5 md:p-10 overflow-auto w-full">

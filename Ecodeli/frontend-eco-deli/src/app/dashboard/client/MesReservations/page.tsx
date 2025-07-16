@@ -20,6 +20,7 @@ import Link from "next/link"
 interface Transfer {
   status: "pending" | "completed" | "failed" | "paid"
   isValidatedByClient: boolean
+  id: number;
 }
 
 interface Intervention {
@@ -77,13 +78,13 @@ export default function MesReservations() {
   }, [])
 
   const getStatusBadge = (status: string, transfer?: Transfer) => {
-    if (status === "accepte" && transfer?.status === "pending") {
+    if (status === "accepte" && (transfer?.status === "pending" || transfer?.status === "completed")) {
       return (
         <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
           <CheckCircle className="w-3 h-3 mr-1" />
           Payée
         </span>
-      )
+      );
     }
 
     if (status === "accepte") {
@@ -92,7 +93,7 @@ export default function MesReservations() {
           <CreditCard className="w-3 h-3 mr-1" />
           Paiement requis
         </span>
-      )
+      );
     }
 
     if (status === "refuse") {
@@ -101,7 +102,7 @@ export default function MesReservations() {
           <AlertCircle className="w-3 h-3 mr-1" />
           Refusée
         </span>
-      )
+      );
     }
 
     return (
@@ -109,8 +110,9 @@ export default function MesReservations() {
         <Clock className="w-3 h-3 mr-1" />
         En attente
       </span>
-    )
-  }
+    );
+  };
+
 
   const formatDate = (dateString: string) => {
     const date = new Date(dateString)
@@ -195,6 +197,16 @@ export default function MesReservations() {
                           <Clock className="w-4 h-4 text-green-500 mr-1 flex-shrink-0" />
                           <span>{formatDate(intervention.createdAt)}</span>
                         </div>
+                        <button
+                          onClick={() =>
+                            router.push(`/dashboard/client/profil-prestation/${intervention.prestataireId}`)
+                          }
+                          className="inline-flex items-center text-green-600 hover:text-green-700 font-medium"
+                        >
+                          Voir le profil
+                          
+                        </button>
+
                       </div>
                     </div>
 
@@ -219,6 +231,38 @@ export default function MesReservations() {
                             Contacter le prestataire
                           </Link>
                         )}
+                        {intervention.transfer && intervention.transfer.status === "pending" && (
+  <button
+    onClick={async () => {
+      const token = localStorage.getItem("token");
+      if (!token) return alert("Non connecté");
+
+      try {
+        const res = await fetch(
+          `${process.env.NEXT_PUBLIC_API_URL}/payments/provider/${intervention.transfer?.id}/complete`, // ✅ ici on utilise le vrai transferId
+          {
+            method: "PATCH",
+            headers: {
+              Authorization: `Bearer ${token}`,
+            },
+          }
+        );
+
+        const data = await res.json();
+        alert(data.message || "Transfert marqué comme completed");
+        window.location.reload(); // recharge les données
+      } catch (err) {
+        alert("Erreur lors de la mise à jour.");
+      }
+    }}
+    className="inline-flex items-center px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg transition-colors"
+  >
+    <CheckCircle className="w-4 h-4 mr-2" />
+    Marquer comme payé
+  </button>
+)}
+
+
                       </div>
                     )}
                   </div>

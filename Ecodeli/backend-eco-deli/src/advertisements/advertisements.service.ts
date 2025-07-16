@@ -13,6 +13,8 @@ import { Localisation } from 'src/localisation/entities/localisation.entity';
 import fetch from 'node-fetch'; // N'oublie pas d'installer node-fetch si ce n'est pas déjà fait
 import { Report } from 'src/reports/entities/report.entity';
 import { randomBytes } from 'crypto';
+import { Reservation } from 'src/reservation/entities/reservation.entity';
+import { PlatformFee } from 'src/payments/entities/platform-fee.entity';
 
 @Injectable()
 export class AdvertisementsService {
@@ -25,6 +27,9 @@ export class AdvertisementsService {
 
     @InjectRepository(Package)
     private readonly packageRepo: Repository<Package>,
+
+  @InjectRepository(Reservation) private readonly reservationRepo: Repository<Reservation>,
+  @InjectRepository(PlatformFee) private readonly feeRepo: Repository<PlatformFee>,
   ) {}
 
   private validateId(id: number) {
@@ -183,18 +188,31 @@ export class AdvertisementsService {
   }
 
   async delete(adId: number) {
-      // 1. Supprimer les signalements liés à cette annonce
-      await this.reportRepo.delete({ advertisement: { id: adId } });
+    this.validateId(adId)
 
-      // 2. Supprimer les colis liés à cette annonce (en cascade possible selon ta config)
-      await this.packageRepo.delete({ advertisement: { id: adId } });
+    // Supprimer les signalements liés à cette annonce
+    await this.reportRepo.delete({ advertisement: { id: adId } })
 
-      // 3. Supprimer l'annonce
-      const result = await this.adRepo.delete({ id: adId });
+    // Trouver les colis liés à cette annonce
+    const packages = await this.packageRepo.find({ where: { advertisement: { id: adId } } })
 
-      if (result.affected === 0) throw new NotFoundException('Annonce non trouvée ou déjà supprimée');
-      return { message: 'Annonce supprimée avec succès' };
+    // Supprimer les dépendances de chaque colis
+    for (const pkg of packages) {
+      // Supprimer d'abord les fees et réservations
+      await this.feeRepo.delete({ packageId: pkg.id })
+      await this.reservationRepo.delete({ packageId: pkg.id })
     }
+
+    // Supprimer ensuite les colis
+    await this.packageRepo.delete({ advertisement: { id: adId } })
+
+    // Supprimer l'annonce
+    const result = await this.adRepo.delete({ id: adId })
+
+    if (result.affected === 0) throw new NotFoundException('Annonce non trouvée ou déjà supprimée')
+    return { message: 'Annonce supprimée avec succès' }
+  }
+
 
   async findOthers(userId: number): Promise<Advertisement[]> {
     const ads = await this.adRepo.find({
@@ -297,6 +315,19 @@ export class AdvertisementsService {
 
     return { userIds: uniqueUserIds };
   }
+
+  async findPackagesByAdvertisementId(advertisementId: number): Promise<Package[]> {
+    this.validateId(advertisementId);
+
+    const packages = await this.packageRepo.find({
+      where: { advertisement: { id: advertisementId } },
+      relations: ['localisations'], // tu peux inclure ça si tu veux
+    });
+
+    return packages;
+  }
+
+
 
 
 

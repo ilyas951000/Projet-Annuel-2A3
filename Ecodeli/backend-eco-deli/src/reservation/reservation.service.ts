@@ -5,12 +5,17 @@ import { Reservation } from './entities/reservation.entity';
 import { Box } from 'src/box/entities/box.entity';
 import { User } from 'src/users/entities/user.entity';
 import { Package } from 'src/packages/entities/package.entity';
+import { Localisation } from 'src/localisation/entities/localisation.entity';
 
 @Injectable()
 export class ReservationService {
   constructor(
     @InjectRepository(Reservation)
     private reservationRepo: Repository<Reservation>,
+    
+
+    @InjectRepository(Localisation)
+    private localisationRepo: Repository<Localisation>,
 
     @InjectRepository(Box)
     private boxRepo: Repository<Box>,
@@ -29,7 +34,10 @@ export class ReservationService {
     endDate: string,
     packageId?: number,
   ): Promise<Reservation> {
-    const box = await this.boxRepo.findOneBy({ id: boxId });
+    const box = await this.boxRepo.findOne({
+      where: { id: boxId },
+      relations: ['local'], // 🔍 On récupère aussi le local lié à la box
+    });
     if (!box) throw new NotFoundException('Box not found');
 
     const user = await this.userRepo.findOneBy({ id: userId });
@@ -57,14 +65,34 @@ export class ReservationService {
     let selectedPackage: Package | null = null;
 
     if (packageId) {
-      selectedPackage = await this.packageRepo.findOneBy({ id: packageId });
+      selectedPackage = await this.packageRepo.findOne({
+        where: { id: packageId },
+        relations: ['localisations'],
+      });
+
       if (!selectedPackage) throw new NotFoundException('Colis non trouvé');
 
-      const existingReservation = await this.reservationRepo.findOneBy({ package: { id: packageId } });
+      const existingReservation = await this.reservationRepo.findOneBy({
+        package: { id: packageId },
+      });
+
       if (existingReservation) {
         throw new BadRequestException('Ce colis est déjà lié à une réservation.');
       }
+
+      // 🔁 Mettre à jour la localisation actuelle avec les infos du local de la box
+      const localisation = selectedPackage.localisations?.[0]; // ou une requête spécifique si tu as plusieurs localisations
+      if (localisation) {
+        localisation.currentStreet = box.local.street;
+        localisation.currentCity = box.local.city;
+        localisation.currentPostalCode = parseInt(box.local.postalCode);
+        localisation.currentLongitude= box.local.longitude;
+        localisation.currentLatitude= box.local.latitude;
+        await this.localisationRepo.save(localisation); // 🔐 Sauvegarde la mise à jour
+      }
     }
+    box.status = 'reserved';
+    await this.boxRepo.save(box);
 
     const reservation = this.reservationRepo.create({
       box,
@@ -74,9 +102,9 @@ export class ReservationService {
       ...(selectedPackage ? { package: selectedPackage } : {}),
     });
 
-
     return this.reservationRepo.save(reservation);
   }
+
 
   async cancelByAdmin(reservationId: number): Promise<void> {
     const reservation = await this.reservationRepo.findOneBy({ id: reservationId });

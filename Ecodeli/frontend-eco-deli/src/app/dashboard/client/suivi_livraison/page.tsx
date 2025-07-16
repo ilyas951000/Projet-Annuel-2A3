@@ -1,6 +1,6 @@
 "use client"
 import { useEffect, useState } from "react"
-import { MapPin, Calendar, Package, Truck, Clock, ChevronRight, Menu } from "lucide-react"
+import { MapPin, Calendar, Package, Truck, Clock, ChevronRight, Menu, PlusCircle } from "lucide-react"
 import Image from "next/image"
 import { motion, AnimatePresence } from "framer-motion"
 import { useRouter } from "next/navigation"
@@ -56,6 +56,87 @@ export default function DeliveryTracking() {
   const [reportReason, setReportReason] = useState("")
   const [reportLoading, setReportLoading] = useState(false)
   const [reportError, setReportError] = useState<string | null>(null)
+  const [editingAdId, setEditingAdId] = useState<number | null>(null)
+  const [editedAd, setEditedAd] = useState<Partial<Ad>>({})
+  const [updateLoading, setUpdateLoading] = useState(false)
+  const [updateError, setUpdateError] = useState<string | null>(null)
+  const [currentPage, setCurrentPage] = useState(1)
+  const [itemsPerPage, setItemsPerPage] = useState(5)
+  const [searchDate, setSearchDate] = useState("")
+  const [searchDepartureCity, setSearchDepartureCity] = useState("")
+  const [searchArrivalCity, setSearchArrivalCity] = useState("")
+
+
+  
+
+
+  const handleEditAd = (ad: Ad) => {
+    setEditingAdId(ad.id)
+    setEditedAd({
+      advertisementItem: ad.advertisementItem,
+      advertisementPrice: ad.advertisementPrice,
+      additionalInformation: ad.additionalInformation || "",
+    })
+  }
+  const handleUpdateAd = async (adId: number) => {
+    setUpdateLoading(true)
+    setUpdateError(null)
+    try {
+      const token = localStorage.getItem("token")
+      const res = await fetch(`http://localhost:3001/advertisements/${adId}`, {
+        method: "PATCH",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify(editedAd),
+      })
+
+      if (!res.ok) throw new Error("Échec de la mise à jour")
+
+      // MAJ locale
+      setAds((prev) =>
+        prev.map((ad) => (ad.id === adId ? { ...ad, ...editedAd } : ad))
+      )
+      setEditingAdId(null)
+    } catch (err: any) {
+      setUpdateError(err.message || "Erreur lors de la mise à jour")
+    } finally {
+      setUpdateLoading(false)
+    }
+  }
+  const filteredAds = ads.filter((ad) => {
+    const matchesDate = searchDate
+      ? new Date(ad.publicationDate).toISOString().split("T")[0] === searchDate
+      : true
+
+    const currentCity = ad.packages?.[0]?.localisations?.[0]?.currentCity?.toLowerCase() || ""
+    const destinationCity = ad.packages?.[0]?.localisations?.[0]?.destinationCity?.toLowerCase() || ""
+
+    const matchesDeparture = searchDepartureCity
+      ? currentCity.includes(searchDepartureCity.toLowerCase())
+      : true
+
+    const matchesArrival = searchArrivalCity
+      ? destinationCity.includes(searchArrivalCity.toLowerCase())
+      : true
+
+    return matchesDate && matchesDeparture && matchesArrival
+  })
+
+
+
+  const startIndex = (currentPage - 1) * itemsPerPage
+  const endIndex = startIndex + itemsPerPage
+  const paginatedAds = filteredAds.slice(startIndex, endIndex)
+
+  const totalPages = Math.ceil(filteredAds.length / itemsPerPage)
+
+  
+
+  
+
+
 
   useEffect(() => {
     const fetchUser = async () => {
@@ -204,6 +285,26 @@ export default function DeliveryTracking() {
     }
     }
 
+  const handleDeleteAd = async (adId: number) => {
+    const confirmDelete = window.confirm("Êtes-vous sûr de vouloir supprimer cette annonce ?")
+    if (!confirmDelete) return
+
+    try {
+      const token = localStorage.getItem("token")
+      const res = await fetch(`http://localhost:3001/advertisements/${adId}`, {
+        method: "DELETE",
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      })
+      if (!res.ok) throw new Error("Échec de la suppression de l'annonce")
+      setAds((prevAds) => prevAds.filter((ad) => ad.id !== adId))
+    } catch (err: any) {
+      alert(err.message || "Erreur lors de la suppression")
+    }
+  }
+
+
 
   return (
     <div className="flex h-screen bg-gray-50 relative">
@@ -211,7 +312,7 @@ export default function DeliveryTracking() {
         <div className="fixed inset-0 bg-black bg-opacity-50 z-30 md:hidden" onClick={() => setSidebarOpen(false)} />
       )}
 
-      <main className="p-5 md:p-10 overflow-auto w-full max-w-screen-2xl mx-auto">
+      <main className="p-5 md:p-10 w-full max-w-screen-2xl mx-auto">
         <div className="flex justify-between items-center md:hidden mb-5">
           <button onClick={() => setSidebarOpen(true)}>
             <Menu className="w-6 h-6 text-gray-900" />
@@ -226,7 +327,16 @@ export default function DeliveryTracking() {
             </h2>
             <p className="text-gray-600 mt-2">Suivez l'état de vos colis en temps réel</p>
           </div>
+          <button
+            data-tour="nouvelle-annonce"
+            onClick={() => router.push("/dashboard/client/createAnnounce")}
+            className="inline-flex items-center px-4 py-2 bg-green-500 hover:bg-green-600 text-white rounded-lg transition-colors shadow-sm"
+          >
+            <PlusCircle className="w-5 h-5 mr-2" />
+            Nouvelle annonce
+          </button>
         </div>
+        
 
         {loadingAds ? (
           <div className="flex justify-center items-center h-64">
@@ -247,8 +357,66 @@ export default function DeliveryTracking() {
           </div>
         ) : (
           <div className="space-y-6">
-            {ads.map((ad) => (
-              <AnimatePresence key={ad.id}>
+            <div className="flex flex-col md:flex-row justify-between items-center gap-4 mb-6">
+              {/* Recherche par date */}
+              <div className="flex flex-wrap gap-4 items-center mb-4">
+                {/* Ville de départ */}
+                <div className="flex items-center gap-2">
+                  <label htmlFor="searchDepartureCity" className="text-sm text-gray-600">Ville de départ :</label>
+                  <input
+                    type="text"
+                    id="searchDepartureCity"
+                    className="border border-gray-300 rounded-md px-2 py-1"
+                    placeholder="Ex : Lyon"
+                    value={searchDepartureCity}
+                    onChange={(e) => {
+                      setSearchDepartureCity(e.target.value)
+                      setCurrentPage(1)
+                    }}
+                  />
+                </div>
+
+                {/* Ville d'arrivée */}
+                <div className="flex items-center gap-2">
+                  <label htmlFor="searchArrivalCity" className="text-sm text-gray-600">Ville d’arrivée :</label>
+                  <input
+                    type="text"
+                    id="searchArrivalCity"
+                    className="border border-gray-300 rounded-md px-2 py-1"
+                    placeholder="Ex : Paris"
+                    value={searchArrivalCity}
+                    onChange={(e) => {
+                      setSearchArrivalCity(e.target.value)
+                      setCurrentPage(1)
+                    }}
+                  />
+                </div>
+              </div>
+
+
+              {/* Annonces par page */}
+              <div className="flex items-center gap-2">
+                <label htmlFor="itemsPerPage" className="text-sm text-gray-600">Annonces par page :</label>
+                <select
+                  id="itemsPerPage"
+                  className="border border-gray-300 rounded-md px-2 py-1"
+                  value={itemsPerPage}
+                  onChange={(e) => {
+                    setItemsPerPage(Number(e.target.value))
+                    setCurrentPage(1)
+                  }}
+                >
+                  <option value={5}>5</option>
+                  <option value={10}>10</option>
+                  <option value={20}>20</option>
+                </select>
+              </div>
+            </div>
+            
+
+
+           {paginatedAds.map((ad) => (
+            <AnimatePresence key={ad.id}>
                 <motion.div
                   initial={{ opacity: 0, y: 20 }}
                   animate={{ opacity: 1, y: 0 }}
@@ -345,7 +513,7 @@ export default function DeliveryTracking() {
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                         <div>
                           <h4 className="font-medium text-gray-900 mb-3 flex items-center">
-                            <Package className="w-4 h-4 mr-2 text-green-500" />
+                            
                             Détails du colis
                           </h4>
                           <div className="space-y-2 text-sm">
@@ -398,7 +566,6 @@ export default function DeliveryTracking() {
 
                         <div>
                           <h4 className="font-medium text-gray-900 mb-3 flex items-center">
-                            <Truck className="w-4 h-4 mr-2 text-green-500" />
                             Itinéraire de livraison
                           </h4>
                           <div className="space-y-4 text-sm">
@@ -441,6 +608,9 @@ export default function DeliveryTracking() {
                               </p>
                             </div>
                           )}
+                          <div className="mt-4 text-base font-medium text-gray-900">
+                            Prix : <span className="text-green-600">{ad.advertisementPrice}€</span>
+                          </div>
                         </div>
                       </div>
                       <div className="mt-6 flex justify-end">
@@ -448,7 +618,7 @@ export default function DeliveryTracking() {
                           onClick={() => router.push(`/dashboard/client/announcementPage/${ad.id}`)}
                           className="inline-flex items-center px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors shadow-sm mr-3"
                         >
-                          🔍 Voir plus de détails
+                          Voir plus de détails
                         </button>
                       </div>
 
@@ -463,12 +633,119 @@ export default function DeliveryTracking() {
                           Signaler une information
                         </button>
                       </div>
+                      {editingAdId === ad.id ? (
+                        <div className="mt-6 space-y-6 bg-gray-50 p-6 rounded-xl shadow-sm border border-gray-200">
+                          <div>
+                            <label className="block text-sm font-semibold text-gray-800 mb-1"> Prix (€)</label>
+                            <input
+                              type="number"
+                              value={editedAd.advertisementPrice || ""}
+                              onChange={(e) =>
+                                setEditedAd({ ...editedAd, advertisementPrice: parseFloat(e.target.value) })
+                              }
+                              className="w-full rounded-lg border border-gray-300 px-4 py-2 text-gray-800 shadow-sm focus:outline-none focus:ring-2 focus:ring-green-500"
+                              placeholder="Entrez un prix"
+                            />
+                          </div>
+                          <div>
+                            <label className="block text-sm font-semibold text-gray-800 mb-1"> Infos complémentaires</label>
+                            <textarea
+                              value={editedAd.additionalInformation || ""}
+                              onChange={(e) =>
+                                setEditedAd({ ...editedAd, additionalInformation: e.target.value })
+                              }
+                              rows={4}
+                              className="w-full rounded-lg border border-gray-300 px-4 py-2 text-gray-800 shadow-sm focus:outline-none focus:ring-2 focus:ring-green-500"
+                              placeholder="Ajoutez des détails sur l'annonce"
+                            />
+                          </div>
+
+                          {updateError && (
+                            <p className="text-sm text-red-600 font-medium">{updateError}</p>
+                          )}
+
+                          <div className="flex justify-end space-x-3 pt-2">
+                            <button
+                              onClick={() => setEditingAdId(null)}
+                              className="px-4 py-2 rounded-lg border border-gray-300 text-gray-700 hover:bg-gray-100 transition"
+                            >
+                              Annuler
+                            </button>
+                            <button
+                              onClick={() => handleUpdateAd(ad.id)}
+                              className="px-4 py-2 rounded-lg bg-green-600 text-white hover:bg-green-700 transition"
+                              disabled={updateLoading}
+                            >
+                              {updateLoading ? "Enregistrement..." : " Enregistrer"}
+                            </button>
+                          </div>
+                        </div>
+                      ) : (
+                        <div className="mt-4 flex justify-end space-x-3">
+                          <button
+                            onClick={() => handleEditAd(ad)}
+                            className="inline-flex items-center px-4 py-2 bg-yellow-500 hover:bg-yellow-600 text-white rounded-lg transition-colors shadow-sm"
+                          >
+                            Modifier l'annonce
+                          </button>
+                          <button
+                            onClick={() => handleDeleteAd(ad.id)}
+                            className="inline-flex items-center px-4 py-2 bg-white hover:bg-red-100 text-red-600 border border-red-300 rounded-lg transition-colors shadow-sm"
+                          >
+                            Supprimer l'annonce
+                          </button>
+                        </div>
+                      )}
+
+
                     </motion.div>
                   )}
                 </motion.div>
               </AnimatePresence>
             ))}
+            <div className="flex flex-col md:flex-row justify-between items-center mt-8 gap-4">
+              {/* Sélecteur du nombre d'annonces */}
+              <div className="flex items-center gap-2">
+                <label htmlFor="itemsPerPage" className="text-sm text-gray-600">Annonces par page:</label>
+                <select
+                  id="itemsPerPage"
+                  className="border border-gray-300 rounded-md px-2 py-1"
+                  value={itemsPerPage}
+                  onChange={(e) => {
+                    setItemsPerPage(Number(e.target.value))
+                    setCurrentPage(1) // reset à page 1
+                  }}
+                >
+                  <option value={5}>5</option>
+                  <option value={10}>10</option>
+                  <option value={20}>20</option>
+                </select>
+              </div>
+
+              {/* Contrôles de pagination */}
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={() => setCurrentPage((prev) => Math.max(prev - 1, 1))}
+                  disabled={currentPage === 1}
+                  className="px-3 py-1 border rounded-md text-sm disabled:opacity-50"
+                >
+                  Précédent
+                </button>
+                <span className="text-sm text-gray-700">
+                  Page {currentPage} / {totalPages}
+                </span>
+                <button
+                  onClick={() => setCurrentPage((prev) => Math.min(prev + 1, totalPages))}
+                  disabled={currentPage === totalPages}
+                  className="px-3 py-1 border rounded-md text-sm disabled:opacity-50"
+                >
+                  Suivant
+                </button>
+              </div>
+            </div>
+
           </div>
+          
         )}
         {/* Modal de signalement */}
         {showReportModal && selectedAdForReport && (

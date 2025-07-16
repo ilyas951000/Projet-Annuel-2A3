@@ -409,6 +409,19 @@ setPriorityFee(priorityFee);
           method: "PATCH",
           headers: { "Content-Type": "application/json" },
         })
+        if (packageInfo && Array.isArray(packageInfo)) {
+          await Promise.all(
+            packageInfo.map(pkg =>
+              fetch(`${process.env.NEXT_PUBLIC_API_URL}/packages/${pkg.id}/update-delivery-status`, {
+                method: "PATCH",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ deliveryStatus: "en cours" }),
+              })
+            )
+          );
+}
+
+
 
 
         setTimeout(() => {

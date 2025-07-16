@@ -30,6 +30,7 @@ function PaiementForm() {
   const [clientSecret, setClientSecret] = useState<string | null>(null);
   const [message, setMessage] = useState<string>("");
   const [loading, setLoading] = useState<boolean>(false);
+  const [transferId, setTransferId] = useState<number | null>(null);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -67,7 +68,8 @@ function PaiementForm() {
         }
 
         setClientSecret(data.clientSecret);
-        setAmount(data.amount / 100); // Stripe utilise des centimes
+        setAmount(data.amount / 100);
+        setTransferId(data.transferId); // Stripe utilise des centimes
       } catch (err: any) {
         setMessage(err.message || "Erreur inattendue.");
       }
@@ -105,13 +107,44 @@ function PaiementForm() {
         elements.getElement(CardElement)?.clear();
 
         // Marquer l'intervention comme payée dans la base
+        // Marquer l'intervention comme payée dans la base
         await fetch(`${process.env.NEXT_PUBLIC_API_URL}/intervention/${interventionId}/paid`, {
           method: "PATCH",
           headers: { "Content-Type": "application/json" },
         });
 
+        // ✅ Mettre à jour le statut du transfert à "attente de valider"
+        if (transferId) {
+          console.log("➡️ Mise à jour du statut pour transferId:", transferId);
+
+          const token = localStorage.getItem("token");
+
+          const transferRes = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/payments/provider/${transferId}/status`, {
+            method: "PATCH",
+            headers: {
+              "Content-Type": "application/json",
+              Authorization: `Bearer ${token}`, // ✅ nécessaire
+            },
+          });
+
+
+          const transferData = await transferRes.json();
+          console.log("✅ Résultat de la mise à jour du statut:", transferData);
+
+          if (!transferRes.ok) {
+            console.warn("⚠️ La mise à jour du statut a échoué:", transferData);
+          }
+        } else {
+          console.warn("❌ Aucun transferId disponible pour mise à jour");
+        }
+
+        
+
+
+
         // ✅ Redirection vers la page des réservations
-        router.push("/dashboard/client/MesReservations");
+        //router.push("/dashboard/client/MesReservations");
+
       }
     } catch (err: any) {
       setMessage(err.message || "Erreur de paiement.");
