@@ -8,13 +8,20 @@ import { Box } from '../../box/entities/box.entity';
 export class Local {
   @PrimaryGeneratedColumn()
   id: number;
+  @Column()
+  street: string;
 
   @Column()
   city: string;
 
   @Column()
-  address: string;
+  postalCode: string;
 
+  @Column()
+  address: string;
+  
+ 
+  
   @Column('decimal', { precision: 10, scale: 6 })
   latitude: number;
 

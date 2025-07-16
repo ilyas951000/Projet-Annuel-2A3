@@ -44,13 +44,13 @@ export default function AdminPlanningTrajets() {
         const token = localStorage.getItem("token");
 
         const [schedulesRes, movementsRes, usersRes] = await Promise.all([
-          fetch("http://localhost:3001/courier/1/schedule/all", {
+          fetch(`${process.env.NEXT_PUBLIC_API_URL}/courier/1/schedule/all`, {
             headers: { Authorization: `Bearer ${token}` },
           }),
-          fetch("http://localhost:3001/movements", {
+          fetch(`${process.env.NEXT_PUBLIC_API_URL}/movements`, {
             headers: { Authorization: `Bearer ${token}` },
           }),
-          fetch("http://localhost:3001/users", {
+          fetch(`${process.env.NEXT_PUBLIC_API_URL}/users`, {
             headers: { Authorization: `Bearer ${token}` },
           }),
         ]);

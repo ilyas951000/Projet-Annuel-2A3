@@ -40,7 +40,7 @@ export default function AdminTakenPackages() {
     const fetchTakenPackages = async () => {
       try {
         const token = localStorage.getItem('token');
-        const res = await fetch('http://localhost:3001/packages/assigned', {
+        const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/packages/assigned`, {
           headers: {
             Authorization: `Bearer ${token}`,
           },

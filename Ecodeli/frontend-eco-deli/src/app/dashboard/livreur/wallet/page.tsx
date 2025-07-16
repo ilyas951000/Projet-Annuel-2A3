@@ -81,7 +81,16 @@ export default function WalletPage() {
     fetch(`${process.env.NEXT_PUBLIC_API_URL}/invoices/provider/${providerId}/history`)
       .then((res) => res.json())
       .then((data) => {
-        if (Array.isArray(data)) setInvoices(data);
+        if (Array.isArray(data)) {
+  const seen = new Set();
+  const uniqueInvoices = data.filter((inv) => {
+    if (seen.has(inv.invoiceNumber)) return false;
+    seen.add(inv.invoiceNumber);
+    return true;
+  });
+  setInvoices(uniqueInvoices);
+}
+
         else setMessage("⚠️ Aucune facture disponible ou réponse inattendue.");
       })
       .catch(() => setMessage("Erreur lors du chargement des factures."));
@@ -148,7 +157,7 @@ export default function WalletPage() {
 
   return (
     <div className="max-w-md mx-auto p-6 bg-white rounded shadow">
-      <h1 className="text-2xl font-bold mb-4">💼 Mon Portefeuille</h1>
+      <h1 className="text-2xl font-bold mb-4">Mon Portefeuille</h1>
 
       {providerId ? (
         <>
@@ -215,32 +224,58 @@ export default function WalletPage() {
           </button>
 
           <div className="mt-8">
-            <h2 className="text-xl font-semibold mb-4">📜 Mes Factures</h2>
+            <h2 className="text-xl font-semibold mb-4">Mes Factures</h2>
             {invoices.length === 0 ? (
               <p>Aucune facture trouvée.</p>
             ) : (
               <ul className="space-y-4">
                 {invoices.map((inv) => (
-                  <li key={inv.id} className="border p-4 rounded shadow">
-                    <p>Facture n°{inv.invoiceNumber}</p>
-                    <p>Montant : {inv.totalAmount} €</p>
-                    <p>Date : {new Date(inv.issueDate).toLocaleDateString()}</p>
-                    <p>Statut : {inv.paymentStatus ? "✅ Payé" : "❌ Non payé"}</p>
+                  <li
+                    key={inv.id}
+                    className="border border-gray-200 p-4 rounded-lg shadow-sm bg-gray-50"
+                  >
+                    <div className="flex items-center justify-between mb-2">
+                      <span className="text-sm text-gray-600">Facture</span>
+                      <span className="text-sm font-medium text-gray-800">
+                        N° {inv.invoiceNumber}
+                      </span>
+                    </div>
+                    <div className="flex justify-between items-center text-sm mb-1">
+                      <span>Montant :</span>
+                      <span className="font-semibold text-gray-900">
+                        {parseFloat(inv.totalAmount).toFixed(2)} €
+                      </span>
+                    </div>
+                    <div className="flex justify-between items-center text-sm mb-1">
+                      <span>Date :</span>
+                      <span>{new Date(inv.issueDate).toLocaleDateString()}</span>
+                    </div>
+                    <div className="flex justify-between items-center text-sm mb-2">
+                      <span>Statut :</span>
+                      <span
+                        className={`font-semibold ${
+                          inv.paymentStatus ? "text-green-600" : "text-red-600"
+                        }`}
+                      >
+                        {inv.paymentStatus ? "Payé" : "Non payé"}
+                      </span>
+                    </div>
                     <a
                       href={`${process.env.NEXT_PUBLIC_API_URL}/invoices/pdf/${inv.id}`}
-                      className="text-blue-600 underline"
+                      className="inline-block mt-2 text-sm text-indigo-600 hover:underline"
                       target="_blank"
                       rel="noopener noreferrer"
                     >
-                      Télécharger PDF
+                      Télécharger le PDF
                     </a>
                   </li>
                 ))}
               </ul>
+
             )}
           </div>
           <div className="mt-8 border-t pt-4">
-            <h3 className="text-lg font-semibold mb-2">💶 Historique de mes virements</h3>
+            <h3 className="text-lg font-semibold mb-2">Historique de mes virements</h3>
             {virements.length === 0 ? (
               <p>Aucun virement effectué pour le moment.</p>
             ) : (

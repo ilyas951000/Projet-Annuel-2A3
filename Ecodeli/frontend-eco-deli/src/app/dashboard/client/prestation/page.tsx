@@ -4,6 +4,7 @@ import { useState, useEffect } from "react"
 import axios from "axios"
 import Link from "next/link"
 import { motion, AnimatePresence } from "framer-motion"
+import { useRouter } from 'next/navigation';
 import {
   Calendar,
   Search,
@@ -199,7 +200,28 @@ export default function ListePrestataires() {
 
   // 🔒 Date du jour pour bloquer les dates passées
   const today = new Date().toISOString().split("T")[0]
+  const [roles, setRoles] = useState<{ id: number; name: string }[]>([])
+  const [selectedRoleId, setSelectedRoleId] = useState<number | null>(null)
+  const [sortByPrice, setSortByPrice] = useState<"asc" | "desc" | null>(null)
+  const [currentPage, setCurrentPage] = useState(1)
+  const [itemsPerPage, setItemsPerPage] = useState(10)
+  const router = useRouter();
 
+
+
+useEffect(() => {
+  const fetchRoles = async () => {
+    try {
+      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/prestataire-roles`)
+      const data = await res.json()
+      if (Array.isArray(data)) setRoles(data)
+    } catch (err) {
+      console.error("Erreur lors du chargement des rôles :", err)
+    }
+  }
+
+  fetchRoles()
+}, [])
 
   // --- Fetch client ID ---
   useEffect(() => {
@@ -267,14 +289,32 @@ export default function ListePrestataires() {
     fetchProfiles(startDate, endDate)
   }
 
-  const filteredProfiles = profiles.filter((profile) => {
+  const filteredProfiles = profiles
+  .filter((profile) => {
     const searchLower = searchTerm.toLowerCase()
-    return (
+    const matchesSearch =
       profile.prestationType.toLowerCase().includes(searchLower) ||
       profile.description.toLowerCase().includes(searchLower) ||
       `${profile.user.userFirstName} ${profile.user.userLastName}`.toLowerCase().includes(searchLower)
-    )
+
+    const matchesRole =
+      !selectedRoleId || roles.find((role) => role.id === selectedRoleId)?.name === profile.prestationType
+
+    return matchesSearch && matchesRole
   })
+  .sort((a, b) => {
+    if (!sortByPrice) return 0
+    return sortByPrice === "asc" ? a.price - b.price : b.price - a.price
+  })
+  
+  const totalPages = Math.ceil(filteredProfiles.length / itemsPerPage)
+
+  const paginatedProfiles = filteredProfiles.slice(
+    (currentPage - 1) * itemsPerPage,
+    currentPage * itemsPerPage
+  )
+
+
 
   return (
     <div className="max-w-4xl mx-auto p-4 md:p-6">
@@ -299,6 +339,39 @@ export default function ListePrestataires() {
           Filtrer par disponibilité
         </h2>
         <div className="flex flex-wrap gap-4 items-end">
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Type de prestation</label>
+            <select
+              value={selectedRoleId ?? ""}
+              onChange={(e) => setSelectedRoleId(e.target.value ? parseInt(e.target.value) : null)}
+              className="border border-gray-300 rounded-lg px-3 py-2 w-full focus:ring-2 focus:ring-green-500"
+            >
+              <option value="">-- Tous les métiers --</option>
+              {roles.map((role) => (
+                <option key={role.id} value={role.id}>
+                  {role.name}
+                </option>
+              ))}
+            </select>
+          </div>
+          <div className="w-full sm:w-64">
+            <label className="block text-sm font-medium text-gray-700 mb-1">Trier par prix</label>
+            <select
+              value={sortByPrice ?? ""}
+              onChange={(e) =>
+                setSortByPrice(
+                  e.target.value === "asc" || e.target.value === "desc"
+                    ? e.target.value
+                    : null
+                )
+              }
+              className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-green-500 focus:border-green-500 outline-none"
+            >
+              <option value="">-- Aucun tri --</option>
+              <option value="asc">Prix croissant</option>
+              <option value="desc">Prix décroissant</option>
+            </select>
+          </div>
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">Date de début</label>
             <div className="relative">
@@ -365,7 +438,8 @@ export default function ListePrestataires() {
           {filteredProfiles.length > 0 ? (
             <div className="space-y-6">
               <AnimatePresence>
-                {filteredProfiles.map((profile) => (
+                {paginatedProfiles.map((profile) => (
+
                   <motion.div
                     key={profile.id}
                     initial={{ opacity: 0, y: 20 }}
@@ -445,6 +519,15 @@ export default function ListePrestataires() {
                             <Star className="w-4 h-4 mr-2 text-yellow-500" />
                             Noter
                           </Link>
+
+                          <button
+                            onClick={() =>
+                              router.push(`/dashboard/client/dispoPrestataire/${profile.user.id}`)
+                            }
+                            className="inline-flex items-center text-blue-600 hover:text-blue-700 font-medium"
+                          >
+                            Voir les disponibilités
+                          </button>
                         </div>
                       )}
                     </div>
@@ -485,6 +568,57 @@ export default function ListePrestataires() {
           onClose={() => setSelectedReservation(null)}
         />
       )}
+      <div className="flex justify-end items-center gap-2 mt-6">
+        <label className="text-sm text-gray-600">Prestataires par page :</label>
+        <select
+          value={itemsPerPage}
+          onChange={(e) => {
+            setItemsPerPage(Number(e.target.value))
+            setCurrentPage(1) // remettre à la première page
+          }}
+          className="border border-gray-300 rounded-lg px-2 py-1 text-sm"
+        >
+          {[5, 10, 20, 50].map((value) => (
+            <option key={value} value={value}>
+              {value}
+            </option>
+          ))}
+        </select>
+      </div>
+
+
+      {totalPages > 1 && (
+        <div className="mt-6 flex justify-center items-center gap-2">
+          <button
+            onClick={() => setCurrentPage((p) => Math.max(p - 1, 1))}
+            disabled={currentPage === 1}
+            className="px-3 py-1 rounded-lg border text-sm hover:bg-gray-100 disabled:opacity-50"
+          >
+            Précédent
+          </button>
+          {[...Array(totalPages)].map((_, i) => (
+            <button
+              key={i}
+              onClick={() => setCurrentPage(i + 1)}
+              className={`px-3 py-1 rounded-lg border text-sm ${
+                currentPage === i + 1
+                  ? "bg-green-500 text-white"
+                  : "hover:bg-gray-100"
+              }`}
+            >
+              {i + 1}
+            </button>
+          ))}
+          <button
+            onClick={() => setCurrentPage((p) => Math.min(p + 1, totalPages))}
+            disabled={currentPage === totalPages}
+            className="px-3 py-1 rounded-lg border text-sm hover:bg-gray-100 disabled:opacity-50"
+          >
+            Suivant
+          </button>
+        </div>
+      )}
+
     </div>
   )
 }

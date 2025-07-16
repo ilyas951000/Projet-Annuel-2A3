@@ -285,6 +285,8 @@ async payoutToProvider(providerId: number, amount: number) {
 
 
 
+
+
   async createPaymentIntent(
     clientId: number,
     providerId: number,
@@ -633,92 +635,92 @@ async payoutToProvider(providerId: number, amount: number) {
 
 
   async handleUnifiedWebhook(raw: { headers: any; body: any }) {
-  const sig = raw.headers['stripe-signature'];
-  const endpointSecret = process.env.STRIPE_WEBHOOK_SECRET;
+    const sig = raw.headers['stripe-signature'];
+    const endpointSecret = process.env.STRIPE_WEBHOOK_SECRET;
 
-  if (!endpointSecret) {
-    console.error('❌ STRIPE_WEBHOOK_SECRET non défini');
-    throw new Error('❌ STRIPE_WEBHOOK_SECRET non défini dans .env');
-  }
-
-  let event: Stripe.Event;
-  try {
-    event = this.stripe.webhooks.constructEvent(raw.body, sig, endpointSecret);
-  } catch (err: any) {
-    console.error('⚠️ Signature Stripe invalide :', err.message);
-    throw new Error(`Webhook Error: ${err.message}`);
-  }
-
-  const eventType = event.type;
-  console.log(`📦 Webhook Stripe reçu : ${eventType}`);
-
-  // ✅ Cas 1 : abonnement réussi
-  if (eventType === 'checkout.session.completed') {
-    const session = event.data.object as Stripe.Checkout.Session;
-    const email = session.customer_email;
-    const plan = session.metadata?.subscriptionPlan;
-
-    console.log('🔍 Email Stripe reçu :', email);
-    console.log('🔍 Plan reçu :', plan);
-
-    if (!email || !plan) {
-      console.warn('❌ Email ou plan manquant dans la session Stripe');
-      return { received: true };
+    if (!endpointSecret) {
+      console.error('❌ STRIPE_WEBHOOK_SECRET non défini');
+      throw new Error('❌ STRIPE_WEBHOOK_SECRET non défini dans .env');
     }
 
-    const user = await this.userRepo.findOne({ where: { email }, relations: ['subscription'] });
-    if (!user) {
-      console.warn('❌ Utilisateur introuvable pour email :', email);
-      return { received: true };
+    let event: Stripe.Event;
+    try {
+      event = this.stripe.webhooks.constructEvent(raw.body, sig, endpointSecret);
+    } catch (err: any) {
+      console.error('⚠️ Signature Stripe invalide :', err.message);
+      throw new Error(`Webhook Error: ${err.message}`);
     }
 
-    console.log('👤 Utilisateur trouvé :', user.id);
+    const eventType = event.type;
+    console.log(`📦 Webhook Stripe reçu : ${eventType}`);
 
-    switch (plan) {
-      case 'starter_plan':
-        user.userSubscription = 1;
-        break;
-      case 'premium_plan':
-        user.userSubscription = 2;
-        break;
-      default:
-        user.userSubscription = 0;
-        break;
+    // ✅ Cas 1 : abonnement réussi
+    if (eventType === 'checkout.session.completed') {
+      const session = event.data.object as Stripe.Checkout.Session;
+      const email = session.customer_email;
+      const plan = session.metadata?.subscriptionPlan;
+
+      console.log('🔍 Email Stripe reçu :', email);
+      console.log('🔍 Plan reçu :', plan);
+
+      if (!email || !plan) {
+        console.warn('❌ Email ou plan manquant dans la session Stripe');
+        return { received: true };
+      }
+
+      const user = await this.userRepo.findOne({ where: { email }, relations: ['subscription'] });
+      if (!user) {
+        console.warn('❌ Utilisateur introuvable pour email :', email);
+        return { received: true };
+      }
+
+      console.log('👤 Utilisateur trouvé :', user.id);
+
+      switch (plan) {
+        case 'starter_plan':
+          user.userSubscription = 1;
+          break;
+        case 'premium_plan':
+          user.userSubscription = 2;
+          break;
+        default:
+          user.userSubscription = 0;
+          break;
+      }
+
+      await this.userRepo.save(user);
+      console.log('✅ user.userSubscription mis à jour :', user.userSubscription);
+
+      const newSub = this.subscriptionRepo.create({
+        subscriptionTitle: plan === 'starter_plan' ? 'Starter' : 'Premium',
+        packageInsurance: true,
+        shippingDiscount: plan === 'premium_plan' ? 9 : 5,
+        priorityShipping: plan === 'premium_plan' ? 1 : 0,
+        permanentDiscount: plan === 'premium_plan' ? 5 : 5,
+        supplement3000: plan === 'premium_plan',
+        hasUsedFreeShipping: false,
+        user: user,
+      });
+
+      const savedSub = await this.subscriptionRepo.save(newSub);
+      console.log('✅ Nouvelle subscription créée :', savedSub.id);
+
+      user.activeSubscription = savedSub;
+
+      const updatedUser = await this.userRepo.save(user);
+      console.log('📌 user.activeSubscriptionId mis à jour :', updatedUser.activeSubscription?.id);
+
+      console.log(`✅ Subscription enregistrée ET activée pour ${email}`);
     }
 
-    await this.userRepo.save(user);
-    console.log('✅ user.userSubscription mis à jour :', user.userSubscription);
+    // ✅ Cas 2 : paiement simple
+    else if (eventType === 'payment_intent.succeeded') {
+      const paymentIntent = event.data.object as Stripe.PaymentIntent;
+      console.log(`✅ Paiement simple réussi : ${paymentIntent.id}`);
+    }
 
-    const newSub = this.subscriptionRepo.create({
-      subscriptionTitle: plan === 'starter_plan' ? 'Starter' : 'Premium',
-      packageInsurance: true,
-      shippingDiscount: plan === 'premium_plan' ? 9 : 5,
-      priorityShipping: plan === 'premium_plan' ? 1 : 0,
-      permanentDiscount: plan === 'premium_plan' ? 5 : 5,
-      supplement3000: plan === 'premium_plan',
-      hasUsedFreeShipping: false,
-      user: user,
-    });
-
-    const savedSub = await this.subscriptionRepo.save(newSub);
-    console.log('✅ Nouvelle subscription créée :', savedSub.id);
-
-    user.activeSubscription = savedSub;
-
-    const updatedUser = await this.userRepo.save(user);
-    console.log('📌 user.activeSubscriptionId mis à jour :', updatedUser.activeSubscription?.id);
-
-    console.log(`✅ Subscription enregistrée ET activée pour ${email}`);
+    return { received: true };
   }
-
-  // ✅ Cas 2 : paiement simple
-  else if (eventType === 'payment_intent.succeeded') {
-    const paymentIntent = event.data.object as Stripe.PaymentIntent;
-    console.log(`✅ Paiement simple réussi : ${paymentIntent.id}`);
-  }
-
-  return { received: true };
-}
 
 
 

@@ -177,6 +177,14 @@ export class AdvertisementsController {
     return this.advertisementsService.markAsPaid(packageId);
   }
 
+
+  @Get(':id/packages')
+  async getPackagesByAdvertisementId(@Param('id', ParseIntPipe) id: number) {
+    return this.advertisementsService.findPackagesByAdvertisementId(id);
+  }
+
+
+
   @Get(':id/deliverer')
   getDelivererForPackage(@Param('id') id: string) {
     const packageId = parseInt(id, 10);
@@ -184,5 +192,6 @@ export class AdvertisementsController {
     return this.advertisementsService.getAllDeliverersForAdvertisement(packageId);
   }
 
+  
   
 }

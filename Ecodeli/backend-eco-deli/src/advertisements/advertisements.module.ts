@@ -7,6 +7,9 @@ import { MulterModule } from '@nestjs/platform-express';
 import { Package } from 'src/packages/entities/package.entity';
 import { Localisation } from 'src/localisation/entities/localisation.entity';
 import { Report } from 'src/reports/entities/report.entity'
+import { Reservation } from 'src/reservation/entities/reservation.entity';
+import { ReservationModule } from 'src/reservation/reservation.module';
+import { PlatformFee } from 'src/payments/entities/platform-fee.entity';
 
 @Module({
   imports: [
@@ -14,9 +17,12 @@ import { Report } from 'src/reports/entities/report.entity'
       Advertisement,
       Package,
       Localisation, 
-      Report,    
+      Report,
+      Reservation,
+      PlatformFee, 
     ]),
     MulterModule.register({ dest: './uploads' }),
+    ReservationModule,
   ],
   controllers: [AdvertisementsController],
   providers: [AdvertisementsService],

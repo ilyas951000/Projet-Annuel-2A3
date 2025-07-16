@@ -4,6 +4,7 @@ import {
   PrimaryGeneratedColumn,
   ManyToOne,
   CreateDateColumn,
+  JoinColumn,
 } from 'typeorm';
 import { User } from 'src/users/entities/user.entity';
 
@@ -13,6 +14,7 @@ export class Transfer {
   id: number;
 
   @ManyToOne(() => User, { eager: true })
+  @JoinColumn({ name: 'providerId' }) // lie provider <-> providerId
   provider: User;
 
   @ManyToOne(() => User, { eager: true })
@@ -22,7 +24,7 @@ export class Transfer {
   amount: number;
 
   @Column({ default: 'pending' })
-  status: 'pending' | 'completed' | 'failed' | 'paid';
+  status: 'pending' | 'completed' | 'failed' | 'paid' | 'attente de valider';
 
   @Column({ default: false })
   isValidatedByClient: boolean;
@@ -32,6 +34,7 @@ export class Transfer {
 
   @Column({ type: 'int', nullable: true })
   packageId: number | null;
+  
 
 
 }

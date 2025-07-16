@@ -2,10 +2,16 @@
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 
+interface Role {
+  id: number;
+  name: string;
+}
+
 const PrestataireRegister: React.FC = () => {
   const [message, setMessage] = useState('');
   const [roles, setRoles] = useState([]);
   const [selectedRoleId, setSelectedRoleId] = useState('');
+  
 
   useEffect(() => {
     const fetchRoles = async () => {
@@ -21,41 +27,74 @@ const PrestataireRegister: React.FC = () => {
   }, []);
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
-    e.preventDefault();
-    const form = e.currentTarget;
-    const formData = new FormData(form);
+  e.preventDefault();
+  const form = e.currentTarget;
+  const formData = new FormData(form);
 
-    const confirmPassword = formData.get('confirmPassword');
+  const confirmPassword = formData.get('confirmPassword');
+  const [roles, setRoles] = useState<Role[]>([]);
 
-    const data = {
-      userFirstName: formData.get('userFirstName'),
-      userLastName: formData.get('userLastName'),
-      email: formData.get('email'),
-      password: formData.get('password'),
-      userAddress: formData.get('userAddress'),
-      userStatus: 'prestataire',
-      prestataireRoleId: parseInt(selectedRoleId, 10),
-    };
+  const data = {
+    userFirstName: formData.get('userFirstName'),
+    userLastName: formData.get('userLastName'),
+    email: formData.get('email'),
+    password: formData.get('password'),
+    userAddress: formData.get('userAddress'),
+    userStatus: 'prestataire',
+    prestataireRoleId: parseInt(selectedRoleId, 10),
+  };
 
-    if (data.password !== confirmPassword) {
-      setMessage('Les mots de passe ne correspondent pas.');
+  if (data.password !== confirmPassword) {
+    setMessage('Les mots de passe ne correspondent pas.');
+    return;
+  }
+
+  try {
+    // Étape 1 : inscription utilisateur
+    const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/auth/register`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(data),
+    });
+
+    const result = await res.json();
+
+    if (!res.ok) {
+      setMessage(result.message || "Erreur lors de l'inscription.");
       return;
     }
 
-    try {
-      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/auth/register`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(data),
-      });
+    const userId = result.user?.id || result.userId; // dépend du backend
 
-      const result = await res.json();
-      setMessage(res.ok ? result.message || 'Inscription réussie connectez-vous afin de rentrer les documents nécessaires pour la validation !' : result.message || "Erreur lors de l'inscription.");
-      if (res.ok) form.reset();
-    } catch {
-      setMessage('Erreur lors de la connexion au serveur.');
+    // Étape 2 : récupérer le nom du rôle sélectionné
+    const selectedRole = roles.find(role => role.id.toString() === selectedRoleId);
+    const prestationType = selectedRole?.name || '';
+
+    // Étape 3 : création du profil public
+    const profileRes = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/public-profile/${userId}`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        prestationType,
+        price: 0,
+        description: "", // string : nom du rôle
+      }),
+    });
+
+    if (!profileRes.ok) {
+      const profileError = await profileRes.json();
+      setMessage(`Utilisateur créé, mais erreur profil public : ${profileError.message}`);
+      return;
     }
-  };
+
+    setMessage('Inscription réussie ! Connectez-vous pour compléter votre profil.');
+    form.reset();
+
+  } catch (err) {
+    setMessage('Erreur lors de la connexion au serveur.');
+  }
+};
+
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-r from-green-800 to-green-400 px-4">

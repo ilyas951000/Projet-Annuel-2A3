@@ -23,6 +23,13 @@ function LayoutContent({ children }: { children: React.ReactNode }) {
   const { lang, setLang } = useLang()
   const [open, setOpen] = useState(false)
 
+
+  const handleLogout = () => {
+    localStorage.removeItem("token") 
+    window.location.href = "/../../connexion" // 
+  }
+
+
   return (
     <div className={`${darkMode ? "dark" : ""}`}>
       <div className="flex h-screen bg-gray-100 dark:bg-gray-900 relative">
@@ -56,13 +63,12 @@ function LayoutContent({ children }: { children: React.ReactNode }) {
             <nav>
               <ul className="space-y-3">
                 <NavItem title="Accueil" link="/dashboard/shopkeeper" />
-                <NavItem title="Mes Annonces" link="/dashboard/shopkeeper/advertisement" />
+                <NavItem title="Mes Annonces" link="/dashboard/shopkeeper/suivi_livraison" />
                 <NavItem title="Mon contrat" link="/dashboard/shopkeeper/contrat" />
-                <NavItem title="Mes facturations" link="/dashboard/shopkeeper/facturation" />
+                <NavItem title="Mes facturations" link="/dashboard/shopkeeper/wallet" />
                 <NavItem title="Mes paiement" link="/dashboard/shopkeeper/paiement" />
                 <NavItem title="Annonce des autres" link="/dashboard/shopkeeper/otherAnnouncements" />
                 <NavItem title="message avec un livreur" link="/dashboard/shopkeeper/clientMessagesPage" />
-                <NavItem title="mes gains" link="/dashboard/shopkeeper/earnings" />
                 <NavItem title="historique de paiement" link="/dashboard/shopkeeper/historyannonce" />
                 <NavItem title="mes paiements en cours" link="/dashboard/shopkeeper/payementpackage" />
                 <NavItem title="News" link="/dashboard/shopkeeper/news" />
@@ -72,15 +78,27 @@ function LayoutContent({ children }: { children: React.ReactNode }) {
             </nav>
           </div>
 
-          <div className="flex items-center space-x-3 mt-10">
-            <User className="w-5 h-5 text-gray-500 dark:text-gray-300" />
-            <span className="text-gray-700 dark:text-gray-300">Mon compte</span>
-            <Settings className="w-5 h-5 text-gray-500 dark:text-gray-300 cursor-pointer" />
+          <div className="flex flex-col mt-10 space-y-2">
+            <div className="flex items-center space-x-3">
+              <User className="w-5 h-5 text-gray-500 dark:text-gray-300" />
+              <span className="text-gray-700 dark:text-gray-300">Mon compte</span>
+              <Settings className="w-5 h-5 text-gray-500 dark:text-gray-300 cursor-pointer" />
+            </div>
+
+            <button
+              onClick={handleLogout}
+              className="w-full bg-green-600 text-black font-semibold px-4 py-2 rounded-lg hover:bg-green-700 transition"
+            >
+              Déconnexion
+            </button>
+
           </div>
+
         </aside>
 
         {/* Contenu principal */}
-        <main className="ml-0 md:ml-64 flex-1 p-5 md:p-10 w-full">
+        <main className="ml-0 flex-1 p-5 md:p-10 w-full">
+
           <div className="flex justify-between items-center md:hidden mb-5">
             <button onClick={() => setSidebarOpen(true)}>
               <Menu className="w-6 h-6 text-gray-900 dark:text-white" />

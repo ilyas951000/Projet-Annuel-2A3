@@ -158,6 +158,17 @@ export class PackagesService {
       .getMany();
   }
 
+  async findUnpaidAndPendingStatusPackagesByClient(clientId: number): Promise<Package[]> {
+    return this.packageRepository.createQueryBuilder('package')
+      .leftJoin('package.advertisement', 'ad')
+      .where('ad.usersId = :clientId', { clientId })
+      .andWhere('(package.isPaid = false OR package.isPaid = 0)')
+      .andWhere('LOWER(package.deliveryStatus) = :status', { status: 'attente de paiement' }) // insensible à la casse
+      .getMany();
+  }
+
+
+
   async getPendingTransfersForUser(userId: number | string): Promise<Package[]> {
     const parsedId = typeof userId === 'string' ? parseInt(userId, 10) : userId;
     if (isNaN(parsedId)) throw new BadRequestException('ID du livreur invalide');
@@ -263,7 +274,7 @@ export class PackagesService {
     for (const pkg of packages) {
       pkg.users = [user];
       pkg.isPaid = false;
-      pkg.deliveryStatus = 'en cours';
+      pkg.deliveryStatus = 'attente de paiement';
     }
 
     await this.packageRepository.save(packages);
@@ -285,6 +296,9 @@ export class PackagesService {
     const pkg = await this.packageRepository.findOne({ where: { id: packageId } });
     if (!pkg) throw new NotFoundException(`Colis d'id ${packageId} non trouvé`);
     pkg.deliveryStatus = status;
+    if (status === 'en cours') {
+      pkg.isPaid = true;
+    }
     return this.packageRepository.save(pkg);
   }
 
@@ -491,6 +505,7 @@ export class PackagesService {
 
   
 
+  
   
 
 

@@ -24,7 +24,7 @@ export default function AdminRates() {
     const fetchRates = async () => {
       try {
         const token = localStorage.getItem("token");
-        const res = await fetch("http://localhost:3001/rates", {
+        const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/rates`, {
           headers: {
             Authorization: `Bearer ${token}`,
           },

@@ -127,17 +127,18 @@ export default function TransferAndDeliveryPage() {
         params: { userId: livreurId },
         headers: { Authorization: `Bearer ${token}` },
       })
-      const inProgress = res.data.filter((p: IPackage) => p.deliveryStatus === "en cours")
+      const allPackages = res.data;
       setPackages((prev) => {
-        const combined = [...prev, ...inProgress];
+        const combined = [...prev, ...allPackages];
         const unique = new Map<number, IPackage>();
         combined.forEach((pkg) => unique.set(pkg.id, pkg));
         return Array.from(unique.values());
       });
 
 
+
       const initStatuses: { [key: number]: string } = {}
-      inProgress.forEach((pkg: IPackage) => {
+      allPackages.forEach((pkg: IPackage) => {
         initStatuses[pkg.id] = pkg.deliveryStatus
       })
       setStatusSelections(initStatuses)
@@ -786,7 +787,49 @@ export default function TransferAndDeliveryPage() {
             </ul>
         </>
       )}
+      <h2 className="text-lg font-semibold mt-6 mb-2">💰 Colis en attente de paiement</h2>
+        <ul>
+          {Object.entries(
+            packages
+              .filter((pkg) => pkg.isPaid === false)
+              .reduce((acc, pkg) => {
+                const advId = pkg.advertisementId ?? pkg.id;
+                if (!acc[advId]) acc[advId] = [];
+                acc[advId].push(pkg);
+                return acc;
+              }, {} as Record<number, IPackage[]>)
+          ).map(([advId, group]) => {
+            const firstPkg = group[0];
+
+            return (
+              <li key={advId} className="border p-4 mb-4 rounded shadow bg-white">
+                <h3 className="text-md font-semibold text-yellow-600 mb-2">Annonce #{advId}</h3>
+
+                {group.map((pkg) => (
+                  <div key={pkg.id} className="mb-4 border-t pt-2">
+                    <h2 className="text-lg font-semibold mb-1">{pkg.packageName}</h2>
+                    <p><strong>Poids :</strong> {pkg.packageWeight} kg</p>
+                    <p><strong>Dimension :</strong> {pkg.packageDimension}</p>
+                    <p><strong>Statut :</strong> {pkg.deliveryStatus}</p>
+                    <p className="text-red-600 font-semibold">⛔ Paiement en attente</p>
+                  </div>
+                ))}
+
+                <div className="mt-2">
+                  <button
+                    onClick={() => router.push(`/dashboard/livreur/announcementPage/${firstPkg.advertisementId}`)}
+                    className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded"
+                  >
+                    Voir détail
+                  </button>
+                </div>
+              </li>
+            );
+          })}
+        </ul>
+
     </div>
+    
   )
 
 }

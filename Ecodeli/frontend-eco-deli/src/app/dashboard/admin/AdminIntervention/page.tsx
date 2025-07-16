@@ -34,7 +34,7 @@ export default function InterventionTracking() {
     const fetchInterventions = async () => {
       try {
         const token = localStorage.getItem('token');
-        const res = await fetch('http://localhost:3001/intervention', {
+        const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/intervention`, {
           headers: {
             Authorization: `Bearer ${token}`,
           },

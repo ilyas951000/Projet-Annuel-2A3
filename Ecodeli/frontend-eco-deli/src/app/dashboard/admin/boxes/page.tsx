@@ -52,11 +52,11 @@ export default function AdminBoxesPage() {
   const [editingBox, setEditingBox] = useState<Partial<Box>>(defaultNewBox)
 
   const fetchData = async () => {
-    const res = await fetch("http://localhost:3001/boxes/admin/all")
+    const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/boxes/admin/all`)
     const data = await res.json()
     setBoxes(data)
 
-    const resLocals = await fetch("http://localhost:3001/locals")
+    const resLocals = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/locals`)
     const dataLocals = await resLocals.json()
     setLocals(dataLocals)
   }
@@ -69,7 +69,7 @@ export default function AdminBoxesPage() {
     const confirmed = window.confirm("Confirmer la suppression ?")
     if (!confirmed) return
 
-    const res = await fetch(`http://localhost:3001/boxes/admin/${id}`, { method: "DELETE" })
+    const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/boxes/admin/${id}`, { method: "DELETE" })
     if (res.ok) {
       fetchData()
     } else {
@@ -81,7 +81,7 @@ export default function AdminBoxesPage() {
     const confirmed = window.confirm("Confirmer l'annulation de cette réservation ?")
     if (!confirmed) return
 
-    const res = await fetch(`http://localhost:3001/reservations/admin/${reservationId}/cancel`, {
+    const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/reservations/admin/${reservationId}/cancel`, {
       method: "POST"
     })
 
@@ -97,8 +97,8 @@ export default function AdminBoxesPage() {
   const handleSubmit = async () => {
     const method = editingBox.id ? "PATCH" : "POST"
     const url = editingBox.id
-      ? `http://localhost:3001/boxes/admin/${editingBox.id}`
-      : `http://localhost:3001/boxes`
+      ? `${process.env.NEXT_PUBLIC_API_URL}/boxes/admin/${editingBox.id}`
+      : `${process.env.NEXT_PUBLIC_API_URL}/boxes`
 
     const body = {
       label: editingBox.label,

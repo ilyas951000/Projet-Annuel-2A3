@@ -51,7 +51,7 @@ const UsersPage = () => {
   useEffect(() => {
     const fetchUsers = async () => {
       try {
-        const res = await fetch('http://localhost:3001/users');
+        const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/users`);
         const data = await res.json();
         const loadedUsers = data.users || (Array.isArray(data) ? data : []);
         setUsers(loadedUsers);
@@ -81,7 +81,7 @@ const UsersPage = () => {
   }, [searchTerm, sortKey, sortAsc, users]);
 
   const openModal = async (user: User) => {
-    const res = await fetch(`http://localhost:3001/users/${user.id}`);
+    const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/users/${user.id}`);
     const fullUser: User = await res.json();
     setSelectedUser(fullUser);
     setFormData({
@@ -118,7 +118,7 @@ const UsersPage = () => {
   const handleUpdate = async () => {
     if (selectedUser) {
       try {
-        const res = await fetch(`http://localhost:3001/users/${selectedUser.id}`, {
+        const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/users/${selectedUser.id}`, {
           method: 'PUT',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(formData),

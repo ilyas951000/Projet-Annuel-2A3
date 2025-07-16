@@ -3,6 +3,7 @@
 import type React from "react"
 import { useEffect, useState } from "react"
 import axios from "axios"
+import AdresseAutocomplete from './../../../utils/AdresseAutocomplete';
 
 interface IMovement {
   id: number
@@ -21,6 +22,13 @@ export default function MovementsPage() {
   const [movements, setMovements] = useState<IMovement[]>([])
   const [error, setError] = useState<string | null>(null)
   const [loading, setLoading] = useState(true)
+  const [originQuery, setOriginQuery] = useState("")
+  const [destinationQuery, setDestinationQuery] = useState("")
+  const [movementHistory, setMovementHistory] = useState<IMovement[]>([])
+  const [currentPageHistory, setCurrentPageHistory] = useState(1)
+  const itemsPerPage = 2
+
+
 
   const [form, setForm] = useState({
     originStreet: "",
@@ -42,7 +50,7 @@ export default function MovementsPage() {
 
     const fetchUser = async () => {
       try {
-        const res = await axios.get("http://localhost:3001/auth/me", {
+        const res = await axios.get(`${process.env.NEXT_PUBLIC_API_URL}/auth/me`, {
           headers: { Authorization: `Bearer ${token}` },
         })
         setLivreurId(res.data.userId)
@@ -57,21 +65,34 @@ export default function MovementsPage() {
   }, [])
 
   useEffect(() => {
-    if (livreurId) fetchMovements()
+    if (livreurId) {
+      fetchMovements()
+      fetchMovementHistory()
+    }
   }, [livreurId])
+
 
   const fetchMovements = async () => {
     try {
-      const res = await axios.get(`http://localhost:3001/movements/user/${livreurId}`)
+      const res = await axios.get(`${process.env.NEXT_PUBLIC_API_URL}/movements/user/${livreurId}`)
       setMovements(res.data)
     } catch (err) {
       setError("Erreur chargement des trajets")
     }
   }
+  const fetchMovementHistory = async () => {
+    try {
+      const res = await axios.get(`${process.env.NEXT_PUBLIC_API_URL}/movements/user/${livreurId}/history`)
+      setMovementHistory(res.data)
+    } catch (err) {
+      console.error("Erreur chargement de l'historique des trajets")
+    }
+  }
+
 
   const handleDeactivate = async (id: number) => {
     try {
-      await axios.patch(`http://localhost:3001/movements/${id}/deactivate`)
+      await axios.patch(`${process.env.NEXT_PUBLIC_API_URL}/movements/${id}/deactivate`)
       fetchMovements()
     } catch (err) {
       alert("Erreur lors de la désactivation du trajet")
@@ -91,7 +112,7 @@ export default function MovementsPage() {
     if (!livreurId) return
 
     try {
-      await axios.post("http://localhost:3001/movements", {
+      await axios.post(`${process.env.NEXT_PUBLIC_API_URL}/movements`, {
         userId: livreurId,
         ...form,
         originPostalCode: Number.parseInt(form.originPostalCode, 10),
@@ -110,6 +131,12 @@ export default function MovementsPage() {
       alert("Erreur lors de l'ajout du trajet")
     }
   }
+  const indexOfLast = currentPageHistory * itemsPerPage
+  const indexOfFirst = indexOfLast - itemsPerPage
+  const currentHistory = movementHistory.slice(indexOfFirst, indexOfLast)
+
+  const totalPages = Math.ceil(movementHistory.length / itemsPerPage)
+
 
   if (!mounted) return null
 
@@ -141,117 +168,50 @@ export default function MovementsPage() {
 
             <form onSubmit={handleSubmit} className="space-y-6">
               <fieldset className="border border-gray-200 p-4 rounded-md bg-gray-50">
-                <legend className="font-medium text-sm px-2 bg-gray-50 text-gray-700">Départ</legend>
-                <div className="space-y-3">
-                  <div>
-                    <label htmlFor="originStreet" className="block text-sm font-medium text-gray-700 mb-1">
-                      Adresse
-                    </label>
-                    <input
-                      id="originStreet"
-                      type="text"
-                      name="originStreet"
-                      placeholder="Rue, numéro..."
-                      value={form.originStreet}
-                      onChange={handleChange}
-                      required
-                      className="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
-                    />
-                  </div>
-                  <div className="grid grid-cols-2 gap-3">
-                    <div>
-                      <label htmlFor="originCity" className="block text-sm font-medium text-gray-700 mb-1">
-                        Ville
-                      </label>
-                      <input
-                        id="originCity"
-                        type="text"
-                        name="originCity"
-                        placeholder="Ville"
-                        value={form.originCity}
-                        onChange={handleChange}
-                        required
-                        className="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
-                      />
-                    </div>
-                    <div>
-                      <label htmlFor="originPostalCode" className="block text-sm font-medium text-gray-700 mb-1">
-                        Code postal
-                      </label>
-                      <input
-                        id="originPostalCode"
-                        type="number"
-                        name="originPostalCode"
-                        placeholder="Code postal"
-                        value={form.originPostalCode}
-                        onChange={handleChange}
-                        required
-                        className="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
-                      />
-                    </div>
-                  </div>
-                </div>
+                <AdresseAutocomplete
+                  label="Adresse de départ"
+                  query={originQuery}
+                  onQueryChange={setOriginQuery}
+                  onSelect={({ street, city, postalCode }) =>
+                    setForm((prev) => ({
+                      ...prev,
+                      originStreet: street,
+                      originCity: city,
+                      originPostalCode: postalCode,
+                    }))
+                  }
+                />
+
               </fieldset>
 
               <fieldset className="border border-gray-200 p-4 rounded-md bg-gray-50">
-                <legend className="font-medium text-sm px-2 bg-gray-50 text-gray-700">Arrivée</legend>
-                <div className="space-y-3">
-                  <div>
-                    <label htmlFor="destinationStreet" className="block text-sm font-medium text-gray-700 mb-1">
-                      Adresse
-                    </label>
-                    <input
-                      id="destinationStreet"
-                      type="text"
-                      name="destinationStreet"
-                      placeholder="Rue, numéro..."
-                      value={form.destinationStreet}
-                      onChange={handleChange}
-                      required
-                      className="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
-                    />
-                  </div>
-                  <div className="grid grid-cols-2 gap-3">
-                    <div>
-                      <label htmlFor="destinationCity" className="block text-sm font-medium text-gray-700 mb-1">
-                        Ville
-                      </label>
-                      <input
-                        id="destinationCity"
-                        type="text"
-                        name="destinationCity"
-                        placeholder="Ville"
-                        value={form.destinationCity}
-                        onChange={handleChange}
-                        required
-                        className="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
-                      />
-                    </div>
-                    <div>
-                      <label htmlFor="destinationPostalCode" className="block text-sm font-medium text-gray-700 mb-1">
-                        Code postal
-                      </label>
-                      <input
-                        id="destinationPostalCode"
-                        type="number"
-                        name="destinationPostalCode"
-                        placeholder="Code postal"
-                        value={form.destinationPostalCode}
-                        onChange={handleChange}
-                        required
-                        className="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
-                      />
-                    </div>
-                  </div>
-                </div>
+                <AdresseAutocomplete
+                  label="Adresse d’arrivée"
+                  query={destinationQuery}
+                  onQueryChange={setDestinationQuery}
+                  onSelect={({ street, city, postalCode }) =>
+                    setForm((prev) => ({
+                      ...prev,
+                      destinationStreet: street,
+                      destinationCity: city,
+                      destinationPostalCode: postalCode,
+                    }))
+                  }
+                />
               </fieldset>
 
               <button
                 type="submit"
-                className="w-full bg-blue-600 text-white px-4 py-3 rounded-md hover:bg-blue-700 transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 font-medium"
+                disabled={movements.length > 0}
+                className={`w-full px-4 py-3 rounded-md font-medium transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 
+                  ${movements.length > 0 
+                    ? "bg-gray-300 text-gray-500 cursor-not-allowed"
+                    : "bg-blue-600 text-white hover:bg-blue-700 focus:ring-blue-500"
+                  }`}
               >
-                Ajouter ce trajet
+                {movements.length > 0 ? "Un trajet est déjà actif" : "Ajouter ce trajet"}
               </button>
+
             </form>
           </div>
 
@@ -353,7 +313,56 @@ export default function MovementsPage() {
                     </li>
                   ))}
                 </ul>
+                
               )}
+              <div className="bg-white rounded-lg shadow-md p-6 border border-gray-100 mt-8">
+  <h2 className="text-xl font-semibold mb-4 text-gray-800 flex items-center">
+    <span className="inline-block w-8 h-8 bg-gray-200 rounded-full text-gray-600 flex items-center justify-center mr-2">
+      🕘
+    </span>
+    Historique des Trajets
+  </h2>
+
+  {movementHistory.length === 0 ? (
+    <div className="text-center py-8 text-gray-500">
+      <p>Aucun trajet passé trouvé</p>
+    </div>
+  ) : (
+    <ul className="space-y-3">
+      {currentHistory.map((m) => (
+        <li key={m.id} className="border border-gray-200 p-4 rounded-md bg-gray-50 hover:bg-gray-100 transition-colors">
+          <div className="text-sm text-gray-700">
+            <p><strong>Départ :</strong> {m.originStreet}, {m.originPostalCode} {m.originCity}</p>
+            <p><strong>Arrivée :</strong> {m.destinationStreet}, {m.destinationPostalCode} {m.destinationCity}</p>
+          </div>
+        </li>
+      ))}
+      <div className="flex justify-center mt-4 space-x-2">
+  <button
+    disabled={currentPageHistory === 1}
+    onClick={() => setCurrentPageHistory((prev) => Math.max(prev - 1, 1))}
+    className="px-3 py-1 bg-gray-100 text-gray-700 rounded disabled:opacity-50"
+  >
+    Précédent
+  </button>
+  <span className="px-2 py-1 text-sm text-gray-600">
+    Page {currentPageHistory} / {totalPages}
+  </span>
+  <button
+    disabled={currentPageHistory === totalPages}
+    onClick={() => setCurrentPageHistory((prev) => Math.min(prev + 1, totalPages))}
+    className="px-3 py-1 bg-gray-100 text-gray-700 rounded disabled:opacity-50"
+  >
+    Suivant
+  </button>
+</div>
+
+    </ul>
+    
+
+  )}
+</div>
+
             </div>
           </div>
         </div>

@@ -46,7 +46,7 @@ export default function ClientPackagesPage() {
         const user = await userRes.json()
         if (!userRes.ok || !user.userId) throw new Error("Utilisateur non valide.")
 
-        const pkgRes = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/packages/client/${user.userId}`, {
+        const pkgRes = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/packages/client/${user.userId}/unpaid-pending`, {
           headers: { Authorization: `Bearer ${token}` },
         })
         const data = await pkgRes.json()

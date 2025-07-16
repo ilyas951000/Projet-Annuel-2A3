@@ -24,7 +24,7 @@ export default function AdminSchedule() {
     const fetchSchedules = async () => {
       try {
         const token = localStorage.getItem("token");
-        const res = await fetch("http://localhost:3001/courier/1/schedule/all", {
+        const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/courier/1/schedule/all`, {
           headers: {
             Authorization: `Bearer ${token}`,
           },

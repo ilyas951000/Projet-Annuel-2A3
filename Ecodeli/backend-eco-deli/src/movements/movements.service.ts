@@ -89,4 +89,13 @@ export class MovementsService {
     }
     await this.movementRepo.update(id, { active: false });
   }
+
+  async findHistoryByUser(userId: number): Promise<Movement[]> {
+    return this.movementRepo.find({
+      where: { userId, active: false },
+      order: { updatedAt: 'DESC' },
+    });
+  }
+  
+
 }

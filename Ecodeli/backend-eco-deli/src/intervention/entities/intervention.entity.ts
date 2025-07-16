@@ -48,4 +48,6 @@ export class Intervention {
   @OneToOne(() => Transfer, { eager: true, nullable: true })
   @JoinColumn()
   transfer?: Transfer;
+
+  
 }

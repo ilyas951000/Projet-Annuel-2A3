@@ -58,4 +58,11 @@ export class MovementsController {
   deactivate(@Param('id', ParseIntPipe) id: number): Promise<void> {
     return this.movementService.deactivate(id);
   }
+
+  @Get('user/:userId/history')
+  findHistoryByUser(
+    @Param('userId', ParseIntPipe) userId: number,
+  ): Promise<Movement[]> {
+    return this.movementService.findHistoryByUser(userId);
+  }
 }

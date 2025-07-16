@@ -31,6 +31,8 @@ export default function OtherAnnouncements() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [targetReady, setTargetReady] = useState(false);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [adsPerPage, setAdsPerPage] = useState(5);
 
 
   useEffect(() => {
@@ -71,49 +73,22 @@ export default function OtherAnnouncements() {
     fetchOthers();
   }, [userId]);
 
-  const tutorialSteps = [
-    {
-      selector: '[data-tour="titre-annonces"]',
-      text: "Voici les annonces publiques d'autres utilisateurs. Cliquez sur 'Voir plus' pour afficher les détails.",
-    },
-    {
-      selector: '[data-tour="table-annonces"]',
-      text: "Chaque ligne correspond à une annonce. Vous pouvez consulter le détail ici.",
-    },
-  ];
+  
+  const totalPages = Math.ceil(ads.length / adsPerPage);
+  const indexOfLastAd = currentPage * adsPerPage;
+  const indexOfFirstAd = indexOfLastAd - adsPerPage;
+  const currentAds = ads.slice(indexOfFirstAd, indexOfLastAd);
 
-  const [tutorialActive, setTutorialActive] = useState(true);
-  const [stepIndex, setStepIndex] = useState(0);
-  const currentStep = tutorialActive ? tutorialSteps[stepIndex] : null;
+  const handlePageChange = (pageNumber: number) => {
+    setCurrentPage(pageNumber);
+  };
 
-  useEffect(() => {
-    setTargetReady(false);
-    if (!currentStep?.selector) return;
-
-    let retries = 0;
-    const maxRetries = 10;
-
-    const checkElement = () => {
-      const el = document.querySelector(currentStep.selector);
-      if (el) {
-        el.classList.add("spotlight");
-        el.scrollIntoView({ behavior: "smooth", block: "center" });
+  const handleAdsPerPageChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    setAdsPerPage(Number(e.target.value));
+    setCurrentPage(1); // reset to first page
+  };
 
 
-        setTargetReady(true);
-      } else if (retries < maxRetries) {
-        retries++;
-        setTimeout(checkElement, 100);
-      }
-    };
-
-    checkElement();
-
-    return () => {
-      const el = document.querySelector(currentStep?.selector ?? "");
-      if (el) el.classList.remove("spotlight");
-    };
-  }, [currentStep?.selector]);
 
 
   return (
@@ -141,7 +116,7 @@ export default function OtherAnnouncements() {
 
           <h2
             className="text-3xl font-semibold text-gray-900 dark:text-white mb-6"
-            data-tour="titre-annonces"
+            
           >
             Les annonces des autres utilisateurs
           </h2>
@@ -151,7 +126,7 @@ export default function OtherAnnouncements() {
           ) : error ? (
             <p className="text-red-500">{error}</p>
           ) : (
-            <div data-tour="table-annonces">
+            <div>
               <p className="mb-4 text-sm text-gray-600 dark:text-gray-300">
                 Vous pouvez voir les annonces des autres utilisateurs :
               </p>
@@ -165,7 +140,7 @@ export default function OtherAnnouncements() {
                   </tr>
                 </thead>
                 <tbody>
-                  {ads.map((ad) => (
+                  {currentAds.map((ad) => (
                     <tr key={ad.id} className="border-t border-gray-200 dark:border-gray-600">
                       <td className="px-4 py-2 text-gray-900 dark:text-gray-100 flex items-center space-x-2">
                         {ad.advertisementPhoto && (
@@ -200,32 +175,43 @@ export default function OtherAnnouncements() {
                   ))}
                 </tbody>
               </table>
+              <div className="flex items-center justify-between mt-4">
+                <div>
+                  <label htmlFor="adsPerPage" className="mr-2 text-sm text-gray-700 dark:text-gray-300">Annonces par page:</label>
+                  <select
+                    id="adsPerPage"
+                    value={adsPerPage}
+                    onChange={handleAdsPerPageChange}
+                    className="border border-gray-300 dark:border-gray-600 rounded p-1"
+                  >
+                    <option value={5}>5</option>
+                    <option value={10}>10</option>
+                    <option value={20}>20</option>
+                  </select>
+                </div>
+
+                <div className="space-x-1">
+                  {Array.from({ length: totalPages }, (_, i) => i + 1).map((pageNum) => (
+                    <button
+                      key={pageNum}
+                      onClick={() => handlePageChange(pageNum)}
+                      className={`px-3 py-1 rounded ${
+                        pageNum === currentPage
+                          ? 'bg-blue-600 text-white'
+                          : 'bg-gray-200 dark:bg-gray-700 text-gray-800 dark:text-gray-200'
+                      }`}
+                    >
+                      {pageNum}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
             </div>
           )}
         </main>
 
-        {currentStep && targetReady && (
-          <div
-            className="fixed top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 bg-white text-black p-4 rounded-lg shadow max-w-xs z-[10050]"
-          >
-            <p>{currentStep.text}</p>
-            <button
-              className="mt-2 bg-green-600 text-white px-3 py-1 rounded"
-              onClick={() => {
-                const el = document.querySelector(currentStep.selector);
-                if (el) el.classList.remove("spotlight");
-
-                if (stepIndex < tutorialSteps.length - 1) {
-                  setStepIndex(stepIndex + 1);
-                } else {
-                  setTutorialActive(false);
-                }
-              }}
-            >
-              {stepIndex < tutorialSteps.length - 1 ? "Suivant" : "Terminer"}
-            </button>
-          </div>
-        )}
+        
 
 
         <style jsx global>{`

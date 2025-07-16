@@ -324,4 +324,50 @@ async refundClient(
     console.log('--- FIN DISTRIBUTION ---');
     return this.transferRepo.save(transfersToInsert);
   }
+
+  async updateStatusToPendingValidation(transferId: number): Promise<{ message: string }> {
+    const transfer = await this.transferRepo.findOne({ where: { id: transferId } });
+
+    if (!transfer) {
+      throw new NotFoundException('Transfer non trouvé');
+    }
+
+    transfer.status = 'attente de valider'; // ✅ valeur exacte attendue
+    await this.transferRepo.save(transfer);
+
+    return { message: 'Statut mis à jour vers "attente de valider"' };
+  }
+
+  async markTransferAsCompleted(transferId: number): Promise<{ message: string }> {
+    if (!transferId || isNaN(transferId)) {
+      throw new BadRequestException("ID de transfert invalide");
+    }
+
+    const transfer = await this.transferRepo.findOne({
+      where: { id: transferId },
+    });
+
+    if (!transfer) {
+      throw new NotFoundException("Transfert introuvable");
+    }
+
+    if (transfer.status === 'completed') {
+      return { message: "Ce transfert est déjà marqué comme completed" };
+    }
+
+    // Optionnel : ne permet de compléter qu’un transfert en attente
+    if (transfer.status !== 'pending') {
+      throw new BadRequestException("Seuls les transferts en attente peuvent être complétés");
+    }
+
+    transfer.status = 'completed';
+    transfer.isValidatedByClient = true; // utile si tu veux aussi verrouiller le transfert
+    await this.transferRepo.save(transfer);
+
+    return { message: "✅ Transfert marqué comme completed avec succès" };
+  }
+
+
+
+
 }

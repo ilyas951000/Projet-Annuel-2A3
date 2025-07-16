@@ -8,6 +8,7 @@ import {
   Delete,
   Query,
   BadRequestException,
+  NotFoundException,
 } from '@nestjs/common';
 import { PackagesService } from './packages.service';
 import { CreatePackageDto } from './dto/create-package.dto';
@@ -101,6 +102,12 @@ export class PackagesController {
   findUnpaidByClient(@Param('clientId') clientId: string) {
     return this.packagesService.findUnpaidPackagesByClient(+clientId);
   }
+
+  @Get('client/:clientId/unpaid-pending')
+  findUnpaidAndPendingStatusPackages(@Param('clientId') clientId: string) {
+    return this.packagesService.findUnpaidAndPendingStatusPackagesByClient(+clientId);
+  }
+
   
 
   @Patch(':id')
@@ -202,6 +209,18 @@ export class PackagesController {
     }
 
     return this.packagesService.confirmDeliveryWithCode(packageId, body.code);
+  }
+
+
+  @Patch(':id/update-delivery-status')
+  async updateDeliveryStatusCustom(
+    @Param('id') id: string,
+    @Body('deliveryStatus') deliveryStatus: string,
+  ) {
+    const packageId = parseInt(id, 10);
+    if (isNaN(packageId)) throw new BadRequestException('ID du colis invalide');
+
+    return this.packagesService.updateStatus(packageId, deliveryStatus);
   }
 
 
